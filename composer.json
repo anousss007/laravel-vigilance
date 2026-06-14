@@ -1,0 +1,66 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "anousss007/vigilance",
+    "description": "A driver-agnostic control center for Laravel queues, jobs, commands and the scheduler. Monitor what ran (with parameters), see failures, and dispatch jobs or run artisan commands manually from a self-contained dashboard.",
+    "keywords": ["laravel", "queue", "jobs", "horizon", "telescope", "scheduler", "artisan", "monitoring", "dashboard", "livewire"],
+    "homepage": "https://github.com/anousss007/vigilance",
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        { "name": "anousss007", "homepage": "https://github.com/anousss007" }
+    ],
+    "support": {
+        "issues": "https://github.com/anousss007/vigilance/issues",
+        "source": "https://github.com/anousss007/vigilance"
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/bus": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/queue": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+        "livewire/livewire": "^3.5",
+        "symfony/process": "^6.4 || ^7.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^2.9 || ^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^9.0 || ^10.0",
+        "pestphp/pest": "^2.0 || ^3.0",
+        "pestphp/pest-plugin-laravel": "^2.0 || ^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Vigilance\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vigilance\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Vigilance\\VigilanceServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "@php vendor/bin/pest",
+        "test:coverage": "@php vendor/bin/pest --coverage",
+        "lint": "@php vendor/bin/pint --test",
+        "format": "@php vendor/bin/pint",
+        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,20 @@
+# Keep the distributed package lean: dev-only files are excluded from `composer require` tarballs.
+/.github            export-ignore
+/tests              export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+.editorconfig       export-ignore
+CHANGELOG.md        export-ignore
+CONTRIBUTING.md     export-ignore
+phpunit.xml         export-ignore
+phpstan.neon        export-ignore
+pint.json           export-ignore
+testbench.yaml      export-ignore
+# CSS build inputs are dev-only; the compiled resources/dist/vigilance.css ships.
+/node_modules       export-ignore
+/resources/css      export-ignore
+package.json        export-ignore
+package-lock.json   export-ignore
+tailwind.config.js  export-ignore
+
+*.blade.php linguist-language=Blade

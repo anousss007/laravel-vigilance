@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Vigilance\Vigilance;
+
+class VigilanceServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        $this->authorization();
+    }
+
+    /**
+     * Register the Vigilance dashboard authorization gate.
+     *
+     * Vigilance is "local only" out of the box. To expose the dashboard in
+     * other environments, return true here for the users who should be able
+     * to view it. The closure receives the current HTTP request, so you can
+     * authorize off the authenticated user, an IP allowlist, a gate, etc.
+     *
+     * Lock this down before deploying — the dashboard can dispatch jobs and
+     * run artisan commands when vigilance.control.enabled is true.
+     */
+    protected function authorization(): void
+    {
+        Vigilance::auth(function ($request) {
+            return app()->environment('local') || in_array(optional($request->user())->email, [
+                // 'you@example.com',
+            ]);
+        });
+    }
+}
