@@ -109,7 +109,15 @@
                     @empty
                         <tr>
                             <td colspan="5" class="px-4 py-10 text-center text-zinc-600 dark:text-zinc-400">
-                                No traces recorded yet.
+                                @if ($enabled && $sampleRate <= 0)
+                                    No traces yet — tracing is on, but with
+                                    <code class="rounded bg-zinc-500/10 px-1 py-0.5">VIGILANCE_TRACING_SAMPLE=0</code>
+                                    only slow (&ge;{{ $slowThreshold }}ms) and failed requests are stored.
+                                    Raise it (e.g. <code class="rounded bg-zinc-500/10 px-1 py-0.5">1.0</code> locally)
+                                    to capture normal requests too.
+                                @else
+                                    No traces recorded yet.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

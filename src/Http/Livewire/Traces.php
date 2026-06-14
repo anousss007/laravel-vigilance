@@ -52,6 +52,8 @@ class Traces extends Component
         return view('vigilance::pages.traces', [
             'traces' => app(TraceStorage::class)->recent($filters, 75),
             'enabled' => (bool) config('vigilance.tracing.enabled', false),
+            'sampleRate' => (float) config('vigilance.tracing.sample_rate', 0),
+            'slowThreshold' => (int) config('vigilance.tracing.slow_threshold', 1000),
         ])->layout('vigilance::layout', ['title' => 'Traces']);
     }
 }

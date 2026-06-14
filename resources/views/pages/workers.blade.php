@@ -84,7 +84,14 @@
         </div>
     @empty
         <div class="rounded-lg border border-zinc-200 bg-white p-10 text-center text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-            No supervisors are running. Start one with <code>php artisan vigilance:supervise</code>.
+            <p class="font-medium text-zinc-700 dark:text-zinc-300">Vigilance isn&rsquo;t supervising any workers.</p>
+            <p class="mx-auto mt-1 max-w-md">
+                This is optional. To let Vigilance run and auto-scale your queue workers (a
+                driver-agnostic alternative to Horizon), start
+                <code class="rounded bg-zinc-500/10 px-1 py-0.5">php artisan vigilance:supervise</code>.
+                If you already use Horizon or a <code class="rounded bg-zinc-500/10 px-1 py-0.5">sync</code>/external
+                worker, you can safely ignore this page.
+            </p>
         </div>
     @endforelse
 </div>
