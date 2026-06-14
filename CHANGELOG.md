@@ -10,7 +10,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Driver-agnostic capture of queue jobs (full `queued → running → done/failed`
   lifecycle), artisan commands, and scheduled tasks.
 - Standalone Livewire dashboard: overview, runs, run detail, failures,
-  dispatcher, command runner, schedule and workload pages.
+  dispatcher, command runner, schedule and workload pages. Compatible with both
+  Livewire 3.5+ and Livewire 4 (class-based components; no rewrite required).
 - Manual control: dispatch allowlisted jobs (typed form reflected from the
   constructor) and run allowlisted artisan commands, with an audit log.
 - Failure grouping with Sentry-style fingerprints and a `FailureRecorded` event
