@@ -16,7 +16,7 @@ use Vigilance\Notifications\Alert;
  */
 class Vigilance
 {
-    public static string $version = '0.0.1';
+    public static string $version = '0.1.0';
 
     /** @var (Closure(mixed): bool)|null */
     protected static ?Closure $authUsing = null;

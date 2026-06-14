@@ -6,6 +6,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-14
+
+### Changed
+- Complete dashboard UI/UX redesign. A grouped, collapsible left sidebar (with a
+  ⌘K command palette and a mobile drawer) replaces the single-row top navigation;
+  a new emerald "technical dark" design system with semantic light/dark tokens, a
+  sans-for-UI / monospace-for-data type system, and a consistent component kit
+  (cards, stat tiles, tables, status pills, forms, empty states) is applied across
+  every page and APM card. Presentational only — no behaviour, route or data
+  changes.
+
 ## [0.0.1] - 2026-06-14
 
 First public release.
