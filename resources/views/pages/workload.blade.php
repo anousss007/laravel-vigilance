@@ -11,24 +11,27 @@
     $fmtMem = fn (?int $b) => $b === null ? '—' : number_format($b / 1048576, 1).'MB';
 @endphp
 
-<div wire:poll.visible.5s class="space-y-4">
-    <div class="flex items-baseline justify-between">
-        <h1 class="text-base font-semibold">Workload</h1>
-        <span class="text-xs text-zinc-600 dark:text-zinc-400">{{ count($queues) }} queues</span>
+<div wire:poll.visible.5s class="space-y-6">
+    <div class="v-page-head">
+        <div>
+            <h1 class="v-page-title">Workload</h1>
+            <p class="v-page-sub">Per-queue depth, throughput and latency.</p>
+        </div>
+        <span class="text-xs v-muted v-num">{{ count($queues) }} queues</span>
     </div>
 
-    <div class="flex flex-wrap items-center gap-4 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-xs dark:border-zinc-800 dark:bg-zinc-900">
-        <span class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">System load</span>
+    <div class="v-card v-card--pad flex flex-wrap items-center gap-4 text-xs">
+        <span class="v-stat__label">System load</span>
         @if ($load !== null)
-            <span><span class="font-semibold">{{ $load[1] }}</span> <span class="text-zinc-600 dark:text-zinc-400">1m</span></span>
-            <span><span class="font-semibold">{{ $load[5] }}</span> <span class="text-zinc-600 dark:text-zinc-400">5m</span></span>
-            <span><span class="font-semibold">{{ $load[15] }}</span> <span class="text-zinc-600 dark:text-zinc-400">15m</span></span>
+            <span><span class="font-semibold v-strong v-num">{{ $load[1] }}</span> <span class="v-muted">1m</span></span>
+            <span><span class="font-semibold v-strong v-num">{{ $load[5] }}</span> <span class="v-muted">5m</span></span>
+            <span><span class="font-semibold v-strong v-num">{{ $load[15] }}</span> <span class="v-muted">15m</span></span>
         @else
-            <span class="text-zinc-600 dark:text-zinc-400">n/a on this platform (sys_getloadavg unavailable)</span>
+            <span class="v-muted">n/a on this platform (sys_getloadavg unavailable)</span>
         @endif
     </div>
 
-    <p class="text-xs text-zinc-600 dark:text-zinc-400">Live queue depth is only available for the <code>database</code> and <code>redis</code> drivers; other drivers show “n/a”.</p>
+    <p class="text-xs v-muted">Live queue depth is only available for the <code class="v-code">database</code> and <code class="v-code">redis</code> drivers; other drivers show “n/a”.</p>
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @forelse ($queues as $queue)
@@ -44,85 +47,88 @@
                     $path .= ($i === 0 ? 'M' : 'L').$x.' '.$y.' ';
                 }
             @endphp
-            <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-                <div class="flex items-baseline justify-between">
-                    <h2 class="truncate font-semibold">{{ $queue['queue'] }}</h2>
-                    <span class="text-[10px] text-zinc-600 dark:text-zinc-400">{{ $queue['connection_name'] ?: 'no connection' }}</span>
+            <div class="v-card v-card--pad">
+                <div class="flex items-baseline justify-between gap-2">
+                    <h2 class="truncate font-semibold font-mono v-strong">{{ $queue['queue'] }}</h2>
+                    <span class="text-[10px] font-mono v-faint">{{ $queue['connection_name'] ?: 'no connection' }}</span>
                 </div>
 
                 <div class="mt-3 grid grid-cols-3 gap-2 text-center">
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Depth</div>
-                        <div class="font-semibold">{{ $queue['depth'] === null ? 'n/a' : $queue['depth'] }}</div>
+                        <div class="v-stat__label">Depth</div>
+                        <div class="font-semibold v-strong v-num">{{ $queue['depth'] === null ? 'n/a' : $queue['depth'] }}</div>
                     </div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Workers</div>
-                        <div class="font-semibold">{{ $queue['workers'] }}</div>
+                        <div class="v-stat__label">Workers</div>
+                        <div class="font-semibold v-strong v-num">{{ $queue['workers'] }}</div>
                     </div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Clear in</div>
-                        <div class="font-semibold">{{ $fmtMs($queue['time_to_clear_ms']) }}</div>
+                        <div class="v-stat__label">Clear in</div>
+                        <div class="font-semibold v-strong v-num">{{ $fmtMs($queue['time_to_clear_ms']) }}</div>
                     </div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Proc/1h</div>
-                        <div class="font-semibold">{{ $queue['processed_last_hour'] }}<span class="text-[10px] text-red-700 dark:text-red-300">{{ $queue['failed_last_hour'] > 0 ? ' · '.$queue['failed_last_hour'].'✗' : '' }}</span></div>
+                        <div class="v-stat__label">Proc/1h</div>
+                        <div class="font-semibold v-strong v-num">{{ $queue['processed_last_hour'] }}<span class="text-[10px]" style="color: var(--v-danger)">{{ $queue['failed_last_hour'] > 0 ? ' · '.$queue['failed_last_hour'].'✗' : '' }}</span></div>
                     </div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Avg run</div>
-                        <div class="font-semibold">{{ $fmtMs($queue['avg_runtime_ms']) }}</div>
+                        <div class="v-stat__label">Avg run</div>
+                        <div class="font-semibold v-strong v-num">{{ $fmtMs($queue['avg_runtime_ms']) }}</div>
                     </div>
                     <div>
-                        <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Avg wait</div>
-                        <div class="font-semibold">{{ $fmtMs($queue['avg_wait_ms']) }}</div>
+                        <div class="v-stat__label">Avg wait</div>
+                        <div class="font-semibold v-strong v-num">{{ $fmtMs($queue['avg_wait_ms']) }}</div>
                     </div>
                 </div>
 
                 <svg viewBox="0 0 {{ $sw }} {{ $sh }}" preserveAspectRatio="none" class="mt-3 h-10 w-full">
                     @if ($path)
-                        <path d="{{ $path }}" fill="none" stroke="rgb(59 130 246)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+                        <path d="{{ $path }}" fill="none" stroke="var(--v-info)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
                     @else
                         <line x1="0" y1="{{ $sh - 2 }}" x2="{{ $sw }}" y2="{{ $sh - 2 }}" stroke="rgb(113 113 122 / 0.4)" stroke-dasharray="3 3" />
                     @endif
                 </svg>
             </div>
         @empty
-            <div class="md:col-span-2 xl:col-span-3 rounded-lg border border-zinc-200 bg-white p-10 text-center text-xs text-zinc-600 dark:text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900">
-                No queue activity in the last 24 hours.
+            <div class="md:col-span-2 xl:col-span-3">
+                <div class="v-empty">
+                    <p class="v-empty__title">No queue activity</p>
+                    <p>No queue activity in the last 24 hours.</p>
+                </div>
             </div>
         @endforelse
     </div>
 
     @if (count($jobClasses))
-        <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div class="flex items-baseline justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                <h2 class="font-semibold">By job class</h2>
-                <span class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">last 24 hours</span>
+        <div class="v-card overflow-hidden">
+            <div class="v-card__header">
+                <h2 class="v-card__title">By job class</h2>
+                <span class="text-[10px] uppercase tracking-wide v-faint">last 24 hours</span>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs">
-                    <thead class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+                <table class="v-table v-table--hover">
+                    <thead>
                         <tr>
-                            <th class="px-4 py-2 font-medium">Job</th>
-                            <th class="px-4 py-2 text-right font-medium">Runs</th>
-                            <th class="px-4 py-2 text-right font-medium">Failed</th>
-                            <th class="px-4 py-2 text-right font-medium">Fail %</th>
-                            <th class="px-4 py-2 text-right font-medium">Avg</th>
-                            <th class="px-4 py-2 text-right font-medium">Max</th>
-                            <th class="px-4 py-2 text-right font-medium">Avg mem</th>
-                            <th class="px-4 py-2 text-right font-medium">Avg CPU</th>
+                            <th>Job</th>
+                            <th class="text-right">Runs</th>
+                            <th class="text-right">Failed</th>
+                            <th class="text-right">Fail %</th>
+                            <th class="text-right">Avg</th>
+                            <th class="text-right">Max</th>
+                            <th class="text-right">Avg mem</th>
+                            <th class="text-right">Avg CPU</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($jobClasses as $jc)
-                            <tr class="border-t border-zinc-100 dark:border-zinc-800">
-                                <td class="px-4 py-2 font-medium" title="{{ $jc['name'] }}">{{ class_basename($jc['name']) }}</td>
-                                <td class="px-4 py-2 text-right">{{ $jc['runs'] }}</td>
-                                <td class="px-4 py-2 text-right {{ $jc['failed'] > 0 ? 'text-red-700 dark:text-red-300' : '' }}">{{ $jc['failed'] }}</td>
-                                <td class="px-4 py-2 text-right">{{ $jc['fail_rate'] }}%</td>
-                                <td class="px-4 py-2 text-right">{{ $fmtMs($jc['avg_ms']) }}</td>
-                                <td class="px-4 py-2 text-right">{{ $fmtMs($jc['max_ms']) }}</td>
-                                <td class="px-4 py-2 text-right">{{ $fmtMem($jc['avg_memory']) }}</td>
-                                <td class="px-4 py-2 text-right">{{ $jc['avg_cpu'] === null ? '—' : $fmtMs($jc['avg_cpu']) }}</td>
+                            <tr>
+                                <td class="font-medium font-mono v-strong" title="{{ $jc['name'] }}">{{ class_basename($jc['name']) }}</td>
+                                <td class="text-right v-num">{{ $jc['runs'] }}</td>
+                                <td class="text-right v-num" @if ($jc['failed'] > 0) style="color: var(--v-danger)" @endif>{{ $jc['failed'] }}</td>
+                                <td class="text-right v-num">{{ $jc['fail_rate'] }}%</td>
+                                <td class="text-right v-num font-mono">{{ $fmtMs($jc['avg_ms']) }}</td>
+                                <td class="text-right v-num font-mono v-muted">{{ $fmtMs($jc['max_ms']) }}</td>
+                                <td class="text-right v-num font-mono v-muted">{{ $fmtMem($jc['avg_memory']) }}</td>
+                                <td class="text-right v-num font-mono v-muted">{{ $jc['avg_cpu'] === null ? '—' : $fmtMs($jc['avg_cpu']) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

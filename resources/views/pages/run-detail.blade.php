@@ -24,16 +24,15 @@
 @endphp
 
 <div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="v-page-head">
         <div class="flex items-center gap-3">
-            <a href="{{ route('vigilance.runs') }}" class="text-xs text-zinc-600 dark:text-zinc-400 hover:underline">&larr; runs</a>
+            <a href="{{ route('vigilance.runs') }}" class="text-xs v-link">&larr; runs</a>
             @include('vigilance::partials.status', ['status' => $run->status])
-            <h1 class="text-base font-semibold">{{ $run->display_name ?: $run->name }}</h1>
+            <h1 class="v-page-title">{{ $run->display_name ?: $run->name }}</h1>
         </div>
 
         @if ($canRetry)
-            <button type="button" wire:click="retry" wire:loading.attr="disabled"
-                    class="rounded bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-emerald-400 disabled:opacity-50">
+            <button type="button" wire:click="retry" wire:loading.attr="disabled" class="v-btn v-btn--primary">
                 <span wire:loading.remove wire:target="retry">Retry job</span>
                 <span wire:loading wire:target="retry">Retrying…</span>
             </button>
@@ -53,90 +52,98 @@
             ['CPU', $fmtMs($run->cpu_time_ms)],
             ['Via', ($run->via ?: 'auto').($run->caused_by ? ' · '.$run->caused_by : '')],
         ] as [$label, $value])
-            <div class="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                <div class="text-[10px] uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{{ $label }}</div>
-                <div class="mt-1 truncate font-medium" title="{{ $value }}">{{ $value }}</div>
+            <div class="v-stat">
+                <div class="v-stat__label">{{ $label }}</div>
+                <div class="mt-1 truncate font-medium v-strong v-num" title="{{ $value }}">{{ $value }}</div>
             </div>
         @endforeach
     </div>
 
     {{-- Timing --}}
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 class="mb-3 text-sm font-semibold">Timing</h2>
-        <dl class="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
-            <div><dt class="text-zinc-600 dark:text-zinc-400">Queued</dt><dd>{{ $run->queued_at ?: '—' }}</dd></div>
-            <div><dt class="text-zinc-600 dark:text-zinc-400">Started</dt><dd>{{ $run->started_at ?: '—' }}</dd></div>
-            <div><dt class="text-zinc-600 dark:text-zinc-400">Finished</dt><dd>{{ $run->finished_at ?: '—' }}</dd></div>
-        </dl>
-        @if ($run->uuid)
-            <div class="mt-3 text-[10px] text-zinc-600 dark:text-zinc-400">uuid {{ $run->uuid }}</div>
-        @endif
+    <div class="v-card">
+        <div class="v-card__header">
+            <h2 class="v-card__title">Timing</h2>
+        </div>
+        <div class="v-card--pad">
+            <dl class="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                <div><dt class="v-faint">Queued</dt><dd class="v-num font-mono">{{ $run->queued_at ?: '—' }}</dd></div>
+                <div><dt class="v-faint">Started</dt><dd class="v-num font-mono">{{ $run->started_at ?: '—' }}</dd></div>
+                <div><dt class="v-faint">Finished</dt><dd class="v-num font-mono">{{ $run->finished_at ?: '—' }}</dd></div>
+            </dl>
+            @if ($run->uuid)
+                <div class="mt-3 text-[10px] v-faint font-mono">uuid {{ $run->uuid }}</div>
+            @endif
+        </div>
     </div>
 
     {{-- Tags --}}
     @if (! empty($run->tags))
         <div class="flex flex-wrap items-center gap-1.5">
             @foreach ($run->tags as $tag)
-                <a href="{{ route('vigilance.runs', ['tag' => $tag]) }}" class="rounded bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700">{{ $tag }}</a>
+                <a href="{{ route('vigilance.runs', ['tag' => $tag]) }}" class="v-pill is-neutral font-mono">{{ $tag }}</a>
             @endforeach
         </div>
     @endif
 
     {{-- Lineage --}}
     @if ($retryOf || $retries->isNotEmpty())
-        <div class="rounded-lg border border-zinc-200 bg-white p-4 text-xs dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 class="mb-2 text-sm font-semibold">Lineage</h2>
-            @if ($retryOf)
-                <div class="text-zinc-600 dark:text-zinc-400">Retry of
-                    <a href="{{ route('vigilance.runs.show', $retryOf->id) }}" class="text-emerald-700 hover:underline dark:text-emerald-300">run #{{ $retryOf->id }}</a>
-                </div>
-            @endif
-            @if ($retries->isNotEmpty())
-                <div class="mt-1 text-zinc-600 dark:text-zinc-400">Retried by:
-                    @foreach ($retries as $child)
-                        <a href="{{ route('vigilance.runs.show', $child->id) }}" class="text-emerald-700 hover:underline dark:text-emerald-300">#{{ $child->id }}</a>@if (! $loop->last), @endif
-                    @endforeach
-                </div>
-            @endif
+        <div class="v-card">
+            <div class="v-card__header">
+                <h2 class="v-card__title">Lineage</h2>
+            </div>
+            <div class="v-card--pad text-xs">
+                @if ($retryOf)
+                    <div class="v-muted">Retry of
+                        <a href="{{ route('vigilance.runs.show', $retryOf->id) }}" class="v-link">run #{{ $retryOf->id }}</a>
+                    </div>
+                @endif
+                @if ($retries->isNotEmpty())
+                    <div class="mt-1 v-muted">Retried by:
+                        @foreach ($retries as $child)
+                            <a href="{{ route('vigilance.runs.show', $child->id) }}" class="v-link">#{{ $child->id }}</a>@if (! $loop->last), @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
     @endif
 
     {{-- Parameters --}}
     @if (! empty($run->parameters))
-        <div class="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800"><h2 class="text-sm font-semibold">Parameters</h2></div>
-            <pre class="overflow-x-auto p-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">{{ json_encode($run->parameters, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
+        <div class="v-card">
+            <div class="v-card__header"><h2 class="v-card__title">Parameters</h2></div>
+            <pre class="overflow-x-auto p-4 text-xs leading-relaxed font-mono v-muted">{{ json_encode($run->parameters, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</pre>
         </div>
     @endif
 
     {{-- Output --}}
     @if (! empty($run->output))
-        <div class="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800"><h2 class="text-sm font-semibold">Output</h2></div>
-            <pre class="overflow-x-auto bg-zinc-950 p-4 text-xs leading-relaxed text-emerald-300">{{ $run->output }}</pre>
+        <div class="v-card">
+            <div class="v-card__header"><h2 class="v-card__title">Output</h2></div>
+            <pre class="overflow-x-auto p-4 text-xs leading-relaxed font-mono" style="background: var(--v-bg); color: var(--v-accent-strong);">{{ $run->output }}</pre>
         </div>
     @endif
 
     {{-- Exception --}}
     @if ($run->exception_class || $run->exception_message)
-        <div class="rounded-lg border border-red-500/40 bg-white dark:bg-zinc-900">
-            <div class="border-b border-red-500/40 px-4 py-3">
-                <h2 class="text-sm font-semibold text-red-700 dark:text-red-300">Exception</h2>
+        <div class="v-card" style="border-color: var(--v-danger);">
+            <div class="v-card__header" style="border-color: var(--v-danger);">
+                <h2 class="v-card__title" style="color: var(--v-danger);">Exception</h2>
             </div>
             <div class="space-y-2 p-4 text-xs">
-                <div class="font-semibold text-red-700 dark:text-red-300">{{ $run->exception_class }}</div>
-                <div class="text-zinc-600 dark:text-zinc-400">{{ $run->exception_message }}</div>
+                <div class="font-semibold font-mono" style="color: var(--v-danger);">{{ $run->exception_class }}</div>
+                <div class="v-muted">{{ $run->exception_message }}</div>
 
                 @if ($run->failure_group_id)
-                    <a href="{{ route('vigilance.runs', ['group' => $run->failure_group_id]) }}" class="inline-block text-emerald-700 hover:underline dark:text-emerald-300">view other runs in this failure group →</a>
+                    <a href="{{ route('vigilance.runs', ['group' => $run->failure_group_id]) }}" class="inline-block v-link">view other runs in this failure group →</a>
                 @endif
 
                 @if ($run->exception)
-                    <button type="button" wire:click="toggleTrace" class="block text-zinc-600 dark:text-zinc-400 hover:underline">
+                    <button type="button" wire:click="toggleTrace" class="block v-btn v-btn--ghost v-btn--sm">
                         {{ $showTrace ? 'Hide' : 'Show' }} stack trace
                     </button>
                     @if ($showTrace)
-                        <pre class="mt-2 max-h-96 overflow-auto rounded bg-zinc-950 p-4 leading-relaxed text-zinc-300">{{ $run->exception }}</pre>
+                        <pre class="mt-2 max-h-96 overflow-auto rounded p-4 leading-relaxed font-mono v-muted" style="background: var(--v-bg);">{{ $run->exception }}</pre>
                     @endif
                 @endif
             </div>

@@ -1,17 +1,22 @@
 <div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-base font-semibold">Application performance</h1>
+    <div class="v-page-head">
+        <div>
+            <h1 class="v-page-title">Application performance</h1>
+            <p class="v-page-sub">Whole-app telemetry — servers, requests, queries, cache, exceptions and more.</p>
+        </div>
 
-        <div class="flex items-center gap-1" role="group" aria-label="Time window">
+        <div class="inline-flex items-center gap-0.5 rounded-lg p-0.5" role="group" aria-label="Time window"
+             style="background: var(--v-surface-2); border: 1px solid var(--v-border);">
             @foreach ($periods as $p)
                 <button type="button"
                         wire:click="setPeriod('{{ $p }}')"
                         aria-pressed="{{ $period === $p ? 'true' : 'false' }}"
-                        @class([
-                            'rounded px-2.5 py-1 text-xs transition-colors',
-                            'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' => $period === $p,
-                            'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100' => $period !== $p,
-                        ])>
+                        class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+                        @if ($period === $p)
+                            style="background: var(--v-surface); color: var(--v-text-strong); box-shadow: var(--v-shadow);"
+                        @else
+                            style="color: var(--v-muted);"
+                        @endif>
                     {{ $p }}
                 </button>
             @endforeach

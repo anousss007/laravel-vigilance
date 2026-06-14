@@ -43,45 +43,38 @@
     $nPlusOne = $trace->attributes['n_plus_one'] ?? null;
 @endphp
 
-<div class="space-y-5">
+<div class="space-y-6">
     <div>
-        <a href="{{ route('vigilance.traces') }}" class="text-xs text-emerald-700 hover:underline dark:text-emerald-300">&larr; all traces</a>
+        <a href="{{ route('vigilance.traces') }}" class="text-xs v-link">&larr; all traces</a>
     </div>
 
     {{-- Summary --}}
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    <div class="v-card v-card--pad">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span @class([
-                    'inline-block h-2 w-2 rounded-full',
-                    'bg-red-500' => $trace->failed(),
-                    'bg-emerald-500' => ! $trace->failed(),
-                ]) aria-hidden="true"></span>
-                <h1 class="font-mono text-sm font-semibold">{{ $trace->name }}</h1>
-                <span class="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ $trace->type }}</span>
-                <span @class([
-                    'rounded px-1.5 py-0.5 text-[10px]',
-                    'bg-red-500/10 text-red-700 dark:text-red-300' => $trace->failed(),
-                    'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' => ! $trace->failed(),
-                ])>{{ $trace->status }}</span>
+            <div class="flex items-center gap-2.5">
+                <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true"
+                      style="background: {{ $trace->failed() ? 'var(--v-danger)' : 'var(--v-success)' }};"></span>
+                <h1 class="font-mono text-sm font-semibold v-strong">{{ $trace->name }}</h1>
+                <span class="v-pill is-neutral">{{ $trace->type }}</span>
+                <span @class(['v-pill', 'is-danger' => $trace->failed(), 'is-success' => ! $trace->failed()])>{{ $trace->status }}</span>
             </div>
-            <span class="text-xs text-zinc-600 dark:text-zinc-400">{{ CarbonImmutable::createFromTimestamp($trace->startedAt)->diffForHumans() }}</span>
+            <span class="text-xs v-muted">{{ CarbonImmutable::createFromTimestamp($trace->startedAt)->diffForHumans() }}</span>
         </div>
 
-        <dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
-                <dt class="text-xs text-zinc-600 dark:text-zinc-400">Duration</dt>
-                <dd class="mt-0.5 text-lg font-semibold {{ $trace->durationMs >= (int) config('vigilance.tracing.slow_threshold', 1000) ? 'text-amber-700 dark:text-amber-300' : '' }}">{{ $fmtMs($trace->durationMs) }}</dd>
+                <dt class="v-stat__label">Duration</dt>
+                <dd class="mt-1 text-lg font-semibold v-num font-mono" @if ($trace->durationMs >= (int) config('vigilance.tracing.slow_threshold', 1000)) style="color: var(--v-warn)" @else style="color: var(--v-text-strong)" @endif>{{ $fmtMs($trace->durationMs) }}</dd>
             </div>
             <div>
-                <dt class="text-xs text-zinc-600 dark:text-zinc-400">Spans</dt>
-                <dd class="mt-0.5 text-lg font-semibold">{{ $trace->spanCount }}@if ($trace->droppedSpans > 0)<span class="text-xs font-normal text-zinc-500"> (+{{ $trace->droppedSpans }} dropped)</span>@endif</dd>
+                <dt class="v-stat__label">Spans</dt>
+                <dd class="mt-1 text-lg font-semibold v-strong v-num">{{ $trace->spanCount }}@if ($trace->droppedSpans > 0)<span class="text-xs font-normal v-faint"> (+{{ $trace->droppedSpans }} dropped)</span>@endif</dd>
             </div>
             @foreach ($trace->attributes as $key => $value)
                 @if (! is_array($value) && $value !== null && $value !== '')
                     <div>
-                        <dt class="text-xs text-zinc-600 dark:text-zinc-400">{{ $key }}</dt>
-                        <dd class="mt-0.5 truncate font-mono text-sm">{{ is_bool($value) ? ($value ? 'true' : 'false') : $value }}</dd>
+                        <dt class="v-stat__label">{{ $key }}</dt>
+                        <dd class="mt-1 truncate font-mono text-sm v-strong">{{ is_bool($value) ? ($value ? 'true' : 'false') : $value }}</dd>
                     </div>
                 @endif
             @endforeach
@@ -89,7 +82,7 @@
     </div>
 
     @if ($nPlusOne)
-        <div class="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-200" role="status">
+        <div class="v-card v-card--pad text-xs" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             <span class="font-semibold">Possible N+1 query.</span>
             The same query ran <span class="font-semibold">{{ $nPlusOne['count'] }}×</span> in this trace:
             <code class="mt-1 block truncate font-mono">{{ $nPlusOne['sql'] }}</code>
@@ -97,10 +90,10 @@
     @endif
 
     {{-- Waterfall --}}
-    <div class="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-            <h2 class="text-sm font-semibold">Timeline</h2>
-            <div class="flex flex-wrap items-center gap-3 text-[11px] text-zinc-600 dark:text-zinc-400">
+    <div class="v-card overflow-hidden">
+        <div class="v-card__header">
+            <h2 class="v-card__title">Timeline</h2>
+            <div class="flex flex-wrap items-center gap-3 text-[11px] v-muted">
                 @foreach ($byType as $type => $count)
                     <span class="inline-flex items-center gap-1.5">
                         <span class="inline-block h-2 w-2 rounded-sm {{ $typeBar[$type] ?? 'bg-zinc-400' }}" aria-hidden="true"></span>
@@ -111,9 +104,9 @@
         </div>
 
         @if (count($trace->spans) === 0)
-            <p class="px-4 py-10 text-center text-xs text-zinc-600 dark:text-zinc-400">No spans were captured for this trace.</p>
+            <p class="px-4 py-10 text-center text-xs v-muted">No spans were captured for this trace.</p>
         @else
-            <ul class="divide-y divide-zinc-50 dark:divide-zinc-800/50">
+            <ul>
                 @foreach ($trace->spans as $span)
                     @php
                         $left = min(99.6, $span->offsetUs / $totalUs * 100);
@@ -122,15 +115,16 @@
                     <li class="flex items-center gap-3 px-4 py-1.5">
                         <div class="flex w-2/5 min-w-0 items-center gap-1.5">
                             <span class="shrink-0 rounded px-1 py-0.5 text-[9px] uppercase {{ $typeText[$span->type] ?? 'text-zinc-500' }}">{{ $span->type }}</span>
-                            <span class="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300" title="{{ $span->label }}">{{ $span->label }}</span>
+                            <span class="truncate font-mono text-[11px] v-muted" title="{{ $span->label }}">{{ $span->label }}</span>
                         </div>
-                        <div class="relative h-3.5 flex-1 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-800/60"
+                        <div class="relative h-3.5 flex-1 overflow-hidden rounded"
+                             style="background: var(--v-surface-2);"
                              role="img"
                              aria-label="{{ $span->type }} at {{ $fmtSpan($span->offsetUs) }}, took {{ $fmtSpan($span->durationUs) }}">
                             <span class="absolute top-0 h-full rounded {{ $typeBar[$span->type] ?? 'bg-zinc-400' }}"
                                   style="left: {{ round($left, 2) }}%; width: {{ round($width, 2) }}%"></span>
                         </div>
-                        <div class="w-16 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-600 dark:text-zinc-400">{{ $fmtSpan($span->durationUs) }}</div>
+                        <div class="w-16 shrink-0 text-right font-mono text-[11px] v-num v-muted">{{ $fmtSpan($span->durationUs) }}</div>
                     </li>
                 @endforeach
             </ul>

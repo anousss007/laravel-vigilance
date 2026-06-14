@@ -1,3 +1,302 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================================================
+   Vigilance design tokens
+   Emerald "technical dark" system. Light + dark are defined together; the
+   dashboard is dark-first (html.dark) but both must look intentional.
+   ========================================================================== */
+@layer base {
+    :root {
+        --v-bg: #fafafa;
+        --v-surface: #ffffff;
+        --v-surface-2: #f4f4f5;
+        --v-elevated: #ffffff;
+        --v-border: #e7e7ea;
+        --v-border-strong: #d4d4d8;
+
+        --v-text: #27272a;
+        --v-text-strong: #09090b;
+        --v-muted: #52525b;
+        --v-faint: #71717a;
+
+        --v-accent: #059669;
+        --v-accent-strong: #047857;
+        --v-accent-contrast: #ffffff;
+        --v-accent-bg: rgba(5, 150, 105, 0.10);
+
+        --v-success: #059669;  --v-success-bg: rgba(5, 150, 105, 0.10);
+        --v-warn: #b45309;     --v-warn-bg: rgba(245, 158, 11, 0.14);
+        --v-danger: #e11d48;   --v-danger-bg: rgba(225, 29, 72, 0.10);
+        --v-info: #0284c7;     --v-info-bg: rgba(2, 132, 199, 0.10);
+
+        --v-ring: rgba(5, 150, 105, 0.35);
+        --v-shadow: 0 1px 2px rgba(9, 9, 11, 0.04), 0 1px 3px rgba(9, 9, 11, 0.06);
+    }
+
+    .dark {
+        --v-bg: #08080a;
+        --v-surface: #121215;
+        --v-surface-2: #1b1b1f;
+        --v-elevated: #202024;
+        --v-border: #26262b;
+        --v-border-strong: #34343b;
+
+        --v-text: #e4e4e7;
+        --v-text-strong: #fafafa;
+        --v-muted: #a1a1aa;
+        --v-faint: #71717a;
+
+        --v-accent: #10b981;
+        --v-accent-strong: #34d399;
+        --v-accent-contrast: #04140c;
+        --v-accent-bg: rgba(16, 185, 129, 0.13);
+
+        --v-success: #34d399;  --v-success-bg: rgba(16, 185, 129, 0.13);
+        --v-warn: #fbbf24;     --v-warn-bg: rgba(245, 158, 11, 0.14);
+        --v-danger: #fb7185;   --v-danger-bg: rgba(244, 63, 94, 0.14);
+        --v-info: #38bdf8;     --v-info-bg: rgba(56, 189, 248, 0.13);
+
+        --v-ring: rgba(16, 185, 129, 0.45);
+        --v-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.36);
+    }
+
+    html {
+        scrollbar-color: var(--v-border-strong) transparent;
+    }
+
+    body {
+        @apply font-sans antialiased;
+        background: var(--v-bg);
+        color: var(--v-text);
+        font-feature-settings: "cv11", "ss01";
+    }
+
+    h1, h2, h3, h4 {
+        color: var(--v-text-strong);
+        letter-spacing: -0.011em;
+    }
+
+    ::selection {
+        background: var(--v-accent);
+        color: var(--v-accent-contrast);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--v-accent);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    [x-cloak] { display: none !important; }
+
+    /* Slim, themed scrollbars. */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+        background: var(--v-border-strong);
+        border: 2px solid transparent;
+        border-radius: 8px;
+        background-clip: content-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--v-faint);
+        background-clip: content-box;
+    }
+}
+
+/* ==========================================================================
+   Component kit
+   ========================================================================== */
+@layer components {
+    /* --- Text helpers ----------------------------------------------------- */
+    .v-strong { color: var(--v-text-strong); }
+    .v-muted  { color: var(--v-muted); }
+    .v-faint  { color: var(--v-faint); }
+    .v-accent { color: var(--v-accent-strong); }
+    .v-num    { font-variant-numeric: tabular-nums; }
+    .v-code {
+        @apply rounded px-1.5 py-0.5 font-mono text-[12px];
+        background: var(--v-surface-2);
+        color: var(--v-text);
+    }
+    .v-kbd {
+        @apply inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] leading-none;
+        background: var(--v-surface-2);
+        border: 1px solid var(--v-border-strong);
+        color: var(--v-muted);
+    }
+    .v-link { color: var(--v-accent-strong); }
+    .v-link:hover { text-decoration: underline; }
+
+    /* --- Shell ------------------------------------------------------------ */
+    .v-sidebar {
+        background: var(--v-surface);
+        border-right: 1px solid var(--v-border);
+    }
+    .v-topbar {
+        background: color-mix(in srgb, var(--v-bg) 80%, transparent);
+        border-bottom: 1px solid var(--v-border);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+
+    /* --- Navigation ------------------------------------------------------- */
+    .v-nav-label {
+        @apply px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em];
+        color: var(--v-faint);
+    }
+    .v-nav-item {
+        @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors;
+        color: var(--v-muted);
+        position: relative;
+    }
+    .v-nav-item:hover {
+        color: var(--v-text-strong);
+        background: var(--v-surface-2);
+    }
+    .v-nav-item.is-active {
+        color: var(--v-accent-strong);
+        background: var(--v-accent-bg);
+    }
+    .v-nav-item.is-active::before {
+        content: "";
+        position: absolute;
+        left: -0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 1.1rem;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--v-accent);
+    }
+    .v-nav-icon { @apply h-[18px] w-[18px] shrink-0; stroke-width: 1.75; }
+
+    /* --- Page header ------------------------------------------------------ */
+    .v-page-head { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
+    .v-page-title { @apply text-xl font-semibold; color: var(--v-text-strong); letter-spacing: -0.02em; }
+    .v-page-sub { @apply mt-0.5 text-[13px]; color: var(--v-muted); }
+
+    /* --- Cards / panels --------------------------------------------------- */
+    .v-card {
+        background: var(--v-surface);
+        border: 1px solid var(--v-border);
+        @apply rounded-xl;
+        box-shadow: var(--v-shadow);
+    }
+    .v-card--pad { @apply p-4; }
+    .v-card__header {
+        @apply flex items-center justify-between gap-3 px-4 py-3;
+        border-bottom: 1px solid var(--v-border);
+    }
+    .v-card__title { @apply text-[13px] font-semibold; color: var(--v-text-strong); }
+
+    /* --- Stat / KPI ------------------------------------------------------- */
+    .v-stat {
+        background: var(--v-surface);
+        border: 1px solid var(--v-border);
+        @apply rounded-xl p-4;
+        box-shadow: var(--v-shadow);
+    }
+    .v-stat__label { @apply text-[11px] font-medium uppercase tracking-wide; color: var(--v-faint); }
+    .v-stat__value {
+        @apply mt-1.5 text-[26px] font-semibold leading-none;
+        color: var(--v-text-strong);
+        font-variant-numeric: tabular-nums;
+    }
+    .v-stat__meta { @apply mt-2 text-xs; color: var(--v-muted); }
+
+    /* --- Pills / status --------------------------------------------------- */
+    .v-pill {
+        @apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium leading-none;
+        background: var(--v-surface-2);
+        color: var(--v-muted);
+    }
+    .v-pill .v-dot { @apply h-1.5 w-1.5 rounded-full; background: currentColor; }
+    .v-pill.is-success { color: var(--v-success); background: var(--v-success-bg); }
+    .v-pill.is-warn    { color: var(--v-warn);    background: var(--v-warn-bg); }
+    .v-pill.is-danger  { color: var(--v-danger);  background: var(--v-danger-bg); }
+    .v-pill.is-info    { color: var(--v-info);    background: var(--v-info-bg); }
+    .v-pill.is-running { color: var(--v-info);    background: var(--v-info-bg); }
+    .v-pill.is-paused  { color: var(--v-warn);    background: var(--v-warn-bg); }
+    .v-pill.is-terminating { color: var(--v-danger); background: var(--v-danger-bg); }
+    .v-pill.is-neutral { color: var(--v-muted);   background: var(--v-surface-2); }
+
+    /* --- Tables ----------------------------------------------------------- */
+    .v-table { @apply w-full text-left text-[13px]; border-collapse: collapse; }
+    .v-table thead th {
+        @apply px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide;
+        color: var(--v-faint);
+        border-bottom: 1px solid var(--v-border);
+        white-space: nowrap;
+    }
+    .v-table tbody td {
+        @apply px-3 py-2.5 align-middle;
+        color: var(--v-text);
+        border-bottom: 1px solid var(--v-border);
+    }
+    .v-table tbody tr:last-child td { border-bottom: 0; }
+    .v-table--hover tbody tr { transition: background 0.12s; }
+    .v-table--hover tbody tr:hover { background: var(--v-surface-2); }
+
+    /* --- Buttons ---------------------------------------------------------- */
+    .v-btn {
+        @apply inline-flex cursor-pointer select-none items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors;
+        background: var(--v-surface-2);
+        border: 1px solid var(--v-border-strong);
+        color: var(--v-text);
+    }
+    .v-btn:hover { background: var(--v-elevated); color: var(--v-text-strong); }
+    .v-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .v-btn--sm { @apply px-2.5 py-1 text-xs; }
+    .v-btn--primary { background: var(--v-accent); border-color: transparent; color: var(--v-accent-contrast); }
+    .v-btn--primary:hover { background: var(--v-accent-strong); color: var(--v-accent-contrast); }
+    .v-btn--ghost { background: transparent; border-color: transparent; color: var(--v-muted); }
+    .v-btn--ghost:hover { background: var(--v-surface-2); color: var(--v-text-strong); }
+    .v-btn--danger { background: transparent; color: var(--v-danger); }
+    .v-btn--danger:hover { background: var(--v-danger-bg); }
+
+    /* --- Forms ------------------------------------------------------------ */
+    .v-label { @apply mb-1 block text-[11px] font-medium uppercase tracking-wide; color: var(--v-faint); }
+    .v-input, .v-select {
+        @apply w-full rounded-lg px-2.5 py-1.5 text-[13px] transition-colors;
+        background: var(--v-surface-2);
+        border: 1px solid var(--v-border-strong);
+        color: var(--v-text);
+    }
+    .v-input::placeholder { color: var(--v-faint); }
+    .v-input:focus, .v-select:focus {
+        outline: none;
+        border-color: var(--v-accent);
+        box-shadow: 0 0 0 3px var(--v-ring);
+    }
+    .v-checkbox {
+        @apply h-3.5 w-3.5 rounded;
+        accent-color: var(--v-accent);
+    }
+
+    /* --- Empty state ------------------------------------------------------ */
+    .v-empty {
+        @apply rounded-xl px-6 py-14 text-center text-[13px];
+        border: 1px dashed var(--v-border-strong);
+        color: var(--v-muted);
+    }
+    .v-empty__title { @apply font-medium; color: var(--v-text); }
+
+    /* --- Divider ---------------------------------------------------------- */
+    .v-divider { height: 1px; background: var(--v-border); }
+
+    /* --- Command palette -------------------------------------------------- */
+    .v-palette {
+        background: var(--v-surface);
+        border: 1px solid var(--v-border-strong);
+        @apply rounded-2xl;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+    }
+    .v-palette__item {
+        @apply flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px];
+        color: var(--v-text);
+    }
+    .v-palette__item.is-active { background: var(--v-accent-bg); color: var(--v-text-strong); }
+}

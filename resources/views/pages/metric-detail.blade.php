@@ -34,28 +34,29 @@
     ];
 @endphp
 
-<div class="space-y-5">
+<div class="space-y-6">
     <div>
-        <a href="{{ route('vigilance.metrics') }}" class="text-xs text-emerald-700 hover:underline dark:text-emerald-300">&larr; all metrics</a>
+        <a href="{{ route('vigilance.metrics') }}" class="text-xs v-link">&larr; all metrics</a>
     </div>
 
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="rounded bg-zinc-200 px-1.5 py-0.5 text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ $type }}</span>
-        <h1 class="font-mono text-sm font-semibold">{{ $scope }}</h1>
+    <div class="flex flex-wrap items-center gap-2.5">
+        <span class="v-pill is-neutral">{{ $type }}</span>
+        <h1 class="font-mono text-base font-semibold v-strong">{{ $scope }}</h1>
     </div>
 
     @if ($points->isEmpty())
-        <div class="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-10 text-center text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-            No snapshots yet for this {{ $type }}. Schedule <code class="rounded bg-zinc-100 px-1 py-0.5 dark:bg-zinc-800">vigilance:snapshot</code> to collect history.
+        <div class="v-empty">
+            <p class="v-empty__title">No snapshots yet for this {{ $type }}.</p>
+            <p>Schedule <code class="v-code">vigilance:snapshot</code> to collect history.</p>
         </div>
     @else
         <div class="grid gap-4">
             @foreach ($charts as $card)
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="v-card v-card--pad">
                     <div class="mb-2 flex items-baseline justify-between">
-                        <h2 class="text-sm font-semibold">{{ $card['title'] }}</h2>
+                        <h2 class="v-card__title">{{ $card['title'] }}</h2>
                         @if ($card['c'])
-                            <span class="text-xs text-zinc-600 dark:text-zinc-400">peak {{ $card['fmt']($card['c']['max']) }}</span>
+                            <span class="text-xs v-muted v-num">peak {{ $card['fmt']($card['c']['max']) }}</span>
                         @endif
                     </div>
                     @if ($card['c'])

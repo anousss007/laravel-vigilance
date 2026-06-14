@@ -7,13 +7,13 @@
 @endphp
 <div class="grid gap-4 sm:grid-cols-3">
     @foreach ($sendCards as $c)
-        <div class="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div class="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800"><h2 class="text-sm font-semibold">{{ $c['title'] }}</h2></div>
-            <ul class="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <div class="v-card overflow-hidden">
+            <div class="v-card__header"><h2 class="v-card__title">{{ $c['title'] }}</h2></div>
+            <ul>
                 @forelse ($c['rows'] as $row)
-                    <li class="flex items-center justify-between gap-3 px-4 py-2 text-xs"><span class="min-w-0 flex-1 truncate font-mono text-zinc-700 dark:text-zinc-300">{{ $row->key }}</span><span class="shrink-0 tabular-nums text-zinc-500 dark:text-zinc-400">{{ number_format((int) $row->count) }}×</span></li>
+                    <li class="flex items-center justify-between gap-3 px-4 py-2 text-xs" style="border-top: 1px solid var(--v-border);"><span class="min-w-0 flex-1 truncate font-mono v-strong">{{ $row->key }}</span><span class="shrink-0 v-num v-faint">{{ number_format((int) $row->count) }}×</span></li>
                 @empty
-                    <li class="px-4 py-6 text-center text-zinc-600 dark:text-zinc-400">{{ $c['empty'] }}</li>
+                    <li class="px-4 py-8 text-center v-muted">{{ $c['empty'] }}</li>
                 @endforelse
             </ul>
         </div>

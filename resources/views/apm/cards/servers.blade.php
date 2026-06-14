@@ -28,10 +28,11 @@
 @endphp
 
 <div>
-    <h2 class="mb-3 text-sm font-semibold">Servers</h2>
+    <h2 class="v-card__title mb-3">Servers</h2>
     @if (count($servers) === 0)
-        <div class="rounded-lg border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-            No server is reporting yet. Run <code class="rounded bg-zinc-100 px-1 py-0.5 dark:bg-zinc-800">php artisan vigilance:check</code> on each app server.
+        <div class="v-empty">
+            <p class="v-empty__title">No server is reporting yet</p>
+            <p>Run <code class="v-code">php artisan vigilance:check</code> on each app server.</p>
         </div>
     @else
         <div class="grid gap-3 md:grid-cols-2">
@@ -40,20 +41,20 @@
                     $memPct = $server['memory_total'] > 0 ? min(100, round($server['memory_used'] / $server['memory_total'] * 100)) : 0;
                     $cpuSpark = $spark($server['cpu_series'], 'rgb(59 130 246)');
                 @endphp
-                <div class="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                <div class="v-card v-card--pad">
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <span @class(['inline-block h-2 w-2 rounded-full', 'bg-emerald-500' => $server['online'], 'bg-zinc-400 dark:bg-zinc-600' => ! $server['online']]) aria-hidden="true"></span>
-                            <span class="font-semibold">{{ $server['name'] }}</span>
-                            <span class="rounded px-1.5 py-0.5 text-[10px] {{ $server['online'] ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' }}">{{ $server['online'] ? 'online' : 'stale' }}</span>
+                            <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true" style="background: {{ $server['online'] ? 'var(--v-success)' : 'var(--v-faint)' }};"></span>
+                            <span class="font-semibold v-strong">{{ $server['name'] }}</span>
+                            <span class="v-pill {{ $server['online'] ? 'is-success' : 'is-neutral' }}">{{ $server['online'] ? 'online' : 'stale' }}</span>
                         </div>
-                        <span class="text-xs text-zinc-600 dark:text-zinc-400">{{ $ago($server['updated_at']) }}</span>
+                        <span class="text-xs v-muted">{{ $ago($server['updated_at']) }}</span>
                     </div>
                     <div class="mt-4 grid grid-cols-2 gap-4">
                         <div>
                             <div class="flex items-baseline justify-between">
-                                <span class="text-xs text-zinc-600 dark:text-zinc-400">CPU</span>
-                                <span class="text-sm font-semibold">{{ $server['cpu'] }}%</span>
+                                <span class="text-xs v-muted">CPU</span>
+                                <span class="text-sm font-semibold v-strong v-num">{{ $server['cpu'] }}%</span>
                             </div>
                             @if ($cpuSpark)
                                 <svg viewBox="0 0 {{ $cpuSpark['w'] }} {{ $cpuSpark['h'] }}" preserveAspectRatio="none" class="mt-1 h-8 w-full" aria-hidden="true" focusable="false">
@@ -63,11 +64,11 @@
                         </div>
                         <div>
                             <div class="flex items-baseline justify-between">
-                                <span class="text-xs text-zinc-600 dark:text-zinc-400">Memory</span>
-                                <span class="text-sm font-semibold">{{ $fmtMb($server['memory_used']) }} <span class="text-xs font-normal text-zinc-500">/ {{ $fmtMb($server['memory_total']) }}</span></span>
+                                <span class="text-xs v-muted">Memory</span>
+                                <span class="text-sm font-semibold v-strong v-num">{{ $fmtMb($server['memory_used']) }} <span class="text-xs font-normal v-faint">/ {{ $fmtMb($server['memory_total']) }}</span></span>
                             </div>
-                            <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" role="img" aria-label="Memory {{ $memPct }}% used">
-                                <div class="h-full rounded-full bg-emerald-500" style="width: {{ $memPct }}%"></div>
+                            <div class="mt-1.5 h-2 overflow-hidden rounded-full" role="img" aria-label="Memory {{ $memPct }}% used" style="background: var(--v-surface-2);">
+                                <div class="h-full rounded-full" style="width: {{ $memPct }}%; background: var(--v-accent);"></div>
                             </div>
                         </div>
                     </div>
