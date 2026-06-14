@@ -5,6 +5,13 @@ use Vigilance\Supervision\ProvisioningPlan;
 use Vigilance\Supervision\Supervisor;
 use Vigilance\Supervision\SupervisorOptions;
 
+it('accepts a bounded --once run and exits cleanly', function () {
+    // No supervisors are configured for the "testing" environment, so the
+    // command takes the early-return path — this asserts the --once / --max-time
+    // options parse and the command is invocable without spawning workers.
+    $this->artisan('vigilance:supervise --once')->assertSuccessful();
+});
+
 it('round-trips supervisor options and builds a worker command', function () {
     $options = SupervisorOptions::fromArray([
         'name' => 'supervisor-1',

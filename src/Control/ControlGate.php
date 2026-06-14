@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 use Vigilance\Contracts\Dispatchable;
+use Vigilance\Contracts\ShouldNotBeDispatchedManually;
 
 /**
  * Authorization gate for the manual-control surface (dispatching jobs and
@@ -54,7 +55,9 @@ class ControlGate
 
         $jobs = array_values(array_unique(array_filter(
             $jobs,
-            fn (string $class) => class_exists($class) && ! in_array($class, $deny, true),
+            fn (string $class) => class_exists($class)
+                && ! in_array($class, $deny, true)
+                && ! is_a($class, ShouldNotBeDispatchedManually::class, true),
         )));
 
         return static::$jobsCache = $jobs;
@@ -103,6 +106,41 @@ class ControlGate
     public function isCommandAllowed(string $name): bool
     {
         return in_array($name, $this->commands(), true);
+    }
+
+    /**
+     * Command names that matched the allow rules (or "all") but were ultimately
+     * removed by a deny rule or because they are Vigilance's own commands.
+     * Surfaced by vigilance:doctor so an operator can see why a command they
+     * explicitly allowed never appears on the dashboard.
+     *
+     * @return array<string, string> [command name => reason]
+     */
+    public function droppedCommands(): array
+    {
+        $config = (array) config('vigilance.control.commands', []);
+        $mode = $config['mode'] ?? 'list';
+        $allow = array_values(array_filter((array) ($config['allow'] ?? [])));
+        $deny = array_values(array_filter((array) ($config['deny'] ?? [])));
+
+        $candidates = $mode === 'all'
+            ? $this->registeredCommands()
+            : array_values(array_filter(
+                $this->registeredCommands(),
+                fn (string $name) => $this->matchesAny($name, $allow),
+            ));
+
+        $dropped = [];
+
+        foreach ($candidates as $name) {
+            if ($this->matchesAny($name, $deny)) {
+                $dropped[$name] = 'denied';
+            } elseif ($this->isOwnCommand($name)) {
+                $dropped[$name] = 'vigilance command';
+            }
+        }
+
+        return $dropped;
     }
 
     /**

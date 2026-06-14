@@ -3,6 +3,7 @@
 namespace Vigilance;
 
 use Closure;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Vigilance\Contracts\ShouldNotBeMonitored;
 use Vigilance\Events\ExceptionReported;
@@ -61,9 +62,22 @@ class Vigilance
 
     public static function check(mixed $request = null): bool
     {
-        $callback = static::$authUsing ?? fn () => app()->environment('local');
+        // An explicit Vigilance::auth() callback always wins.
+        if (static::$authUsing !== null) {
+            return (bool) (static::$authUsing)($request);
+        }
 
-        return (bool) $callback($request);
+        // Otherwise defer to Laravel's Gate so a "viewVigilance" ability — or a
+        // Gate::before hook (e.g. "admins can do anything") — authorizes the
+        // dashboard, exactly like Horizon's viewHorizon / Telescope / Pulse.
+        // The service provider registers a local-only "viewVigilance" default
+        // unless the application defines its own. We funnel through the Gate
+        // (rather than checking the environment directly) so that before-hooks
+        // are always consulted.
+        $request ??= request();
+        $user = (is_object($request) && method_exists($request, 'user')) ? $request->user() : null;
+
+        return Gate::forUser($user)->check('viewVigilance', [$request]);
     }
 
     /**

@@ -12,6 +12,7 @@ use Vigilance\Enums\RunType;
 use Vigilance\Models\AuditEntry;
 use Vigilance\Models\Run;
 use Vigilance\Tests\Fixtures\FailingJob;
+use Vigilance\Tests\Fixtures\HiddenJob;
 use Vigilance\Tests\Fixtures\SampleJob;
 
 uses(RefreshDatabase::class);
@@ -132,6 +133,41 @@ it('discovers marker jobs in the configured paths', function () {
     // SampleJob implements the Vigilance Dispatchable marker; FailingJob does not.
     expect($gate->isJobAllowed(SampleJob::class))->toBeTrue()
         ->and($gate->isJobAllowed(FailingJob::class))->toBeFalse();
+});
+
+it('hides jobs marked ShouldNotBeDispatchedManually even under discover mode', function () {
+    config()->set('vigilance.control.jobs', [
+        'mode' => 'discover',
+        'paths' => [dirname(__DIR__).'/Fixtures'],
+        'allow' => [],
+        'deny' => [],
+    ]);
+    ControlGate::flush();
+
+    $gate = new ControlGate;
+
+    // discover surfaces every ShouldQueue job (SampleJob, FailingJob)…
+    expect($gate->isJobAllowed(SampleJob::class))->toBeTrue()
+        ->and($gate->isJobAllowed(FailingJob::class))->toBeTrue()
+        // …except those opting out via the marker.
+        ->and($gate->isJobAllowed(HiddenJob::class))->toBeFalse();
+});
+
+it('explains allowlisted commands dropped by deny or own-command rules', function () {
+    config()->set('vigilance.control.commands', [
+        'mode' => 'list',
+        'allow' => ['migrate', 'migrate:fresh', 'vigilance:doctor'],
+        'deny' => ['migrate:fresh'],
+    ]);
+    ControlGate::flush();
+
+    $dropped = (new ControlGate)->droppedCommands();
+
+    expect($dropped)->toHaveKey('migrate:fresh')
+        ->and($dropped['migrate:fresh'])->toBe('denied')
+        ->and($dropped)->toHaveKey('vigilance:doctor')
+        ->and($dropped['vigilance:doctor'])->toBe('vigilance command')
+        ->and($dropped)->not->toHaveKey('migrate'); // genuinely allowed
 });
 
 it('retries a failed job from its stored payload and audits it', function () {

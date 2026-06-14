@@ -125,6 +125,7 @@ return [
             'horizon',
             'horizon:*',
             'vigilance:*',
+            'boost:*',
             'package:discover',
         ], Defaults::frameworkCommands()),
     ],
@@ -135,13 +136,18 @@ return [
     |--------------------------------------------------------------------------
     |
     | The dashboard can dispatch jobs and run artisan commands. Because that is
-    | a powerful capability, it is governed by an allowlist. Set "jobs.mode" or
-    | "commands.mode" to:
+    | a powerful capability (effectively remote code execution), it is OFF by
+    | default — like the read-only posture of Horizon / Telescope / Pulse — and
+    | governed by an allowlist when you opt in (VIGILANCE_CONTROL_ENABLED=true).
+    | Set "jobs.mode" or "commands.mode" to:
     |
-    |   - 'marker'   : only classes implementing Vigilance\Contracts\Dispatchable
-    |                  (jobs) are allowed. Commands fall back to 'list'.
+    |   - 'marker'   : only jobs implementing Vigilance\Contracts\Dispatchable
+    |                  are allowed (opt-in per class). Commands fall back to 'list'.
     |   - 'list'     : only the explicitly listed classes/commands are allowed.
-    |   - 'discover' : auto-discover dispatchable jobs in "paths" (jobs only).
+    |   - 'discover' : auto-discover every queued job in "paths" (jobs only) —
+    |                  convenient, but exposes ALL of them; hide individual jobs
+    |                  with the Vigilance\Contracts\ShouldNotBeDispatchedManually
+    |                  marker (or the "deny" list).
     |   - 'all'      : allow everything (NOT recommended in production).
     |
     | "deny" always wins over any allow rule.
@@ -149,7 +155,7 @@ return [
     */
 
     'control' => [
-        'enabled' => env('VIGILANCE_CONTROL_ENABLED', true),
+        'enabled' => env('VIGILANCE_CONTROL_ENABLED', false),
 
         'jobs' => [
             'mode' => env('VIGILANCE_DISPATCH_JOBS_MODE', 'marker'),

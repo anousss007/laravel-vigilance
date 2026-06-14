@@ -7,6 +7,7 @@ use Illuminate\Cache\Events\CacheHit;
 use Illuminate\Cache\Events\CacheMissed;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Console\Events\CommandStarting;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
@@ -197,6 +198,7 @@ class VigilanceServiceProvider extends ServiceProvider
             $this->registerCapture();
         }
 
+        $this->registerAuthGate();
         $this->registerAssets();
         $this->registerRoutes();
         $this->registerLivewire();
@@ -456,6 +458,23 @@ class VigilanceServiceProvider extends ServiceProvider
         ], function () use ($routes) {
             require $routes;
         });
+    }
+
+    /**
+     * Register a local-only "viewVigilance" gate so dashboard authorization
+     * flows through Laravel's Gate (honoring Gate::before hooks like an
+     * "admins can do anything" rule) — the same idiom as Horizon/Telescope/
+     * Pulse. The application can override it by defining its own viewVigilance
+     * ability or by calling Vigilance::auth(); the guard means definition
+     * order does not matter.
+     */
+    protected function registerAuthGate(): void
+    {
+        $gate = $this->app->make(Gate::class);
+
+        if (! $gate->has('viewVigilance')) {
+            $gate->define('viewVigilance', fn ($user = null) => $this->app->environment('local'));
+        }
     }
 
     protected function registerLivewire(): void

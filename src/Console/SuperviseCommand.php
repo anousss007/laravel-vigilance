@@ -13,7 +13,9 @@ use Vigilance\Supervision\SupervisorState;
 
 class SuperviseCommand extends Command
 {
-    protected $signature = 'vigilance:supervise';
+    protected $signature = 'vigilance:supervise
+        {--once : Run a single supervision tick then shut down — for testing and smoke checks}
+        {--max-time=0 : Stop after this many seconds (0 = run until terminated)}';
 
     protected $description = 'Run and auto-scale your queue workers (the Vigilance supervisor — replaces queue:work).';
 
@@ -37,6 +39,9 @@ class SuperviseCommand extends Command
         $this->components->info('Vigilance is supervising '.count($supervisors).' supervisor(s) in ['.app()->environment().']. Use vigilance:terminate to stop.');
 
         $running = true;
+        $once = (bool) $this->option('once');
+        $maxTime = (int) $this->option('max-time');
+        $startedAt = time();
 
         if (function_exists('pcntl_async_signals')) {
             pcntl_async_signals(true);
@@ -58,7 +63,11 @@ class SuperviseCommand extends Command
                 }
             }
 
-            if ($supervisors === [] || ! $running) {
+            if ($supervisors === [] || ! $running || $once) {
+                break;
+            }
+
+            if ($maxTime > 0 && (time() - $startedAt) >= $maxTime) {
                 break;
             }
 

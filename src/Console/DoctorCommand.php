@@ -25,6 +25,8 @@ class DoctorCommand extends Command
         $this->checkAuthGate();
         $this->checkControl($gate);
         $this->checkSampling();
+        $this->checkTracing();
+        $this->checkSupervision();
         $this->checkStorage();
 
         $this->newLine();
@@ -67,8 +69,8 @@ class DoctorCommand extends Command
         }
 
         app()->environment('local')
-            ? $this->reportOk('Dashboard access', 'open in local (default) — set Vigilance::auth() before production')
-            : $this->reportWarn('Dashboard access', 'no Vigilance::auth() set — the dashboard is locked to the local environment and will 403 here');
+            ? $this->reportOk('Dashboard access', 'open in local (default) — define a viewVigilance gate or Vigilance::auth() before production')
+            : $this->reportWarn('Dashboard access', 'default gate — locked to local (403 here) until you define a viewVigilance gate, a Gate::before rule, or Vigilance::auth()');
     }
 
     protected function checkControl(ControlGate $gate): void
@@ -85,6 +87,58 @@ class DoctorCommand extends Command
         ($jobs === 0 && $commands === 0)
             ? $this->reportWarn('Manual control', 'enabled but nothing is allowlisted (config vigilance.control)')
             : $this->reportOk('Manual control', "{$jobs} job(s), {$commands} command(s) allowed");
+
+        // Explain allowlisted commands that were silently overridden, so the
+        // operator isn't left wondering why something they allowed vanished.
+        $dropped = $gate->droppedCommands();
+
+        if ($dropped !== []) {
+            $summary = implode(', ', array_map(
+                fn (string $name, string $reason) => "{$name} ({$reason})",
+                array_keys($dropped),
+                array_values($dropped),
+            ));
+
+            $this->reportWarn('Manual control', count($dropped).' allowlisted command(s) overridden: '.$summary);
+        }
+    }
+
+    protected function checkTracing(): void
+    {
+        if (! config('vigilance.tracing.enabled', false)) {
+            $this->reportOk('Tracing', 'disabled');
+
+            return;
+        }
+
+        $rate = (float) config('vigilance.tracing.sample_rate', 0);
+        $slow = (int) config('vigilance.tracing.slow_threshold', 1000);
+
+        $rate <= 0.0
+            ? $this->reportWarn('Tracing', "enabled, sample_rate 0 — only slow (>={$slow}ms) and errored traces are kept; raise VIGILANCE_TRACING_SAMPLE to capture normal ones")
+            : $this->reportOk('Tracing', "enabled, keeping {$rate} of traces (slow + errored always kept)");
+    }
+
+    protected function checkSupervision(): void
+    {
+        $supervisorConnection = (string) config('vigilance.defaults.connection', 'database');
+        $queueDefault = (string) config('queue.default', '');
+        $driver = (string) config("queue.connections.{$queueDefault}.driver", $queueDefault);
+
+        // Drivers with no persistent queue: there is nothing to supervise.
+        if (in_array($driver, ['sync', 'null'], true)) {
+            $this->reportWarn('Supervisor', "queue.default is '{$queueDefault}' ({$driver}) — nothing for vigilance:supervise to run (it is optional)");
+
+            return;
+        }
+
+        if ($queueDefault !== '' && $supervisorConnection !== $queueDefault) {
+            $this->reportWarn('Supervisor', "supervises '{$supervisorConnection}' but the app dispatches to queue.default '{$queueDefault}' — set VIGILANCE_SUPERVISOR_CONNECTION={$queueDefault} or align them");
+
+            return;
+        }
+
+        $this->reportOk('Supervisor', "connection '{$supervisorConnection}' (matches queue.default)");
     }
 
     protected function checkSampling(): void
