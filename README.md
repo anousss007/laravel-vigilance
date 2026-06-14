@@ -1,5 +1,10 @@
 # Vigilance
 
+[![Tests](https://github.com/anousss007/laravel-vigilance/actions/workflows/tests.yml/badge.svg)](https://github.com/anousss007/laravel-vigilance/actions/workflows/tests.yml)
+[![Latest Version](https://img.shields.io/packagist/v/anousss007/vigilance.svg)](https://packagist.org/packages/anousss007/vigilance)
+[![PHP Version](https://img.shields.io/packagist/php-v/anousss007/vigilance.svg)](https://packagist.org/packages/anousss007/vigilance)
+[![License](https://img.shields.io/packagist/l/anousss007/vigilance.svg)](LICENSE)
+
 A driver-agnostic **control center** for Laravel queues, jobs, commands and the scheduler.
 
 See what ran — with the parameters it ran with — whether it failed, and **dispatch jobs or run artisan commands manually** from a self-contained dashboard. Think "Horizon, but for every queue driver, plus commands, plus a manual control plane" — and built to run in production, not just locally.

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/anousss007/laravel-vigilance/discussions
+    about: Ask a question or discuss an idea.
+  - name: Security vulnerability
+    url: https://github.com/anousss007/laravel-vigilance/security/policy
+    about: Please report security issues privately (see SECURITY.md), not as a public issue.

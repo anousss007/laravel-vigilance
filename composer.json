@@ -2,16 +2,16 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "anousss007/vigilance",
     "description": "A driver-agnostic control center for Laravel queues, jobs, commands and the scheduler. Monitor what ran (with parameters), see failures, and dispatch jobs or run artisan commands manually from a self-contained dashboard.",
-    "keywords": ["laravel", "queue", "jobs", "horizon", "telescope", "scheduler", "artisan", "monitoring", "dashboard", "livewire"],
-    "homepage": "https://github.com/anousss007/vigilance",
+    "keywords": ["laravel", "queue", "jobs", "horizon", "pulse", "telescope", "scheduler", "artisan", "monitoring", "apm", "tracing", "observability", "supervisor", "dashboard", "livewire"],
+    "homepage": "https://github.com/anousss007/laravel-vigilance",
     "license": "MIT",
     "type": "library",
     "authors": [
         { "name": "anousss007", "homepage": "https://github.com/anousss007" }
     ],
     "support": {
-        "issues": "https://github.com/anousss007/vigilance/issues",
-        "source": "https://github.com/anousss007/vigilance"
+        "issues": "https://github.com/anousss007/laravel-vigilance/issues",
+        "source": "https://github.com/anousss007/laravel-vigilance"
     },
     "require": {
         "php": "^8.2",
@@ -30,6 +30,10 @@
         "orchestra/testbench": "^9.0 || ^10.0",
         "pestphp/pest": "^2.0 || ^3.0",
         "pestphp/pest-plugin-laravel": "^2.0 || ^3.0"
+    },
+    "suggest": {
+        "ext-redis": "For the write-behind 'redis' APM ingest driver (vigilance:apm-work).",
+        "predis/predis": "Alternative pure-PHP Redis client for the 'redis' APM ingest driver."
     },
     "autoload": {
         "psr-4": {
