@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Mail;
 use Throwable;
 use Vigilance\Models\Incident;
 use Vigilance\Notifications\Contracts\AlertRule;
+use Vigilance\Notifications\Rules\AnomalyRule;
 use Vigilance\Notifications\Rules\ErrorRateRule;
 use Vigilance\Notifications\Rules\ExceptionSpikeRule;
 use Vigilance\Notifications\Rules\IssueRegressionRule;
@@ -38,6 +39,7 @@ class AlertManager
         SloBurnRateRule::class,
         NewIssueRule::class,
         IssueRegressionRule::class,
+        AnomalyRule::class,
     ];
 
     public function __construct(protected Container $app) {}

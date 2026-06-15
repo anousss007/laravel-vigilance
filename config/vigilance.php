@@ -401,6 +401,22 @@ return [
             // the throttle window; "limit" caps how many fire per snapshot.
             'new_issue' => ['enabled' => true, 'limit' => 10],
             'issue_regression' => ['enabled' => true, 'limit' => 10],
+
+            // Dynamic-baseline anomaly detection: fire when a metric's latest
+            // bucket is "z" standard deviations above its rolling baseline over
+            // "window" (1h | 6h | 24h). Guarded so it never alerts on noise:
+            // needs "min_baseline" points, real variance, and a value past the
+            // per-metric "min_value" floor. Override "metrics" to watch your own.
+            'anomaly' => [
+                'enabled' => true,
+                'z' => 3.0,
+                'window' => '6h',
+                'min_baseline' => 12,
+                'limit' => 8,
+                // 'metrics' => [
+                //     ['type' => 'request', 'aggregate' => 'avg', 'label' => 'latency', 'unit' => 'ms', 'min_value' => 150],
+                // ],
+            ],
         ],
 
         'custom' => [
