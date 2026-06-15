@@ -1,6 +1,6 @@
 ---
 name: vigilance-development
-description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, and rule-based alerting (mail/Slack/custom). Use when installing, configuring, securing, or extending Vigilance.
+description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, the observability suite (Issues error tracking, per-route performance, RUM/Web Vitals, SLOs, custom metrics, trace-correlated logs), and rule-based alerting with incidents (mail/Slack/Discord/Teams/webhooks/custom). Use when installing, configuring, securing, or extending Vigilance.
 ---
 
 # Vigilance Development
@@ -9,7 +9,7 @@ Vigilance is a self-contained Livewire control center for Laravel queues, jobs, 
 
 ## When to use this skill
 
-Use it when you are: installing/configuring Vigilance, securing the dashboard, deciding what gets captured, enabling manual job/command dispatch, replacing Horizon/`queue:work` with the supervisor, wiring up APM or tracing, or adding alerting (including custom rules and channels).
+Use it when you are: installing/configuring Vigilance, securing the dashboard, deciding what gets captured, enabling manual job/command dispatch, replacing Horizon/`queue:work` with the supervisor, wiring up APM or tracing, enabling the observability layers (error tracking, route/front-end performance, RUM, SLOs, custom metrics, the log explorer), or adding alerting (including custom rules, extra channels and incident tracking).
 
 ## Install & authorize
 
@@ -107,18 +107,41 @@ Control it with `vigilance:status`, `vigilance:pause` / `vigilance:continue`, `v
 
 - Run `php artisan vigilance:check` as a per-server heartbeat (captures server stats and flushes telemetry; recorders capture cheaply and flush **after** the response — zero request latency).
 - Per-recorder `sample_rate` and `threshold` (ms) bound overhead/storage; configure under `apm` in config.
+- The `Requests` recorder rolls **all** requests up per route for the **Routes** page (throughput, error rate, Apdex, p50/p95/p99) — distinct from `SlowRequests` (threshold-only). Apdex target: `VIGILANCE_APM_APDEX_MS`.
 - Optional Redis write-behind ingest: drain with `php artisan vigilance:apm-work`.
-- Tracing is off by default. Enable with `VIGILANCE_TRACING=true`; it tail-samples (keeps only slow / errored / sampled traces).
+- Tracing is off by default. Enable with `VIGILANCE_TRACING=true`; it tail-samples (keeps only slow / errored / sampled traces). Spans cover query / cache / HTTP / redis / mail / notification.
 - Uptime checks: `php artisan vigilance:health` records availability + latency for configured URLs.
 
-## Alerting (mail / Slack / custom)
+## Observability suite
 
-Rules are evaluated at `vigilance:snapshot` time and throttled per key. Configure built-in rules under `alerts.rules`; route delivery from `.env` or code.
+Front-to-back observability, each layer on its own dashboard page. Full reference: `docs/observability.md`.
+
+- **Issues — error tracking** (`/vigilance/issues`, on by default). Every exception — HTTP requests, `Vigilance::report()`, queued jobs, console commands and uncaught **browser** errors — is fingerprinted into a grouped inbox with stacktrace + context. Tune with `issues.sample_rate` / `issues.except`; `issues.capture_request_input` is off for privacy.
+- **Per-route performance** (`/vigilance/routes`, on). See APM above.
+- **RUM / Web Vitals** (`/vigilance/vitals`, **off** by default). Set `VIGILANCE_RUM=true` and add the `@vigilanceRum` Blade directive to your layout `<head>`. Collects LCP/INP/CLS/FCP/TTFB + JS errors (which land in Issues as source `browser`) via a public, throttled, validated beacon.
+- **SLOs & error budgets** (`/vigilance/slos`, off until defined). Add objectives under `slos`; `sli` is `success_rate` or `latency` (Apdex). A `slo_burn` alert fires on a high short-window burn rate.
+- **Custom business metrics** (`/vigilance/custom-metrics`, on). Record KPIs anywhere — they auto-appear:
+
+```php
+use Vigilance\Vigilance;
+
+Vigilance::increment('signups');                 // counter (sum + count)
+Vigilance::gauge('cart_value', $cart->total());  // gauge (avg / peak / min)
+```
+
+- **Log explorer** (`/vigilance/logs`, **off** by default). Set `VIGILANCE_LOGS=true` to capture `Log::*` records into a searchable explorer **correlated to the trace that emitted them** (the trace detail page lists its logs, and each log links back). Set the minimum level with `VIGILANCE_LOGS_LEVEL` (default `debug`; raise to `warning`/`error` at volume). Buffered + flushed after the response; trimmed by `vigilance:prune`.
+
+## Alerting (mail / Slack / Discord / Teams / webhooks / custom) + incidents
+
+Rules are evaluated at `vigilance:snapshot` time and throttled per key — queue backlog, failure rate, exception spikes, slow-request rate, overdue/failed scheduled tasks (a **dead-man's-switch**) and **SLO burn rate**. Configure built-in rules under `alerts.rules`; route delivery from `.env` or code. Fired alerts are persisted as **incidents** (`alerts.incidents`, on by default) — opened on first fire, auto-resolved when they stop recurring — with occurrence counts and MTTR on the **Incidents** page (`/vigilance/incidents`).
 
 ```ini
 # .env — simplest path, no provider needed
 VIGILANCE_ALERT_EMAILS=ops@example.com,cto@example.com   # single or comma-separated
 VIGILANCE_SLACK_WEBHOOK=https://hooks.slack.com/services/...
+VIGILANCE_DISCORD_WEBHOOK=https://discord.com/api/webhooks/...
+VIGILANCE_TEAMS_WEBHOOK=https://outlook.office.com/webhook/...
+VIGILANCE_ALERT_WEBHOOKS=https://events.pagerduty.com/...   # one or comma-separated
 ```
 
 ```php
@@ -127,8 +150,11 @@ use Vigilance\Vigilance;
 
 Vigilance::routeMailNotificationsTo(['ops@example.com', 'cto@example.com']);
 Vigilance::routeSlackNotificationsTo('https://hooks.slack.com/services/...');
+Vigilance::routeDiscordNotificationsTo('https://discord.com/api/webhooks/...');
+Vigilance::routeTeamsNotificationsTo('https://outlook.office.com/webhook/...');
+Vigilance::routeWebhooksTo(['https://events.pagerduty.com/...']);
 
-// Custom channel (PagerDuty, SMS, a Notification, …):
+// Custom channel (SMS, a Notification, …):
 Vigilance::alertUsing(fn (\Vigilance\Notifications\Alert $alert) =>
     Notification::route('slack', $url)->notify(new QueueAlert($alert))
 );
@@ -200,4 +226,6 @@ interface Ingest
 - Failures are always captured regardless of `sample_rate`; only successes are sampled out.
 - The supervisor only drains *supervisable* drivers (not `sync` / `null` / push-only "after response" drivers).
 - Don't run the supervisor and Horizon on the same queues.
-- If you published `config/vigilance.php`, re-publish (or merge new keys like `notifications.mail`) after upgrading so `.env` settings resolve.
+- **RUM and the log explorer are off by default** — they need `VIGILANCE_RUM=true` (+ the `@vigilanceRum` directive in your layout) and `VIGILANCE_LOGS=true` respectively. SLOs show nothing until you define one under `slos`.
+- Log–trace correlation only happens when **both** logs and tracing are enabled (a log's `trace_id` is the in-flight trace).
+- If you published `config/vigilance.php`, re-publish (or merge new keys — `issues`, `rum`, `slos`, `logs`, `alerts.incidents`, `notifications.discord` / `teams` / `webhooks`) after upgrading so `.env` settings resolve.

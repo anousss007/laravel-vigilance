@@ -6,6 +6,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-15
+
+### Changed
+- Updated the **Laravel Boost** integration (AI guidelines + the
+  `vigilance-development` agent skill) to cover the v0.4.0 observability suite —
+  Issues error tracking, per-route performance, RUM / Web Vitals, SLOs, custom
+  business metrics and the trace-correlated log explorer — plus the expanded
+  alerting channels (Discord / Teams / generic webhooks) and incident tracking,
+  with `Vigilance::increment()` / `gauge()` and `@vigilanceRum` snippets. So
+  coding agents generate correct code against the new features.
+
+### Added
+- `RELEASING.md` — a pre-release checklist (code, version strings, changelog,
+  docs, the Boost integration, accessibility and the tag/release steps) so a
+  release moves every surface forward together.
+
 ## [0.4.0] - 2026-06-15
 
 A front-to-back **observability** release: error tracking, route & front-end
