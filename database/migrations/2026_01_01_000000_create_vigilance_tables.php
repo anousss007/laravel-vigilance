@@ -225,10 +225,12 @@ return new class extends Migration
             $table->decimal('value', 20, 2);
             $table->unsignedInteger('count')->nullable();
 
-            $table->unique(['bucket', 'period', 'type', 'aggregate', 'key_hash']);
+            // Explicit short names: the auto-generated ones exceed MySQL/MariaDB's
+            // 64-char identifier limit (Postgres truncates, SQLite doesn't care).
+            $table->unique(['bucket', 'period', 'type', 'aggregate', 'key_hash'], 'vigilance_aggregates_unique');
             $table->index(['period', 'bucket']);
             $table->index('type');
-            $table->index(['period', 'type', 'aggregate', 'bucket']);
+            $table->index(['period', 'type', 'aggregate', 'bucket'], 'vigilance_aggregates_period_type_agg_bucket_idx');
         });
 
         // ---- Tracing (per-request/job span timelines, sampled) ----

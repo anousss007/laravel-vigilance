@@ -64,3 +64,56 @@ jobs:
 
       - name: Static analysis
         run: vendor/bin/phpstan analyse --no-progress
+
+  databases:
+    runs-on: ubuntu-latest
+    name: db compatibility (postgres + mysql)
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vigilance_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      mysql:
+        image: mariadb:11.4
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: 1
+          MARIADB_DATABASE: vigilance_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized" --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, sqlite, pdo_sqlite, pdo_mysql, pdo_pgsql
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Tests on PostgreSQL
+        env:
+          VIGILANCE_TEST_DB: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: vigilance_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+        run: vendor/bin/pest
+
+      - name: Tests on MySQL (MariaDB)
+        env:
+          VIGILANCE_TEST_DB: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: vigilance_test
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: vendor/bin/pest
