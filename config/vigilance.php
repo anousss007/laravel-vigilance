@@ -357,6 +357,24 @@ return [
         'capture_js_errors' => (bool) env('VIGILANCE_RUM_JS_ERRORS', true),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Service Level Objectives (SLOs)
+    |--------------------------------------------------------------------------
+    |
+    | Track availability / latency objectives against an error budget, with a
+    | short-window burn-rate alert. Each SLO is evaluated against the HTTP
+    | request telemetry globally. "sli" is "success_rate" (1 − 5xx rate) or
+    | "latency" (the Apdex score). Windows clamp to APM retention (≤ 7 days).
+    | Define your own (off until you add one):
+    |
+    */
+
+    'slos' => [
+        // 'availability' => ['name' => 'API availability', 'sli' => 'success_rate', 'target' => 99.9, 'window_days' => 7],
+        // 'page-speed'   => ['name' => 'Page speed',       'sli' => 'latency',      'target' => 95.0, 'window_days' => 7],
+    ],
+
     'alerts' => [
         'enabled' => true,
         'throttle_minutes' => 15,
@@ -367,6 +385,7 @@ return [
             'exception_spike' => ['enabled' => true, 'count' => 50],
             'slow_request_rate' => ['enabled' => false, 'count' => 100],
             'scheduled_task_late' => ['enabled' => true],
+            'slo_burn' => ['enabled' => true, 'burn_rate' => 2.0],
         ],
 
         'custom' => [

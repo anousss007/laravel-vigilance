@@ -12,6 +12,7 @@ use Vigilance\Notifications\Rules\ErrorRateRule;
 use Vigilance\Notifications\Rules\ExceptionSpikeRule;
 use Vigilance\Notifications\Rules\QueueLongWaitRule;
 use Vigilance\Notifications\Rules\ScheduledTaskLateRule;
+use Vigilance\Notifications\Rules\SloBurnRateRule;
 use Vigilance\Notifications\Rules\SlowRequestRateRule;
 use Vigilance\Vigilance;
 
@@ -31,6 +32,7 @@ class AlertManager
         ExceptionSpikeRule::class,
         SlowRequestRateRule::class,
         ScheduledTaskLateRule::class,
+        SloBurnRateRule::class,
     ];
 
     public function __construct(protected Container $app) {}
