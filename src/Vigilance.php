@@ -17,7 +17,7 @@ use Vigilance\Notifications\Alert;
  */
 class Vigilance
 {
-    public static string $version = '0.5.1';
+    public static string $version = '0.5.2';
 
     /** Cache-busting token for the bundled stylesheet, derived from its contents. */
     protected static ?string $assetVersion = null;

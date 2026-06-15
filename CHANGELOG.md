@@ -6,6 +6,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-06-15
+
+### Changed
+- The Laravel Boost **AI guidelines** now document the once-per-incident
+  alerting behaviour (matching the skill, README and config) — coding agents
+  learn that a sustained condition alerts once and the rest lives on the
+  dashboard. No code change.
+
 ## [0.5.1] - 2026-06-15
 
 ### Fixed
