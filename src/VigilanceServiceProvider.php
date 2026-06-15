@@ -63,6 +63,7 @@ use Vigilance\Http\Livewire\Apm as ApmPage;
 use Vigilance\Http\Livewire\ApmCard;
 use Vigilance\Http\Livewire\Batches;
 use Vigilance\Http\Livewire\CommandRunner;
+use Vigilance\Http\Livewire\Custom;
 use Vigilance\Http\Livewire\Dispatcher;
 use Vigilance\Http\Livewire\Failures;
 use Vigilance\Http\Livewire\Incidents;
@@ -550,6 +551,7 @@ class VigilanceServiceProvider extends ServiceProvider
             'vigilance.vitals' => Vitals::class,
             'vigilance.slos' => Slos::class,
             'vigilance.incidents' => Incidents::class,
+            'vigilance.custom' => Custom::class,
             'vigilance.run-detail' => RunDetail::class,
             'vigilance.failures' => Failures::class,
             'vigilance.issue-detail' => IssueDetail::class,
