@@ -6,6 +6,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-15
+
+A proactive-monitoring release: release-health deploy gating, smarter alerting
+(new/regressed issues, dynamic-baseline anomalies, bad-deploy detection),
+readable RUM browser errors via source maps, and a single global ignore list.
+See [docs/observability.md](docs/observability.md).
+
 ### Added
 - **Release health & deploy-regression guard.** After each deployment marker,
   Vigilance compares request error-rate / latency / throughput in the window
