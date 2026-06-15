@@ -58,7 +58,7 @@ VIGILANCE_ALERT_WEBHOOKS=https://events.pagerduty.com/...   # one or comma-separ
 </code-snippet>
 @endverbatim
 
-Prefer code? `Vigilance::routeMailNotificationsTo([...])`, `routeSlackNotificationsTo($url)`, `routeDiscordNotificationsTo($url)`, `routeTeamsNotificationsTo($url)`, `routeWebhooksTo([...])`, or `Vigilance::alertUsing(fn ($alert) => ...)` for a custom channel — an explicit call overrides the `.env` values. Fired alerts are persisted as **incidents** (auto-resolved when they stop recurring) with MTTR on the Incidents page.
+Prefer code? `Vigilance::routeMailNotificationsTo([...])`, `routeSlackNotificationsTo($url)`, `routeDiscordNotificationsTo($url)`, `routeTeamsNotificationsTo($url)`, `routeWebhooksTo([...])`, or `Vigilance::alertUsing(fn ($alert) => ...)` for a custom channel — an explicit call overrides the `.env` values. Fired alerts are persisted as **incidents** (auto-resolved when they stop recurring) with MTTR on the Incidents page. You're notified **once when an incident opens** (and again only if it escalates or recurs), so a sustained condition doesn't re-alert every window — set `alerts.renotify_minutes` for periodic reminders.
 
 ### Record a custom business metric / collect Web Vitals
 
