@@ -6,6 +6,62 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-15
+
+A front-to-back **observability** release: error tracking, route & front-end
+performance, SLOs, deeper alerting, custom metrics and a trace-correlated log
+explorer — seven new dashboard areas, each built to the same production-first
+posture as the rest of the package (captured cheaply, flushed after the response,
+sampled and bounded). See [docs/observability.md](docs/observability.md).
+
+### Added
+- **Unified Issues error tracker.** Every reported exception — HTTP requests,
+  `Vigilance::report()`, queued jobs, console commands and uncaught **browser**
+  errors — is fingerprinted into a grouped **Issues** inbox (`/vigilance/issues`)
+  with stacktrace, request/user context, a 7-day occurrence sparkline and a
+  detail page. Per-group workflow: assign, prioritise, acknowledge, **mute** for
+  a window, resolve / reopen, and bulk-retry failed jobs. New `source` dimension.
+- **Per-route performance.** A new `Requests` APM recorder samples all requests
+  and rolls them up per route on the **Routes** page (`/vigilance/routes`):
+  throughput, error rate, Apdex and exact **p50 / p95 / p99** latency.
+- **Real User Monitoring (RUM).** Core Web Vitals (LCP, INP, CLS, FCP, TTFB) and
+  uncaught JS errors collected from real visitors via the `@vigilanceRum` beacon,
+  with p75 ratings on the **Web Vitals** page (`/vigilance/vitals`). Public,
+  throttled, strictly-validated ingest endpoint; off by default (`VIGILANCE_RUM`).
+  Browser errors flow into the Issues inbox as source `browser`.
+- **SLOs & error budgets.** Availability (`success_rate`) and latency (Apdex)
+  objectives tracked against an error budget, with a short-window **burn-rate**
+  alert, on the **SLOs** page (`/vigilance/slos`). Define them under `slos`.
+- **Alerting depth & incidents.** Alerts now route to **Discord**, **Microsoft
+  Teams** and any number of **generic webhooks** (PagerDuty, Opsgenie, …) on top
+  of mail / Slack — all configurable from `.env`. Fired alerts are persisted as
+  **incidents** (opened on first fire, auto-resolved when they stop recurring)
+  with occurrence counts and **MTTR** on the **Incidents** page
+  (`/vigilance/incidents`). New `slo_burn` alert rule.
+- **Custom business metrics.** `Vigilance::increment()` / `Vigilance::gauge()`
+  record any business KPI, auto-discovered onto the **Custom Metrics** page
+  (`/vigilance/custom-metrics`) as counter & gauge cards with sparklines over a
+  selectable window.
+- **Trace-correlated log explorer.** Capture application log records into a
+  searchable explorer (`/vigilance/logs`), correlated to the trace that emitted
+  them — a trace's detail page lists the logs it produced and each log links back
+  to its trace. Buffered and flushed after the response (zero request latency),
+  context redacted by key; off by default (`VIGILANCE_LOGS`). New `vigilance_logs`
+  table, trimmed by `vigilance:prune`.
+
+### Changed
+- Tracing now also records `redis`, `mail` and `notification` spans (on top of
+  query / cache / HTTP).
+- CI runs on `actions/checkout@v6`.
+- New `docs/observability.md` guide; README and the docs site updated to cover the
+  full suite. Every new dashboard page verified with axe-core — zero violations,
+  desktop and mobile.
+
+> **Schema note.** The new columns and tables (`vigilance_logs`,
+> `vigilance_incidents`, and the `source` / `sample` / `context` / `muted_until`
+> columns on `vigilance_failure_groups`) were folded into the base migration. If
+> you ran a pre-0.4 dev build, run `php artisan migrate:fresh` to pick them up.
+
 ## [0.3.0] - 2026-06-15
 
 ### Added
