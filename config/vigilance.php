@@ -273,15 +273,24 @@ return [
     |--------------------------------------------------------------------------
     |
     | Vigilance can alert you when a queue is backing up (its estimated time to
-    | clear exceeds "long_wait_seconds"). Route notifications by calling
-    | Vigilance::routeMailNotificationsTo(...) / routeSlackNotificationsTo(...)
-    | in a service provider. The check runs at "vigilance:snapshot" time and is
-    | throttled per queue by "throttle_minutes".
+    | clear exceeds "long_wait_seconds"). The check runs at "vigilance:snapshot"
+    | time and is throttled per queue by "throttle_minutes".
+    |
+    | Set where alerts go straight from your .env via "mail" / "slack" below —
+    | no service provider needed. "mail" takes a single address or a
+    | comma-separated list. Calling Vigilance::routeMailNotificationsTo(...) /
+    | routeSlackNotificationsTo(...) in a provider overrides these values.
     |
     */
 
     'notifications' => [
         'enabled' => true,
+
+        // Single address or comma-separated list, e.g. "ops@example.com,cto@example.com".
+        'mail' => env('VIGILANCE_ALERT_EMAILS'),
+        // Slack incoming-webhook URL.
+        'slack' => env('VIGILANCE_SLACK_WEBHOOK'),
+
         'long_wait_seconds' => env('VIGILANCE_LONG_WAIT_SECONDS', 60),
         'throttle_minutes' => 15,
     ],

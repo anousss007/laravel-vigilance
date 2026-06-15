@@ -158,6 +158,7 @@ See `config/vigilance.php` — every option is documented inline. Highlights:
 - `control.jobs` / `control.commands` — manual-control allowlists
 - `redact` — secret key names
 - `retention.days` / `retention.failed_days` — pruning windows
+- `notifications.mail` / `notifications.slack` — where alerts are delivered
 
 ### Recommended production profile
 
@@ -166,6 +167,35 @@ VIGILANCE_SAMPLE_RATE=0.1          # keep 10% of successes; 100% of failures
 VIGILANCE_DB_CONNECTION=monitoring # optional dedicated connection
 VIGILANCE_RETENTION_DAYS=7
 ```
+
+## Alerting
+
+Vigilance evaluates rule-based alerts at `vigilance:snapshot` time — queue
+backlog, failure-rate, exception spikes, slow-request rate and overdue/failed
+scheduled tasks — each throttled per key. Point alerts at email and/or Slack
+**straight from `.env`** (no service provider required):
+
+```env
+VIGILANCE_ALERT_EMAILS=ops@example.com,cto@example.com   # single or comma-separated
+VIGILANCE_SLACK_WEBHOOK=https://hooks.slack.com/services/…
+```
+
+Prefer code? Set them in a service provider's `boot()` — an explicit call
+**overrides** the `.env` values:
+
+```php
+use Vigilance\Vigilance;
+
+Vigilance::routeMailNotificationsTo(['ops@example.com', 'cto@example.com']);
+Vigilance::routeSlackNotificationsTo('https://hooks.slack.com/services/…');
+
+// …or route alerts anywhere (PagerDuty, SMS, a custom Notification, …):
+Vigilance::alertUsing(fn ($alert) => $team->notify(new QueueAlert($alert)));
+```
+
+If no mail recipient and no Slack webhook is configured, alerting stays silent
+(nothing is sent). Tune the rules and thresholds under `notifications` /
+`alerts` in `config/vigilance.php`.
 
 ## Commands
 

@@ -6,6 +6,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Alert routing can now be configured **from `.env`** — set
+  `VIGILANCE_ALERT_EMAILS` (single address or comma-separated list) and/or
+  `VIGILANCE_SLACK_WEBHOOK` and Vigilance delivers alerts without a service
+  provider. Maps to `notifications.mail` / `notifications.slack` in the config.
+  An explicit `Vigilance::routeMailNotificationsTo()` /
+  `routeSlackNotificationsTo()` call still takes precedence, and
+  `routeMailNotificationsTo()` now also accepts a comma-separated string.
+
 ### Changed
 - Dashboard accessibility hardening (WCAG 2.1 AA). Added a skip-to-content link
   and a focusable `<main>`, labelled the primary navigation with `aria-current`

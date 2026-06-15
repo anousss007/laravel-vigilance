@@ -32,8 +32,8 @@ class Vigilance
     /** @var array{user: ?string, via: string}|null */
     protected static ?array $manualContext = null;
 
-    /** @var list<string> */
-    protected static array $mailRecipients = [];
+    /** @var list<string>|null  null = not set in code, fall back to config */
+    protected static ?array $mailRecipients = null;
 
     protected static ?string $slackWebhook = null;
 
@@ -307,34 +307,68 @@ class Vigilance
     }
 
     /**
-     * Route long-wait / health notifications to one or more email addresses.
+     * Route long-wait / health / alert notifications to one or more email
+     * addresses. Calling this explicitly overrides the
+     * `vigilance.notifications.mail` config value (which reads from
+     * `VIGILANCE_ALERT_EMAILS` and is used automatically when this is not set).
      *
      * @param  string|list<string>  $emails
      */
     public static function routeMailNotificationsTo(string|array $emails): void
     {
-        static::$mailRecipients = (array) $emails;
+        static::$mailRecipients = static::parseEmails($emails);
     }
 
+    /**
+     * Route alert notifications to a Slack incoming-webhook URL. Overrides the
+     * `vigilance.notifications.slack` config value (from `VIGILANCE_SLACK_WEBHOOK`).
+     */
     public static function routeSlackNotificationsTo(string $webhookUrl): void
     {
         static::$slackWebhook = $webhookUrl;
     }
 
-    /** @return list<string> */
+    /**
+     * Resolved mail recipients — an explicit routeMailNotificationsTo() call if
+     * one was made, otherwise the comma-separated config/env value.
+     *
+     * @return list<string>
+     */
     public static function mailRecipients(): array
     {
-        return static::$mailRecipients;
+        if (static::$mailRecipients !== null) {
+            return static::$mailRecipients;
+        }
+
+        return static::parseEmails(config('vigilance.notifications.mail'));
     }
 
     public static function slackWebhook(): ?string
     {
-        return static::$slackWebhook;
+        return static::$slackWebhook ?? (((string) config('vigilance.notifications.slack')) ?: null);
     }
 
     public static function hasNotificationRouting(): bool
     {
-        return static::$mailRecipients !== [] || static::$slackWebhook !== null;
+        return static::mailRecipients() !== [] || static::slackWebhook() !== null;
+    }
+
+    /**
+     * Normalise a single address, a comma-separated string, or a list into a
+     * clean list of e-mail addresses.
+     *
+     * @param  string|array<int, string>|null  $value
+     * @return list<string>
+     */
+    protected static function parseEmails(string|array|null $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        $items = is_array($value) ? $value : explode(',', $value);
+
+        return array_values(array_filter(array_map('trim', $items)));
     }
 
     /**
