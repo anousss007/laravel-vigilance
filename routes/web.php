@@ -18,6 +18,7 @@ use Vigilance\Http\Livewire\Schedule;
 use Vigilance\Http\Livewire\Tags;
 use Vigilance\Http\Livewire\TraceDetail;
 use Vigilance\Http\Livewire\Traces;
+use Vigilance\Http\Livewire\Vitals;
 use Vigilance\Http\Livewire\Workers;
 use Vigilance\Http\Livewire\Workload;
 
@@ -50,5 +51,6 @@ Route::get('/workers', Workers::class)->name('workers');
 Route::get('/pending', Pending::class)->name('pending');
 Route::get('/batches', Batches::class)->name('batches');
 Route::get('/routes', Routes::class)->name('routes');
+Route::get('/vitals', Vitals::class)->name('vitals');
 Route::get('/metrics', Metrics::class)->name('metrics');
 Route::get('/metrics/view', MetricDetail::class)->name('metrics.show');

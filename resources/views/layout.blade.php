@@ -52,6 +52,11 @@
         ],
     ];
 
+    // Web Vitals only appears when RUM is collecting frontend data.
+    if (config('vigilance.rum.enabled', false)) {
+        $groups['Performance']['vigilance.vitals'] = ['label' => 'Web Vitals', 'icon' => 'metrics'];
+    }
+
     // Flat list for the command palette.
     $paletteItems = [];
     foreach (array_merge(['' => $primary], $groups) as $groupName => $items) {
