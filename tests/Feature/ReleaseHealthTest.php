@@ -13,7 +13,14 @@ uses(RefreshDatabase::class);
 
 function entryRow(string $type, int $timestamp, int $value = 100): array
 {
-    return ['timestamp' => $timestamp, 'type' => $type, 'key' => 'k', 'key_hash' => md5('k'), 'value' => $value];
+    $row = ['timestamp' => $timestamp, 'type' => $type, 'key' => 'k', 'key_hash' => md5('k'), 'value' => $value];
+
+    // key_hash is a generated column on MySQL/Postgres (only a plain column on SQLite).
+    if (DB::connection()->getDriverName() !== 'sqlite') {
+        unset($row['key_hash']);
+    }
+
+    return $row;
 }
 
 function seedRelease(int $errorsAfter, int $latencyAfter = 100): Deployment

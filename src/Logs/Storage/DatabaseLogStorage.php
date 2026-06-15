@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Vigilance\Logs\Contracts\LogStorage;
 use Vigilance\Logs\LogEntry;
+use Vigilance\Support\Like;
 
 /**
  * Database-backed log storage. Writes happen as one batched insert per flush on
@@ -40,7 +41,7 @@ class DatabaseLogStorage implements LogStorage
             ->when(isset($filters['trace_id']) && $filters['trace_id'] !== '', fn ($q) => $q->where('trace_id', $filters['trace_id']))
             ->when(
                 isset($filters['q']) && $filters['q'] !== '',
-                fn ($q) => $q->where('message', 'like', '%'.$filters['q'].'%')
+                fn ($q) => $q->whereRaw('message like ? escape ?', [Like::contains((string) $filters['q']), Like::ESCAPE])
             )
             ->orderByDesc('logged_at')
             ->orderByDesc('id')

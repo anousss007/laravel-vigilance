@@ -44,6 +44,15 @@ function seedLatencySeries(string $path, int $baselineMs, ?int $spikeMs): void
         ];
     }
 
+    // key_hash is a generated column on MySQL/Postgres (only a plain column on SQLite).
+    if (DB::connection()->getDriverName() !== 'sqlite') {
+        $rows = array_map(function ($r) {
+            unset($r['key_hash']);
+
+            return $r;
+        }, $rows);
+    }
+
     DB::table('vigilance_aggregates')->insert($rows);
 }
 

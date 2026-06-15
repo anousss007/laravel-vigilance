@@ -8,6 +8,7 @@ use Livewire\WithPagination;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Models\Run;
+use Vigilance\Support\Like;
 use Vigilance\Vigilance;
 
 /**
@@ -66,8 +67,9 @@ class Runs extends Component
             ->when($this->queue !== '', fn ($query) => $query->where('queue', $this->queue))
             ->when($this->group !== null, fn ($query) => $query->where('failure_group_id', $this->group))
             ->when($this->q !== '', fn ($query) => $query->where(function ($inner) {
-                $inner->where('name', 'like', '%'.$this->q.'%')
-                    ->orWhere('display_name', 'like', '%'.$this->q.'%');
+                $term = Like::contains($this->q);
+                $inner->whereRaw('name like ? escape ?', [$term, Like::ESCAPE])
+                    ->orWhereRaw('display_name like ? escape ?', [$term, Like::ESCAPE]);
             }))
             ->when($this->tag !== '', fn ($query) => $query->whereIn('id', function ($sub) {
                 $sub->select('run_id')
@@ -76,8 +78,8 @@ class Runs extends Component
             }))
             ->when(! $this->silenced, function ($query) {
                 foreach (Vigilance::silencedJobPatterns() as $pattern) {
-                    $like = str_replace('*', '%', $pattern);
-                    $query->where(fn ($q) => $q->whereNull('name')->orWhere('name', 'not like', $like));
+                    $like = Like::fromWildcard($pattern);
+                    $query->where(fn ($q) => $q->whereNull('name')->orWhereRaw('name not like ? escape ?', [$like, Like::ESCAPE]));
                 }
 
                 $tags = Vigilance::silencedTags();

@@ -55,9 +55,16 @@ class QueueDepth
     {
         $table = config("queue.connections.$connection.table", 'jobs');
         $dbConnection = config("queue.connections.$connection.connection");
+        $db = DB::connection($dbConnection);
 
-        return (int) DB::connection($dbConnection)
-            ->table($table)
+        // Probe for the table first: a missing table would throw, and on
+        // Postgres a thrown query inside a transaction aborts the whole
+        // transaction — so "best effort" must mean "never run a failing query".
+        if (! $db->getSchemaBuilder()->hasTable($table)) {
+            return null;
+        }
+
+        return (int) $db->table($table)
             ->where('queue', $queue)
             ->whereNull('reserved_at')
             ->count();

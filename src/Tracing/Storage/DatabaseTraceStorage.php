@@ -7,6 +7,7 @@ use Carbon\CarbonInterval;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Vigilance\Support\Like;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Span;
 use Vigilance\Tracing\Trace;
@@ -69,7 +70,7 @@ class DatabaseTraceStorage implements TraceStorage
             ->when(isset($filters['slow']), fn ($q) => $q->where('duration_ms', '>=', (int) $filters['slow']))
             ->when(
                 isset($filters['q']) && $filters['q'] !== '',
-                fn ($q) => $q->where('name', 'like', '%'.$filters['q'].'%')
+                fn ($q) => $q->whereRaw('name like ? escape ?', [Like::contains((string) $filters['q']), Like::ESCAPE])
             )
             ->orderByDesc('started_at')
             ->orderByDesc('id')

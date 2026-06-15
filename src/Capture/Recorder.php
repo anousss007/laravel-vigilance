@@ -154,7 +154,7 @@ class Recorder
 
             if ($open) {
                 if ($open->queued_at) {
-                    $changes->set('wait_ms', $open->queued_at->diffInMilliseconds($now));
+                    $changes->set('wait_ms', (int) round($open->queued_at->diffInMilliseconds($now)));
                 }
 
                 $this->runs->update($open->id, $changes);
@@ -216,7 +216,7 @@ class Recorder
 
             $this->runs->update($open->id, RunData::make([
                 'finished_at' => $now,
-                'duration_ms' => $open->started_at?->diffInMilliseconds($now),
+                'duration_ms' => $open->started_at !== null ? (int) round($open->started_at->diffInMilliseconds($now)) : null,
                 'memory_peak' => $this->memory(),
                 'cpu_time_ms' => $this->cpuDelta($uuid),
             ])->status(RunStatus::Succeeded));
@@ -262,7 +262,7 @@ class Recorder
 
             if ($open) {
                 if ($open->started_at) {
-                    $changes->set('duration_ms', $open->started_at->diffInMilliseconds($now));
+                    $changes->set('duration_ms', (int) round($open->started_at->diffInMilliseconds($now)));
                 }
 
                 $this->runs->update($open->id, $changes);
