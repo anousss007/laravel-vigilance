@@ -6,6 +6,7 @@ use Vigilance\Apm\Recorders\Logs;
 use Vigilance\Apm\Recorders\Mail;
 use Vigilance\Apm\Recorders\Notifications;
 use Vigilance\Apm\Recorders\Queues;
+use Vigilance\Apm\Recorders\Requests;
 use Vigilance\Apm\Recorders\Servers;
 use Vigilance\Apm\Recorders\SlowJobs;
 use Vigilance\Apm\Recorders\SlowOutgoingRequests;
@@ -434,6 +435,21 @@ return [
                 'threshold' => 1000,
                 'ignore' => [
                     '#^/'.preg_quote((string) env('VIGILANCE_PATH', 'vigilance'), '#').'#', // the dashboard itself
+                    '#^/livewire/#',
+                    '#^/telescope#',
+                    '#^/horizon#',
+                ],
+            ],
+
+            // All requests (sampled), aggregated per route for the Routes page:
+            // throughput, Apdex, error rate and latency percentiles. Distinct
+            // from SlowRequests, which only keeps requests over its threshold.
+            Requests::class => [
+                'enabled' => env('VIGILANCE_APM_ROUTES', true),
+                'sample_rate' => (float) env('VIGILANCE_APM_ROUTES_SAMPLE', 1),
+                'apdex_threshold' => (int) env('VIGILANCE_APM_APDEX_MS', 300),
+                'ignore' => [
+                    '#^/'.preg_quote((string) env('VIGILANCE_PATH', 'vigilance'), '#').'#',
                     '#^/livewire/#',
                     '#^/telescope#',
                     '#^/horizon#',
