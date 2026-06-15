@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "anousss007/vigilance",
     "description": "A driver-agnostic control center for Laravel queues, jobs, commands and the scheduler. Monitor what ran (with parameters), see failures, and dispatch jobs or run artisan commands manually from a self-contained dashboard.",
-    "keywords": ["laravel", "queue", "jobs", "horizon", "pulse", "telescope", "scheduler", "artisan", "monitoring", "apm", "tracing", "observability", "supervisor", "dashboard", "livewire"],
+    "keywords": ["laravel", "queue", "jobs", "horizon", "pulse", "telescope", "scheduler", "artisan", "monitoring", "apm", "tracing", "observability", "supervisor", "dashboard", "livewire", "laravel-boost", "ai"],
     "homepage": "https://github.com/anousss007/laravel-vigilance",
     "license": "MIT",
     "type": "library",

@@ -238,6 +238,19 @@ A few column/term names differ from the prose, worth knowing if you query the ta
 - Failure grouping is stored as `vigilance_failure_groups.signature` (the "fingerprint") with an `occurrences` count.
 - `vigilance_supervisors` uses a natural key on `name` (no surrogate `id`).
 
+## AI-assisted development (Laravel Boost)
+
+Vigilance ships first-class [Laravel Boost](https://laravel.com/docs/boost)
+support. In any project that uses Boost, `php artisan boost:install` (and
+`boost:update`) automatically loads Vigilance's **AI guidelines** and installs a
+**`vigilance-development` agent skill** — so your coding agent (Claude Code,
+Cursor, Copilot, …) already knows Vigilance's conventions: securing the dashboard
+with `viewVigilance`, the `Dispatchable` / `ShouldNotBeMonitored` markers, the
+driver-agnostic worker supervisor, `.env` alert routing, APM/tracing and more.
+Nothing to wire up — the guidelines live in
+`resources/boost/guidelines/core.blade.php` and the skill in
+`resources/boost/skills/vigilance-development/`.
+
 ## Testing
 
 ```bash

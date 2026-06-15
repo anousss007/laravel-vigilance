@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Laravel Boost integration.** Vigilance now ships AI guidelines
+  (`resources/boost/guidelines/core.blade.php`) and a `vigilance-development`
+  agent skill (`resources/boost/skills/vigilance-development/SKILL.md`). When a
+  project running [Laravel Boost](https://laravel.com/docs/boost) runs
+  `boost:install` / `boost:update`, coding agents automatically learn
+  Vigilance's conventions (dashboard authorization, the `Dispatchable` /
+  `ShouldNotBeMonitored` markers, the worker supervisor, `.env` alert routing,
+  APM/tracing) and generate correct code against the package.
+
 ## [0.2.0] - 2026-06-15
 
 ### Added
