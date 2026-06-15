@@ -57,9 +57,11 @@ class FailureGrouper
             $group->context = $context;
         }
 
-        // Re-open a previously resolved group when it recurs.
+        // Re-open a previously resolved group when it recurs, and mark it as a
+        // regression so the regression alert and the "regressed" badge fire.
         if ($group->resolved_at !== null) {
             $group->resolved_at = null;
+            $group->regressed_at = $now;
         }
 
         $group->save();

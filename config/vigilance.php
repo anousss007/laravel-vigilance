@@ -395,6 +395,12 @@ return [
             'slow_request_rate' => ['enabled' => false, 'count' => 100],
             'scheduled_task_late' => ['enabled' => true],
             'slo_burn' => ['enabled' => true, 'burn_rate' => 2.0],
+
+            // Alert the first time a new error type (signature) is seen, and when
+            // a previously-resolved issue regresses. "window_minutes" defaults to
+            // the throttle window; "limit" caps how many fire per snapshot.
+            'new_issue' => ['enabled' => true, 'limit' => 10],
+            'issue_regression' => ['enabled' => true, 'limit' => 10],
         ],
 
         'custom' => [

@@ -87,6 +87,9 @@
                                     'is-info' => $status === 'muted',
                                     'is-success' => $status === 'resolved',
                                 ])><span class="v-dot"></span>{{ $status }}</span>
+                                @if ($group->isRegressed())
+                                    <span class="ml-1 v-pill is-danger" title="This issue was resolved and has come back">regressed</span>
+                                @endif
                                 @if ($group->priority)
                                     <span @class([
                                         'ml-1 v-pill',

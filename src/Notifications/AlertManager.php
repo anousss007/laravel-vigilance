@@ -11,6 +11,8 @@ use Vigilance\Models\Incident;
 use Vigilance\Notifications\Contracts\AlertRule;
 use Vigilance\Notifications\Rules\ErrorRateRule;
 use Vigilance\Notifications\Rules\ExceptionSpikeRule;
+use Vigilance\Notifications\Rules\IssueRegressionRule;
+use Vigilance\Notifications\Rules\NewIssueRule;
 use Vigilance\Notifications\Rules\QueueLongWaitRule;
 use Vigilance\Notifications\Rules\ScheduledTaskLateRule;
 use Vigilance\Notifications\Rules\SloBurnRateRule;
@@ -34,6 +36,8 @@ class AlertManager
         SlowRequestRateRule::class,
         ScheduledTaskLateRule::class,
         SloBurnRateRule::class,
+        NewIssueRule::class,
+        IssueRegressionRule::class,
     ];
 
     public function __construct(protected Container $app) {}

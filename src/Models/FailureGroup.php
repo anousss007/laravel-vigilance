@@ -20,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $first_seen_at
  * @property ?Carbon $last_seen_at
  * @property ?Carbon $resolved_at
+ * @property ?Carbon $regressed_at
  * @property ?Carbon $muted_until
  * @property ?string $sample
  * @property ?array<string, mixed> $context
@@ -36,6 +37,7 @@ class FailureGroup extends VigilanceModel
         'first_seen_at' => 'datetime',
         'last_seen_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'regressed_at' => 'datetime',
         'muted_until' => 'datetime',
         'context' => 'array',
     ];
@@ -53,6 +55,14 @@ class FailureGroup extends VigilanceModel
     public function isMuted(): bool
     {
         return $this->muted_until !== null && $this->muted_until->isFuture();
+    }
+
+    /**
+     * A currently-open issue that came back after having been resolved.
+     */
+    public function isRegressed(): bool
+    {
+        return $this->regressed_at !== null && $this->resolved_at === null;
     }
 
     public function status(): string
