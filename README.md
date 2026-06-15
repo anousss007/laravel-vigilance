@@ -29,6 +29,8 @@ See what ran — with the parameters it ran with — whether it failed, and **di
 | SLOs + error budgets | ❌ | ❌ | ✅ (burn-rate alerts) |
 | Trace-correlated log explorer | ❌ | ✅ (view) | ✅ (searchable, linked to traces) |
 | Custom business metrics | ❌ | ❌ | ✅ (one-line API + dashboard) |
+| Release health / deploy gating | ❌ | ❌ | ✅ (before/after regression guard + rollback alert) |
+| Anomaly detection | ❌ | ❌ | ✅ (dynamic baselines, not fixed thresholds) |
 | Alerting | ❌ | ❌ | ✅ (mail · Slack · Discord · Teams · webhooks + incidents) |
 | Production-oriented | ✅ | ❌ (debug tool) | ✅ (see below) |
 
@@ -93,6 +95,7 @@ its own dashboard page. Full guide in
 | **Web Vitals** — RUM | `/vigilance/vitals` | Core Web Vitals (LCP/INP/CLS/FCP/TTFB) + JS errors from real visitors via the `@vigilanceRum` beacon |
 | **SLOs** — error budgets | `/vigilance/slos` | Availability / latency objectives vs. an error budget, with a short-window **burn-rate** alert |
 | **Incidents** — alerting depth | `/vigilance/incidents` | Fired alerts persisted as incidents (open → auto-resolved) with level, occurrences and **MTTR**; channels for Discord / Teams / generic webhooks |
+| **Releases** — deploy health | `/vigilance/releases` | Each deploy's error-rate / latency / throughput **after vs. before**, with a healthy/degraded/**regressed** verdict; a bad deploy fires a rollback-ready alert |
 | **Custom Metrics** — business KPIs | `/vigilance/custom-metrics` | `Vigilance::increment()` / `gauge()` → auto-discovered counter & gauge cards with sparklines |
 | **Logs** — explorer | `/vigilance/logs` | Searchable application logs **correlated to the trace that emitted them** |
 
@@ -200,6 +203,10 @@ See `config/vigilance.php` — every option is documented inline. Highlights:
 - `slos` — service-level objectives + error budgets (define your own)
 - `logs` — trace-correlated log explorer (enable, min level, sample, retention)
 - `alerts` — rule engine + incident tracking (per-rule thresholds, `incidents`)
+- `release_health` — deploy-regression guard (comparison window, thresholds)
+- `release` — current release identifier (tags issues + deploy markers)
+- `ignore_paths` — exclude noisy endpoints (`/admin/*`, …) from all telemetry
+- `rum.symbolicate` — symbolicate RUM JS errors against uploaded source maps
 
 ### Recommended production profile
 
@@ -213,8 +220,9 @@ VIGILANCE_RETENTION_DAYS=7
 
 Vigilance evaluates rule-based alerts at `vigilance:snapshot` time — queue
 backlog, failure-rate, exception spikes, slow-request rate, overdue/failed
-scheduled tasks (a **dead-man's-switch**) and **SLO burn rate** — each throttled
-per key. Alerts route to email, Slack, **Discord**, **Microsoft Teams** and any
+scheduled tasks (a **dead-man's-switch**), **SLO burn rate**, **new & regressed
+issues**, **metric anomalies** (dynamic baselines) and **bad deploys** (release
+regression) — each throttled per key. Alerts route to email, Slack, **Discord**, **Microsoft Teams** and any
 number of **generic webhooks** (PagerDuty, Opsgenie, …) **straight from `.env`**
 (no service provider required):
 
@@ -258,7 +266,8 @@ If no mail recipient and no Slack webhook is configured, alerting stays silent
 | `vigilance:prune` | Delete old runs (`--days`, `--failed-days`, `--dry-run`) and trim snapshots |
 | `vigilance:snapshot` | Capture a throughput/runtime/wait-time metric snapshot |
 | `vigilance:schedule-sync` | Sync defined scheduled tasks into monitors (`--keep-old`) |
-| `vigilance:deploy` | Record a deployment marker on the dashboard timeline |
+| `vigilance:deploy` | Record a deployment marker (`--release`, `--commit`) — feeds release health |
+| `vigilance:sourcemaps` | Upload JS source maps (`--release`, `--prune`) so RUM browser errors are symbolicated |
 
 **Worker supervision** — the Horizon replacement (optional, works on any queue driver)
 

@@ -229,6 +229,8 @@
           <tr><td>SLOs + error budgets</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ burn-rate alerts</td></tr>
           <tr><td>Trace-correlated logs</td><td class="no">—</td><td>view</td><td class="vig">✓ searchable + linked to traces</td></tr>
           <tr><td>Alerting channels</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ mail · Slack · Discord · Teams · webhooks · incidents</td></tr>
+          <tr><td>Release health / deploy gating</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ before/after regression guard + rollback alert</td></tr>
+          <tr><td>Anomaly detection</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ dynamic baselines</td></tr>
           <tr><td>Production-oriented</td><td class="yes">✓</td><td class="no">debug tool</td><td class="vig">✓ sampled · capped · guarded</td></tr>
         </tbody>
       </table>
@@ -317,6 +319,7 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Routes &amp; Web Vitals</strong> — per-route p50/p95/p99 + Apdex, and RUM of Core Web Vitals from real users.</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>SLOs &amp; incidents</strong> — error budgets with burn-rate alerts; fired alerts tracked as incidents with MTTR.</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Logs &amp; custom metrics</strong> — searchable logs correlated to traces, plus a one-line business-metrics API.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Release health</strong> — every deploy gets a before/after verdict; a bad release fires a rollback-ready alert and anomaly detection catches the rest.</span></li>
         </ul>
       </div>
       <div class="copy">
@@ -436,7 +439,8 @@ Gate::<span class="tok-f">define</span>(<span class="tok-s">'viewVigilance'</spa
         <div class="cmd"><code>vigilance:prune</code><span>Delete old runs and trim metric snapshots</span></div>
         <div class="cmd"><code>vigilance:snapshot</code><span>Capture a throughput / runtime / wait-time snapshot</span></div>
         <div class="cmd"><code>vigilance:schedule-sync</code><span>Sync defined scheduled tasks into monitors</span></div>
-        <div class="cmd"><code>vigilance:deploy</code><span>Record a deployment marker on the timeline</span></div>
+        <div class="cmd"><code>vigilance:deploy</code><span>Record a deployment marker (feeds release health)</span></div>
+        <div class="cmd"><code>vigilance:sourcemaps</code><span>Upload JS source maps so RUM browser errors are symbolicated</span></div>
       </div>
       <div class="cmd-group">
         <h3>Worker supervision</h3>

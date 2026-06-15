@@ -130,10 +130,13 @@ Vigilance::gauge('cart_value', $cart->total());  // gauge (avg / peak / min)
 ```
 
 - **Log explorer** (`/vigilance/logs`, **off** by default). Set `VIGILANCE_LOGS=true` to capture `Log::*` records into a searchable explorer **correlated to the trace that emitted them** (the trace detail page lists its logs, and each log links back). Set the minimum level with `VIGILANCE_LOGS_LEVEL` (default `debug`; raise to `warning`/`error` at volume). Buffered + flushed after the response; trimmed by `vigilance:prune`.
+- **Release health** (`/vigilance/releases`, on). After each `php artisan vigilance:deploy --release=...`, Vigilance compares error-rate/latency/throughput in the window after the deploy vs before it and assigns a healthy/degraded/regressed verdict. A regression fires the `deploy_regression` alert (route a webhook at it to roll back). Set the release via `VIGILANCE_RELEASE` (or `app.version`) so issues are tagged with `first_release` / `regressed_release`. Tune under `release_health`. Symbolicate RUM browser errors by uploading source maps: `php artisan vigilance:sourcemaps <build-dir> --release=...`.
+
+> **Exclude noisy endpoints once:** `vigilance.ignore_paths` (e.g. `['/admin/*', 'livewire/*']`) drops a path from APM, tracing, RUM and request-error capture together — use it instead of editing each recorder's `ignore`.
 
 ## Alerting (mail / Slack / Discord / Teams / webhooks / custom) + incidents
 
-Rules are evaluated at `vigilance:snapshot` time and throttled per key — queue backlog, failure rate, exception spikes, slow-request rate, overdue/failed scheduled tasks (a **dead-man's-switch**) and **SLO burn rate**. Configure built-in rules under `alerts.rules`; route delivery from `.env` or code. Fired alerts are persisted as **incidents** (`alerts.incidents`, on by default) — opened on first fire, auto-resolved when they stop recurring — with occurrence counts and MTTR on the **Incidents** page (`/vigilance/incidents`).
+Rules are evaluated at `vigilance:snapshot` time and throttled per key: `queue_long_wait`, `error_rate`, `exception_spike`, `slow_request_rate`, `scheduled_task_late` (a **dead-man's-switch**), `slo_burn`, `new_issue`, `issue_regression`, `anomaly` (dynamic baselines) and `deploy_regression` (bad deploy). Configure them under `alerts.rules`; route delivery from `.env` or code. Fired alerts are persisted as **incidents** (`alerts.incidents`, on by default) — opened on first fire, auto-resolved when they stop recurring — with occurrence counts and MTTR on the **Incidents** page (`/vigilance/incidents`).
 
 ```ini
 # .env — simplest path, no provider needed
@@ -219,6 +222,8 @@ interface Ingest
 | `vigilance:check` | APM heartbeat (daemon; `--once` for cron/testing) |
 | `vigilance:apm-work` | Drain Redis write-behind telemetry |
 | `vigilance:health` | Ping uptime URLs; record availability + latency |
+| `vigilance:deploy` | Record a deployment marker (`--release`, `--commit`) — feeds release health |
+| `vigilance:sourcemaps` | Upload JS source maps (`--release`, `--prune`) for RUM symbolication |
 
 ## Gotchas
 

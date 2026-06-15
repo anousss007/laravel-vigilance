@@ -17,8 +17,14 @@ and wrapped so monitoring can never break the host app.
 | [Real User Monitoring (RUM)](#real-user-monitoring-rum) | `/vigilance/vitals` | off |
 | [SLOs & error budgets](#slos--error-budgets) | `/vigilance/slos` | off (until you add one) |
 | [Alerting depth & incidents](#alerting-depth--incidents) | `/vigilance/incidents` | on |
+| [Release health & deploy guard](#release-health--deploy-regression-guard) | `/vigilance/releases` | on |
 | [Custom business metrics](#custom-business-metrics) | `/vigilance/custom-metrics` | on |
 | [Log explorer](#log-explorer) | `/vigilance/logs` | off |
+
+> **Tip — exclude noisy endpoints everywhere at once.** Set `ignore_paths` to a
+> list of wildcards (`/admin/*`, `livewire/*`) or `#regex#` patterns and those
+> request paths are dropped from APM, tracing, RUM and web-request error capture
+> — one list instead of a per-recorder ignore.
 
 ---
 
@@ -101,6 +107,23 @@ gate, because browsers post without it), and renders nothing when RUM is off.
 Browser errors land in the [Issues](#issues--unified-error-tracking) inbox as
 source `browser`.
 
+### Source-map symbolication
+
+Minified stacks like `app-abc123.js:1:5000` are useless. Upload your build's
+source maps per release and Vigilance symbolicates browser-error stacks at
+ingest, so the issue shows the original location
+(`resources/js/checkout.js:42:9`). Run it from your deploy pipeline after the
+front-end build:
+
+```bash
+php artisan vigilance:sourcemaps public/build --release=v1.4.0 --prune
+```
+
+`--prune` drops maps from other releases. Symbolication is on by default
+(`rum.symbolicate`); maps are matched to the error's release (the current release
+unless the beacon sends its own). A pure-PHP Source Map v3 decoder does the work
+— no Node or external service.
+
 ---
 
 ## SLOs & error budgets
@@ -157,8 +180,64 @@ timeline of open / resolved incidents with level, occurrence count and **MTTR**.
 'rules' => [
     'scheduled_task_late' => ['enabled' => true],   // dead-man's-switch
     'slo_burn'            => ['enabled' => true, 'burn_rate' => 2.0],
+    'new_issue'           => ['enabled' => true],    // a new error signature appeared
+    'issue_regression'    => ['enabled' => true],    // a resolved issue came back
+    'anomaly'             => ['enabled' => true],     // metric off its baseline
+    'deploy_regression'   => ['enabled' => true],     // a bad deploy
     // … queue_long_wait, error_rate, exception_spike, slow_request_rate
 ],
+```
+
+Beyond fixed thresholds, three rules find the problems you didn't write a
+threshold for:
+
+- **`new_issue` / `issue_regression`** — fire the first time a new error
+  signature is seen, and when a previously-resolved issue starts happening again
+  (Sentry's stickiest signals). Evaluated at snapshot time, so error capture
+  never makes a synchronous alert call on the request thread.
+- **`anomaly`** — dynamic-baseline detection. For each watched metric (request
+  latency, 5xx error rate and exceptions by default) it z-scores the latest
+  bucket against its rolling baseline and fires on a real deviation, guarded so
+  it never alerts on statistical noise or trivially small numbers. Configure the
+  window, z-threshold and watched `metrics` under `alerts.rules.anomaly`.
+
+---
+
+## Release health & deploy-regression guard
+
+Deploy markers become a **guard**. After each `vigilance:deploy`, Vigilance
+compares request telemetry in the window after the deploy against the equal
+window before it — error rate, average latency and throughput — and assigns a
+verdict on the **Releases** page (`/vigilance/releases`):
+
+| Verdict | Meaning |
+|---|---|
+| `healthy` | no meaningful change |
+| `degraded` | a smaller error-rate / latency increase |
+| `regressed` | a clear increase past the configured thresholds |
+| `no-data` | not enough traffic in either window to judge |
+
+A `regressed` verdict fires a **critical `deploy_regression` alert** — point a
+generic webhook at it to trigger an **automatic rollback**. Issues also record
+the release they were `first_release` first seen in and `regressed_release`
+regressed in, so you can pin a spike to the deploy that caused it.
+
+```php
+// config/vigilance.php
+'release_health' => [
+    'window_minutes' => 30,       // compare 30m after the deploy vs 30m before
+    'min_requests' => 50,         // requests needed per window to judge
+    'error_rate_increase' => 5.0, // percentage-point jump → regressed
+    'latency_increase' => 0.5,    // +50% avg latency → regressed
+],
+```
+
+Set the current release so issues and markers are labelled — `VIGILANCE_RELEASE`
+(or `vigilance.release`), falling back to `app.version`. Record a deploy from
+your pipeline:
+
+```bash
+php artisan vigilance:deploy --release=v1.4.0 --commit=$(git rev-parse HEAD)
 ```
 
 ---

@@ -6,6 +6,35 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Release health & deploy-regression guard.** After each deployment marker,
+  Vigilance compares request error-rate / latency / throughput in the window
+  after the deploy against the equal window before it and assigns a health
+  verdict (healthy / degraded / regressed), shown on a new **Releases** page
+  (`/vigilance/releases`). A "regressed" verdict fires a critical
+  `deploy_regression` alert — point a generic webhook at it to trigger an
+  automatic rollback. Issues are now tagged with the release they were
+  `first_release` seen in and `regressed_release` regressed in. Tune under
+  `release_health`; set the current release via `vigilance.release` /
+  `VIGILANCE_RELEASE` (falls back to `app.version`).
+- **New-issue & regression alerting.** Alert the first time a new error
+  signature appears (`new_issue` rule) and when a previously-resolved issue
+  starts happening again (`issue_regression` rule, with a "regressed" badge in
+  the inbox). Evaluated at snapshot time, so capture never fires alerts on the
+  request/exception thread.
+- **Dynamic-baseline anomaly detection** (`anomaly` rule). Z-scores each
+  watched metric's latest bucket against its rolling baseline (request latency,
+  5xx error rate and exceptions by default; configurable) and fires when it
+  deviates — guarded against false positives so it doesn't alert on noise.
+- **RUM source-map symbolication.** A pure-PHP Source Map v3 decoder plus a
+  `vigilance:sourcemaps` command to upload maps per release. Minified browser
+  error stacks captured by RUM are symbolicated at ingest, so the Issues inbox
+  shows original source locations. Toggle with `rum.symbolicate`.
+- **Global `ignore_paths`.** One config list (wildcards like `/admin/*` or
+  `#regex#`) excludes a request path from ALL request-level telemetry at once —
+  APM, tracing, RUM and web-request error capture — instead of per-recorder
+  ignore lists.
+
 ## [0.4.1] - 2026-06-15
 
 ### Changed
