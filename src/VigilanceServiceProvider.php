@@ -63,6 +63,7 @@ use Vigilance\Http\Livewire\Batches;
 use Vigilance\Http\Livewire\CommandRunner;
 use Vigilance\Http\Livewire\Dispatcher;
 use Vigilance\Http\Livewire\Failures;
+use Vigilance\Http\Livewire\IssueDetail;
 use Vigilance\Http\Livewire\MetricDetail;
 use Vigilance\Http\Livewire\Metrics;
 use Vigilance\Http\Livewire\Overview;
@@ -512,6 +513,7 @@ class VigilanceServiceProvider extends ServiceProvider
             'vigilance.runs' => Runs::class,
             'vigilance.run-detail' => RunDetail::class,
             'vigilance.failures' => Failures::class,
+            'vigilance.issue-detail' => IssueDetail::class,
             'vigilance.tags' => Tags::class,
             'vigilance.dispatcher' => Dispatcher::class,
             'vigilance.command-runner' => CommandRunner::class,

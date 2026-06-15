@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Vigilance\Apm\Contracts\Storage;
 use Vigilance\Http\Livewire\Failures;
+use Vigilance\Http\Livewire\IssueDetail;
 use Vigilance\Models\FailureGroup;
 use Vigilance\Vigilance;
 
@@ -72,6 +73,21 @@ it('filters issues by source', function () {
     Livewire::test(Failures::class)
         ->call('setSource', 'request')
         ->assertViewHas('groups', fn ($groups) => $groups->count() === 1 && $groups->first()->source === 'request');
+});
+
+it('renders and resolves an issue from the detail page', function () {
+    $group = makeFailureGroup();
+    $group->update(['source' => 'request', 'sample' => "RuntimeException: boom\n#0 /app/foo.php(10)"]);
+
+    Livewire::test(IssueDetail::class, ['group' => $group])
+        ->assertSee('RuntimeException')
+        ->call('resolve');
+
+    expect($group->refresh()->isResolved())->toBeTrue();
+
+    Livewire::test(IssueDetail::class, ['group' => $group])->call('mute', 24);
+
+    expect($group->refresh()->isMuted())->toBeTrue();
 });
 
 it('records uptime for configured urls', function () {

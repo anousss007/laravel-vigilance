@@ -62,7 +62,7 @@
                         @endphp
                         <tr wire:key="group-{{ $group->id }}">
                             <td>
-                                <a href="{{ route('vigilance.runs', ['group' => $group->id]) }}" class="font-medium v-strong hover:underline">{{ $group->name ?: $group->exception_class }}</a>
+                                <a href="{{ route('vigilance.issues.show', $group->id) }}" class="font-medium v-strong hover:underline">{{ $group->name ?: $group->exception_class }}</a>
                                 @if ($group->name && $group->exception_class)
                                     <div class="text-[11px] font-mono v-faint">{{ $group->exception_class }}</div>
                                 @endif
