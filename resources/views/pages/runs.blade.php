@@ -23,13 +23,13 @@
     <div class="v-card v-card--pad">
         <div class="flex flex-wrap items-end gap-3">
             <div>
-                <label class="v-label">Search</label>
-                <input type="search" wire:model.live.debounce.300ms="q" placeholder="name…" class="v-input w-48">
+                <label class="v-label" for="v-f-q">Search</label>
+                <input id="v-f-q" type="search" wire:model.live.debounce.300ms="q" placeholder="name…" class="v-input w-48">
             </div>
 
             <div>
-                <label class="v-label">Type</label>
-                <select wire:model.live="type" class="v-select">
+                <label class="v-label" for="v-f-type">Type</label>
+                <select id="v-f-type" wire:model.live="type" class="v-select">
                     <option value="">All</option>
                     @foreach ($types as $t)
                         <option value="{{ $t->value }}">{{ $t->label() }}</option>
@@ -38,8 +38,8 @@
             </div>
 
             <div>
-                <label class="v-label">Status</label>
-                <select wire:model.live="status" class="v-select">
+                <label class="v-label" for="v-f-status">Status</label>
+                <select id="v-f-status" wire:model.live="status" class="v-select">
                     <option value="">All</option>
                     @foreach ($statuses as $s)
                         <option value="{{ $s->value }}">{{ ucfirst($s->value) }}</option>
@@ -55,13 +55,13 @@
             @endif
 
             <div>
-                <label class="v-label">Queue</label>
-                <input type="text" wire:model.live.debounce.300ms="queue" placeholder="default" class="v-input w-32">
+                <label class="v-label" for="v-f-queue">Queue</label>
+                <input id="v-f-queue" type="text" wire:model.live.debounce.300ms="queue" placeholder="default" class="v-input w-32">
             </div>
 
             <div>
-                <label class="v-label">Tag</label>
-                <input type="text" wire:model.live.debounce.300ms="tag" placeholder="tag" class="v-input w-32">
+                <label class="v-label" for="v-f-tag">Tag</label>
+                <input id="v-f-tag" type="text" wire:model.live.debounce.300ms="tag" placeholder="tag" class="v-input w-32">
             </div>
 
             @if ($group)

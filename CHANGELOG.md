@@ -6,6 +6,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- Dashboard accessibility hardening (WCAG 2.1 AA). Added a skip-to-content link
+  and a focusable `<main>`, labelled the primary navigation with `aria-current`
+  on the active item, gave the mobile-drawer / sidebar-collapse / theme toggles
+  proper `aria-expanded` / `aria-pressed` / dynamic labels, marked the command
+  palette as a labelled `role="dialog"` with an `aria-label`ed search field,
+  removed a duplicate `<h1>` in the top bar, associated the Runs filter
+  `<label>`s with their controls, hid decorative SVGs, and added a
+  `prefers-reduced-motion` fallback. Darkened the **light-theme** semantic
+  palette (status pills, primary button) so all text clears 4.5:1, and lifted
+  the dark `--v-faint` token to do the same. Fixed a mobile horizontal-overflow
+  on the overview from un-shrinkable truncated text. Verified with axe-core
+  across all dashboard pages in both themes (zero violations).
+
 ## [0.1.3] - 2026-06-15
 
 ### Added

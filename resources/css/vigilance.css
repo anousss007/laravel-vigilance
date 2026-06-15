@@ -19,17 +19,19 @@
         --v-text: #27272a;
         --v-text-strong: #09090b;
         --v-muted: #52525b;
-        --v-faint: #71717a;
+        --v-faint: #696970;
 
-        --v-accent: #059669;
-        --v-accent-strong: #047857;
+        --v-accent: #047857;
+        --v-accent-strong: #065f46;
         --v-accent-contrast: #ffffff;
         --v-accent-bg: rgba(5, 150, 105, 0.10);
 
-        --v-success: #059669;  --v-success-bg: rgba(5, 150, 105, 0.10);
-        --v-warn: #b45309;     --v-warn-bg: rgba(245, 158, 11, 0.14);
-        --v-danger: #e11d48;   --v-danger-bg: rgba(225, 29, 72, 0.10);
-        --v-info: #0284c7;     --v-info-bg: rgba(2, 132, 199, 0.10);
+        /* Light-theme semantic text is darkened so it clears 4.5:1 on its own
+           pale tint background (pills) and on white surfaces. */
+        --v-success: #047857;  --v-success-bg: rgba(5, 150, 105, 0.10);
+        --v-warn: #92400e;     --v-warn-bg: rgba(245, 158, 11, 0.14);
+        --v-danger: #be123c;   --v-danger-bg: rgba(225, 29, 72, 0.10);
+        --v-info: #0369a1;     --v-info-bg: rgba(2, 132, 199, 0.10);
 
         --v-ring: rgba(5, 150, 105, 0.35);
         --v-shadow: 0 1px 2px rgba(9, 9, 11, 0.04), 0 1px 3px rgba(9, 9, 11, 0.06);
@@ -46,7 +48,7 @@
         --v-text: #e4e4e7;
         --v-text-strong: #fafafa;
         --v-muted: #a1a1aa;
-        --v-faint: #71717a;
+        --v-faint: #8a8a93;
 
         --v-accent: #10b981;
         --v-accent-strong: #34d399;
@@ -299,4 +301,32 @@
         color: var(--v-text);
     }
     .v-palette__item.is-active { background: var(--v-accent-bg); color: var(--v-text-strong); }
+}
+
+/* ==========================================================================
+   Accessibility helpers — kept outside @layer so Tailwind never purges them.
+   ========================================================================== */
+.v-skip {
+    position: fixed;
+    left: 12px;
+    top: -64px;
+    z-index: 200;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--v-accent);
+    color: var(--v-accent-contrast);
+    box-shadow: var(--v-shadow);
+    transition: top 0.16s ease;
+}
+.v-skip:focus { top: 12px; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

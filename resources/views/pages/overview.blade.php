@@ -69,13 +69,13 @@
     </div>
 
     {{-- Throughput sparkline --}}
-    <div class="v-card">
+    <div class="v-card min-w-0">
         <div class="v-card__header">
             <h2 class="v-card__title">Throughput</h2>
             <span class="text-xs v-muted v-num">{{ $totalThroughput }} runs · {{ $totalFailed }} failed · 60 min</span>
         </div>
         <div class="v-card--pad">
-            <svg viewBox="0 0 {{ $w }} {{ $h }}" preserveAspectRatio="none" class="h-16 w-full">
+            <svg viewBox="0 0 {{ $w }} {{ $h }}" preserveAspectRatio="none" class="h-16 w-full" aria-hidden="true">
                 <path d="{{ $area }}" fill="rgb(16 185 129 / 0.12)" stroke="none" />
                 <path d="{{ $line }}" fill="none" stroke="rgb(16 185 129)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
                 @foreach ($deployMarkers as $marker)
@@ -90,7 +90,7 @@
 
     {{-- Recent deployments --}}
     @if (count($deployments) > 0)
-        <div class="v-card">
+        <div class="v-card min-w-0">
             <div class="v-card__header">
                 <h2 class="v-card__title">Recent deployments</h2>
             </div>
@@ -115,7 +115,7 @@
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Top failing groups --}}
-        <div class="v-card">
+        <div class="v-card min-w-0">
             <div class="v-card__header">
                 <h2 class="v-card__title">Top failure groups</h2>
                 <a href="{{ route('vigilance.failures') }}" class="text-xs v-link">view all</a>
@@ -125,7 +125,7 @@
                     <li class="px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
                         <a href="{{ route('vigilance.runs', ['group' => $group->id]) }}" class="block transition-opacity hover:opacity-80">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="truncate text-[13px] font-medium v-strong">{{ $group->name ?: $group->exception_class }}</span>
+                                <span class="min-w-0 truncate text-[13px] font-medium v-strong">{{ $group->name ?: $group->exception_class }}</span>
                                 <span class="v-pill is-danger v-num shrink-0">{{ $group->occurrences }}×</span>
                             </div>
                             <div class="mt-0.5 truncate text-xs v-muted">{{ $group->message }}</div>
@@ -138,7 +138,7 @@
         </div>
 
         {{-- Recent failures --}}
-        <div class="v-card">
+        <div class="v-card min-w-0">
             <div class="v-card__header">
                 <h2 class="v-card__title">Recent failures</h2>
                 <a href="{{ route('vigilance.runs', ['status' => 'failed']) }}" class="text-xs v-link">view all</a>
@@ -148,7 +148,7 @@
                     <li class="px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
                         <a href="{{ route('vigilance.runs.show', $run->id) }}" class="block transition-opacity hover:opacity-80">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="truncate text-[13px] font-medium v-strong">{{ $run->name }}</span>
+                                <span class="min-w-0 truncate text-[13px] font-medium v-strong">{{ $run->name }}</span>
                                 <span class="shrink-0 text-xs v-faint">{{ optional($run->finished_at)->diffForHumans() }}</span>
                             </div>
                             <div class="mt-0.5 truncate text-xs font-mono" style="color: var(--v-danger)">{{ $run->exception_class }}: {{ $run->exception_message }}</div>
@@ -161,14 +161,14 @@
         </div>
 
         {{-- Slowest runs --}}
-        <div class="v-card">
+        <div class="v-card min-w-0">
             <div class="v-card__header">
                 <h2 class="v-card__title">Slowest runs</h2>
             </div>
             <ul>
                 @forelse ($slowest as $run)
                     <li class="flex items-center justify-between px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
-                        <a href="{{ route('vigilance.runs.show', $run->id) }}" class="truncate text-[13px] font-medium v-strong hover:underline">{{ $run->name }}</a>
+                        <a href="{{ route('vigilance.runs.show', $run->id) }}" class="min-w-0 truncate text-[13px] font-medium v-strong hover:underline">{{ $run->name }}</a>
                         <span class="v-pill is-warn v-num shrink-0">{{ $fmtMs($run->duration_ms) }}</span>
                     </li>
                 @empty
@@ -178,7 +178,7 @@
         </div>
 
         {{-- Workload summary --}}
-        <div class="v-card">
+        <div class="v-card min-w-0">
             <div class="v-card__header">
                 <h2 class="v-card__title">Workload</h2>
                 <a href="{{ route('vigilance.workload') }}" class="text-xs v-link">details</a>
