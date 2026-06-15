@@ -34,13 +34,13 @@
             <table class="v-table v-table--hover">
                 <thead>
                     <tr>
-                        <th>Name / exception</th>
-                        <th>Message</th>
-                        <th>7d</th>
-                        <th class="text-right">Count</th>
-                        <th>Last seen</th>
-                        <th>Status</th>
-                        <th class="text-right">Actions</th>
+                        <th scope="col">Name / exception</th>
+                        <th scope="col">Message</th>
+                        <th scope="col">7d</th>
+                        <th scope="col" class="text-right">Count</th>
+                        <th scope="col">Last seen</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -108,14 +108,14 @@
                 <table class="v-table v-table--hover">
                     <thead>
                         <tr>
-                            <th>Job</th>
-                            <th class="text-right">Runs</th>
-                            <th class="text-right">Failed</th>
-                            <th class="text-right">Fail %</th>
-                            <th class="text-right">Avg</th>
-                            <th class="text-right">Max</th>
-                            <th class="text-right">Avg mem</th>
-                            <th class="text-right">Avg CPU</th>
+                            <th scope="col">Job</th>
+                            <th scope="col" class="text-right">Runs</th>
+                            <th scope="col" class="text-right">Failed</th>
+                            <th scope="col" class="text-right">Fail %</th>
+                            <th scope="col" class="text-right">Avg</th>
+                            <th scope="col" class="text-right">Max</th>
+                            <th scope="col" class="text-right">Avg mem</th>
+                            <th scope="col" class="text-right">Avg CPU</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -24,13 +24,13 @@
             <table class="v-table v-table--hover">
                 <thead>
                     <tr>
-                        <th>Task</th>
-                        <th>Type</th>
-                        <th>Cron</th>
-                        <th>Last started</th>
-                        <th>Last finished</th>
-                        <th>Duration</th>
-                        <th>Health</th>
+                        <th scope="col">Task</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Cron</th>
+                        <th scope="col">Last started</th>
+                        <th scope="col">Last finished</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Health</th>
                     </tr>
                 </thead>
                 <tbody>

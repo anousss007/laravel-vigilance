@@ -80,13 +80,13 @@
             <table class="v-table v-table--hover">
                 <thead>
                     <tr>
-                        <th>Status</th>
-                        <th>Type</th>
-                        <th>Name</th>
-                        <th>Queue</th>
-                        <th>Duration</th>
-                        <th>Started</th>
-                        <th>Via</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Queue</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Started</th>
+                        <th scope="col">Via</th>
                     </tr>
                 </thead>
                 <tbody>
