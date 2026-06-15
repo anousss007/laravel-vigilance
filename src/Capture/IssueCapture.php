@@ -74,9 +74,9 @@ class IssueCapture
         }
 
         $request = request();
-        $route = $request?->route();
+        $route = $request->route();
 
-        return $route?->getName() ?: trim(($request?->method() ?? '').' '.($request?->path() ?? '')) ?: null;
+        return ($route?->getName()) ?: (trim($request->method().' '.$request->path()) ?: null);
     }
 
     protected function sample(Throwable $e): string
@@ -96,9 +96,9 @@ class IssueCapture
             'release' => (string) (config('vigilance.release') ?? config('app.version') ?? '') ?: null,
         ];
 
-        $request = request();
+        if (! app()->runningInConsole()) {
+            $request = request();
 
-        if (! app()->runningInConsole() && $request !== null && method_exists($request, 'method')) {
             $context['method'] = $request->method();
             $context['url'] = $request->fullUrl();
             $context['route'] = $request->route()?->getName();
