@@ -32,7 +32,7 @@ class Vigilance
     /** @var array{user: ?string, via: string}|null */
     protected static ?array $manualContext = null;
 
-    /** @var list<string>|null  null = not set in code, fall back to config */
+    /** @var list<string>|null null = not set in code, fall back to config */
     protected static ?array $mailRecipients = null;
 
     protected static ?string $slackWebhook = null;
