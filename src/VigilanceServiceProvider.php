@@ -74,6 +74,7 @@ use Vigilance\Http\Livewire\Routes;
 use Vigilance\Http\Livewire\RunDetail;
 use Vigilance\Http\Livewire\Runs;
 use Vigilance\Http\Livewire\Schedule;
+use Vigilance\Http\Livewire\Slos;
 use Vigilance\Http\Livewire\Tags;
 use Vigilance\Http\Livewire\TraceDetail;
 use Vigilance\Http\Livewire\Traces;
@@ -546,6 +547,7 @@ class VigilanceServiceProvider extends ServiceProvider
             'vigilance.runs' => Runs::class,
             'vigilance.routes' => Routes::class,
             'vigilance.vitals' => Vitals::class,
+            'vigilance.slos' => Slos::class,
             'vigilance.run-detail' => RunDetail::class,
             'vigilance.failures' => Failures::class,
             'vigilance.issue-detail' => IssueDetail::class,

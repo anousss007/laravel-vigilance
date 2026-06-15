@@ -57,6 +57,11 @@
         $groups['Performance']['vigilance.vitals'] = ['label' => 'Web Vitals', 'icon' => 'metrics'];
     }
 
+    // SLOs only appears once at least one objective is configured.
+    if ((array) config('vigilance.slos', []) !== []) {
+        $groups['Performance']['vigilance.slos'] = ['label' => 'SLOs', 'icon' => 'apm'];
+    }
+
     // Flat list for the command palette.
     $paletteItems = [];
     foreach (array_merge(['' => $primary], $groups) as $groupName => $items) {
