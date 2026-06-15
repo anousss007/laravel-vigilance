@@ -5,6 +5,7 @@ namespace Vigilance;
 use Closure;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Vigilance\Apm\Apm;
 use Vigilance\Contracts\ShouldNotBeMonitored;
 use Vigilance\Events\ExceptionReported;
 use Vigilance\Notifications\Alert;
@@ -181,6 +182,33 @@ class Vigilance
             app('events')->dispatch(new ExceptionReported($e));
         } catch (\Throwable) {
             // Monitoring must never break the caller.
+        }
+    }
+
+    /**
+     * Increment a custom counter metric (e.g. signups, orders, checkouts).
+     * Charted on the Custom Metrics dashboard. Never throws.
+     */
+    public static function increment(string $name, int $by = 1): void
+    {
+        try {
+            app(Apm::class)->record('metric_count', $name, $by)->sum()->count();
+        } catch (\Throwable) {
+            //
+        }
+    }
+
+    /**
+     * Record a custom gauge / measurement metric (e.g. cart value, active
+     * users, MRR). Floats are rounded to an integer — scale first if you need
+     * precision (e.g. store cents). Never throws.
+     */
+    public static function gauge(string $name, int|float $value): void
+    {
+        try {
+            app(Apm::class)->record('metric_value', $name, (int) round($value))->avg()->max()->min();
+        } catch (\Throwable) {
+            //
         }
     }
 
