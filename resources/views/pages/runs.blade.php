@@ -76,7 +76,7 @@
 
     {{-- Table --}}
     <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto" tabindex="0">
             <table class="v-table v-table--hover">
                 <thead>
                     <tr>

@@ -42,6 +42,7 @@
         ],
         'Performance' => [
             'vigilance.apm'     => ['label' => 'APM',     'icon' => 'apm'],
+            'vigilance.routes'  => ['label' => 'Routes',  'icon' => 'workload'],
             'vigilance.traces'  => ['label' => 'Traces',  'icon' => 'traces'],
             'vigilance.metrics' => ['label' => 'Metrics', 'icon' => 'metrics'],
         ],

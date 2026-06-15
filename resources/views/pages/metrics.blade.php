@@ -15,7 +15,7 @@
         <div class="v-card__header">
             <h2 class="v-card__title">By job class</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto" tabindex="0">
             <table class="v-table v-table--hover">
                 <caption class="sr-only">Job classes by throughput, failure rate and runtime</caption>
                 <thead>
@@ -51,7 +51,7 @@
         <div class="v-card__header">
             <h2 class="v-card__title">By queue</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto" tabindex="0">
             <table class="v-table v-table--hover">
                 <caption class="sr-only">Queues by throughput and runtime</caption>
                 <thead>

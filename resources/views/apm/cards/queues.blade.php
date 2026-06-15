@@ -3,7 +3,7 @@
         <h2 class="v-card__title">Queues</h2>
         <a href="{{ route('vigilance.workload') }}" class="text-xs v-link">details</a>
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" tabindex="0">
         <table class="v-table v-table--hover">
             <caption class="sr-only">Active queues, backlog and throughput</caption>
             <thead>

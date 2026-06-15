@@ -77,7 +77,7 @@
     @if ($runs->isNotEmpty())
         <div class="v-card overflow-hidden">
             <div class="v-card__header"><h2 class="v-card__title">Recent runs</h2></div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" tabindex="0">
                 <table class="v-table v-table--hover">
                     <thead>
                         <tr>

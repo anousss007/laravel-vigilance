@@ -1,6 +1,6 @@
 <div class="v-card overflow-hidden">
     <div class="v-card__header"><h2 class="v-card__title">Job throughput</h2></div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" tabindex="0">
         <table class="v-table v-table--hover">
             <caption class="sr-only">Jobs processed, released and failed per queue</caption>
             <thead>

@@ -104,7 +104,7 @@
                 <h2 class="v-card__title">By job class</h2>
                 <span class="text-[10px] uppercase tracking-wide v-faint">last 24 hours</span>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto" tabindex="0">
                 <table class="v-table v-table--hover">
                     <thead>
                         <tr>

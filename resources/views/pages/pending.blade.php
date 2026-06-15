@@ -19,7 +19,7 @@
             @elseif ($group['jobs'] === [])
                 <p class="px-4 py-3 text-xs v-muted">No pending jobs — the queue is empty.</p>
             @else
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" tabindex="0">
                     <table class="v-table v-table--hover">
                         <thead>
                             <tr>

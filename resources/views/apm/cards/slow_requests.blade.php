@@ -1,7 +1,7 @@
 @php $fmtMs = fn (int $ms) => $ms < 1000 ? $ms.'ms' : number_format($ms / 1000, 2).'s'; @endphp
 <div class="v-card overflow-hidden">
     <div class="v-card__header"><h2 class="v-card__title">Slow requests</h2></div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" tabindex="0">
         <table class="v-table v-table--hover">
             <caption class="sr-only">Slowest requests by route</caption>
             <thead>

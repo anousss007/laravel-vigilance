@@ -47,7 +47,7 @@
 
             @php $rows = $workers[$supervisor->name] ?? collect(); @endphp
             @if ($rows->isNotEmpty())
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto" tabindex="0">
                     <table class="v-table v-table--hover">
                         <thead>
                             <tr>

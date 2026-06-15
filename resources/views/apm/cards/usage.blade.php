@@ -8,7 +8,7 @@
             @endforeach
         </div>
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto" tabindex="0">
         <table class="v-table v-table--hover">
             <caption class="sr-only">Top users by {{ $usageMode }}</caption>
             <thead>
