@@ -289,8 +289,12 @@ return [
 
         // Single address or comma-separated list, e.g. "ops@example.com,cto@example.com".
         'mail' => env('VIGILANCE_ALERT_EMAILS'),
-        // Slack incoming-webhook URL.
+        // Slack / Discord / Microsoft Teams incoming-webhook URLs.
         'slack' => env('VIGILANCE_SLACK_WEBHOOK'),
+        'discord' => env('VIGILANCE_DISCORD_WEBHOOK'),
+        'teams' => env('VIGILANCE_TEAMS_WEBHOOK'),
+        // Generic webhook(s) — each receives the alert as JSON (PagerDuty, Opsgenie, …).
+        'webhooks' => env('VIGILANCE_ALERT_WEBHOOKS'),
 
         'long_wait_seconds' => env('VIGILANCE_LONG_WAIT_SECONDS', 60),
         'throttle_minutes' => 15,

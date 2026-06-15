@@ -37,6 +37,13 @@ class Vigilance
 
     protected static ?string $slackWebhook = null;
 
+    protected static ?string $discordWebhook = null;
+
+    protected static ?string $teamsWebhook = null;
+
+    /** @var list<string>|null */
+    protected static ?array $webhookUrls = null;
+
     /** @var (Closure(Alert): void)|null */
     protected static ?Closure $alertSink = null;
 
@@ -316,7 +323,7 @@ class Vigilance
      */
     public static function routeMailNotificationsTo(string|array $emails): void
     {
-        static::$mailRecipients = static::parseEmails($emails);
+        static::$mailRecipients = static::parseList($emails);
     }
 
     /**
@@ -340,7 +347,7 @@ class Vigilance
             return static::$mailRecipients;
         }
 
-        return static::parseEmails(config('vigilance.notifications.mail'));
+        return static::parseList(config('vigilance.notifications.mail'));
     }
 
     public static function slackWebhook(): ?string
@@ -348,19 +355,66 @@ class Vigilance
         return static::$slackWebhook ?? (((string) config('vigilance.notifications.slack')) ?: null);
     }
 
-    public static function hasNotificationRouting(): bool
+    /** Route alerts to a Discord incoming-webhook URL. */
+    public static function routeDiscordNotificationsTo(string $webhookUrl): void
     {
-        return static::mailRecipients() !== [] || static::slackWebhook() !== null;
+        static::$discordWebhook = $webhookUrl;
+    }
+
+    /** Route alerts to a Microsoft Teams incoming-webhook URL. */
+    public static function routeTeamsNotificationsTo(string $webhookUrl): void
+    {
+        static::$teamsWebhook = $webhookUrl;
     }
 
     /**
-     * Normalise a single address, a comma-separated string, or a list into a
-     * clean list of e-mail addresses.
+     * Route alerts to one or more generic webhook URLs (each receives the alert
+     * as JSON — point them at PagerDuty, Opsgenie, a custom handler, …).
+     *
+     * @param  string|list<string>  $urls
+     */
+    public static function routeWebhooksTo(string|array $urls): void
+    {
+        static::$webhookUrls = static::parseList($urls);
+    }
+
+    public static function discordWebhook(): ?string
+    {
+        return static::$discordWebhook ?? (((string) config('vigilance.notifications.discord')) ?: null);
+    }
+
+    public static function teamsWebhook(): ?string
+    {
+        return static::$teamsWebhook ?? (((string) config('vigilance.notifications.teams')) ?: null);
+    }
+
+    /** @return list<string> */
+    public static function webhookUrls(): array
+    {
+        if (static::$webhookUrls !== null) {
+            return static::$webhookUrls;
+        }
+
+        return static::parseList(config('vigilance.notifications.webhooks'));
+    }
+
+    public static function hasNotificationRouting(): bool
+    {
+        return static::mailRecipients() !== []
+            || static::slackWebhook() !== null
+            || static::discordWebhook() !== null
+            || static::teamsWebhook() !== null
+            || static::webhookUrls() !== [];
+    }
+
+    /**
+     * Normalise a single value, a comma-separated string, or an array into a
+     * clean, trimmed list (used for e-mail recipients and webhook URLs).
      *
      * @param  string|array<int, string>|null  $value
      * @return list<string>
      */
-    protected static function parseEmails(string|array|null $value): array
+    protected static function parseList(string|array|null $value): array
     {
         if ($value === null || $value === '') {
             return [];

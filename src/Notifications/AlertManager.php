@@ -118,6 +118,46 @@ class AlertManager
                 //
             }
         }
+
+        if ($discord = Vigilance::discordWebhook()) {
+            try {
+                Http::post($discord, ['content' => $body]);
+            } catch (Throwable) {
+                //
+            }
+        }
+
+        if ($teams = Vigilance::teamsWebhook()) {
+            try {
+                Http::post($teams, [
+                    '@type' => 'MessageCard',
+                    '@context' => 'http://schema.org/extensions',
+                    'summary' => 'Vigilance alert',
+                    'themeColor' => match ($alert->level) {
+                        'critical' => 'E11D48',
+                        'warning' => 'F59E0B',
+                        default => '10B981',
+                    },
+                    'title' => $alert->title,
+                    'text' => $alert->message,
+                ]);
+            } catch (Throwable) {
+                //
+            }
+        }
+
+        foreach (Vigilance::webhookUrls() as $url) {
+            try {
+                Http::post($url, [
+                    'key' => $alert->key,
+                    'title' => $alert->title,
+                    'message' => $alert->message,
+                    'level' => $alert->level,
+                ]);
+            } catch (Throwable) {
+                //
+            }
+        }
     }
 
     protected function cacheKey(string $key): string
