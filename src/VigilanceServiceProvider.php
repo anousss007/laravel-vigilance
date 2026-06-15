@@ -57,6 +57,7 @@ use Vigilance\Contracts\RunRepository;
 use Vigilance\Control\ControlGate;
 use Vigilance\Events\ExceptionReported;
 use Vigilance\Http\Controllers\AssetController;
+use Vigilance\Http\Controllers\RumController;
 use Vigilance\Http\Livewire\Apm as ApmPage;
 use Vigilance\Http\Livewire\ApmCard;
 use Vigilance\Http\Livewire\Batches;
@@ -208,6 +209,7 @@ class VigilanceServiceProvider extends ServiceProvider
 
         $this->registerAssets();
         $this->registerRoutes();
+        $this->registerRum();
         $this->registerLivewire();
         $this->registerCommands();
         $this->registerAbout();
@@ -465,6 +467,27 @@ class VigilanceServiceProvider extends ServiceProvider
             'as' => 'vigilance.assets.',
         ], function () {
             Route::get('vigilance.css', [AssetController::class, 'css'])->name('css');
+        });
+    }
+
+    /**
+     * Register the public, throttled RUM beacon ingest endpoint. Opt-in and
+     * deliberately outside the dashboard Authorize gate (browsers post without
+     * dashboard auth); throttled and strictly validated in the controller.
+     */
+    protected function registerRum(): void
+    {
+        if (! config('vigilance.rum.enabled', false)) {
+            return;
+        }
+
+        Route::group([
+            'domain' => config('vigilance.domain'),
+            'prefix' => config('vigilance.path', 'vigilance'),
+            'middleware' => ['throttle:'.config('vigilance.rum.throttle', '120,1')],
+            'as' => 'vigilance.rum.',
+        ], function () {
+            Route::post('rum', [RumController::class, 'store'])->name('store');
         });
     }
 

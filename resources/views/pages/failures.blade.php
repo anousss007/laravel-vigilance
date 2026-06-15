@@ -23,7 +23,7 @@
                 @endforeach
             </div>
             <div class="flex flex-wrap gap-1 sm:ml-auto">
-                @foreach (['' => 'All sources', 'request' => 'Web', 'job' => 'Jobs', 'command' => 'Commands', 'reported' => 'Reported'] as $key => $label)
+                @foreach (['' => 'All sources', 'request' => 'Web', 'browser' => 'Browser', 'job' => 'Jobs', 'command' => 'Commands', 'reported' => 'Reported'] as $key => $label)
                     <button type="button" wire:click="setSource('{{ $key }}')"
                             @class(['v-btn v-btn--sm', 'v-btn--primary' => $source === $key, 'v-btn--ghost' => $source !== $key])>{{ $label }}</button>
                 @endforeach

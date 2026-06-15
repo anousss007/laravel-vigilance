@@ -338,6 +338,25 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Real User Monitoring (RUM)
+    |--------------------------------------------------------------------------
+    |
+    | Collects Core Web Vitals (LCP, INP, CLS, FCP, TTFB) and uncaught browser
+    | errors from real visitors via a tiny beacon posted to a public, throttled
+    | ingest endpoint. Off by default — it adds a public endpoint and a
+    | front-end script. Browser errors land in the Issues inbox as source
+    | "browser"; Web Vitals feed the Routes / performance views.
+    |
+    */
+
+    'rum' => [
+        'enabled' => (bool) env('VIGILANCE_RUM', false),
+        'throttle' => env('VIGILANCE_RUM_THROTTLE', '120,1'),
+        'capture_js_errors' => (bool) env('VIGILANCE_RUM_JS_ERRORS', true),
+    ],
+
     'alerts' => [
         'enabled' => true,
         'throttle_minutes' => 15,

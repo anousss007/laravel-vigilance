@@ -33,7 +33,7 @@ class Failures extends Component
 
     public function setSource(string $source): void
     {
-        $this->source = in_array($source, ['request', 'reported', 'job', 'command', 'scheduled'], true) ? $source : '';
+        $this->source = in_array($source, ['request', 'reported', 'job', 'command', 'scheduled', 'browser'], true) ? $source : '';
         $this->resetPage();
     }
 
