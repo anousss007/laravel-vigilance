@@ -20,7 +20,7 @@ jobs:
             laravel: '13.*'
     name: PHP ${{ matrix.php }} · Laravel ${{ matrix.laravel }} · Livewire ${{ matrix.livewire }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     name: lint + static analysis
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
