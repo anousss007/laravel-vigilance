@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Vigilance\Apm\Apm;
 use Vigilance\Capture\FailureGrouper;
+use Vigilance\Sourcemaps\SourceMapStore;
 use Vigilance\Support\PathMatcher;
+use Vigilance\Vigilance;
 
 /**
  * Public (unauthenticated, throttled) ingest endpoint for Real User Monitoring
@@ -56,11 +58,26 @@ class RumController
         $errors = $request->input('errors', []);
 
         if (is_array($errors) && (bool) config('vigilance.rum.capture_js_errors', true)) {
+            $release = is_string($request->input('release')) && $request->input('release') !== ''
+                ? (string) $request->input('release')
+                : Vigilance::currentRelease();
+
             foreach (array_slice($errors, 0, 5) as $error) {
                 $message = is_array($error) ? (string) ($error['message'] ?? '') : (string) $error;
 
                 if ($message === '') {
                     continue;
+                }
+
+                $stack = mb_substr(is_array($error) ? (string) ($error['stack'] ?? $message) : $message, 0, 8000);
+
+                // Symbolicate the minified stack against uploaded source maps so
+                // the issue sample shows the original source locations.
+                if ((bool) config('vigilance.rum.symbolicate', true)) {
+                    $symbolicated = app(SourceMapStore::class)->safeSymbolicate($release, $stack);
+                    if ($symbolicated !== null) {
+                        $stack = mb_substr($symbolicated, 0, 8000);
+                    }
                 }
 
                 $grouper->record(
@@ -69,9 +86,10 @@ class RumController
                     exceptionClass: 'JavaScriptError',
                     message: mb_substr($message, 0, 500),
                     source: 'browser',
-                    sample: mb_substr(is_array($error) ? (string) ($error['stack'] ?? $message) : $message, 0, 4000),
+                    sample: $stack,
                     context: array_filter([
                         'page' => $page,
+                        'release' => $release,
                         'source' => is_array($error) ? mb_substr((string) ($error['source'] ?? ''), 0, 300) : null,
                         'agent' => mb_substr((string) $request->userAgent(), 0, 200),
                     ]),

@@ -384,6 +384,9 @@ return [
         'enabled' => (bool) env('VIGILANCE_RUM', false),
         'throttle' => env('VIGILANCE_RUM_THROTTLE', '120,1'),
         'capture_js_errors' => (bool) env('VIGILANCE_RUM_JS_ERRORS', true),
+        // Symbolicate minified JS error stacks against uploaded source maps
+        // (php artisan vigilance:sourcemaps) so browser errors are readable.
+        'symbolicate' => (bool) env('VIGILANCE_RUM_SYMBOLICATE', true),
     ],
 
     /*

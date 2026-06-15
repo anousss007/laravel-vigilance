@@ -50,6 +50,7 @@ use Vigilance\Console\PruneCommand;
 use Vigilance\Console\RestartCommand;
 use Vigilance\Console\ScheduleSyncCommand;
 use Vigilance\Console\SnapshotCommand;
+use Vigilance\Console\SourcemapCommand;
 use Vigilance\Console\StatusCommand;
 use Vigilance\Console\SuperviseCommand;
 use Vigilance\Console\TerminateCommand;
@@ -647,6 +648,7 @@ class VigilanceServiceProvider extends ServiceProvider
             WorkCommand::class,
             DeployCommand::class,
             HealthCommand::class,
+            SourcemapCommand::class,
         ], 'class_exists');
 
         $this->commands($commands);
