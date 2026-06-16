@@ -6,6 +6,83 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-06-16
+
+A relentless prod-scenario validation pass on real Linux infrastructure — every
+common web server and app runtime, all four supervisable queue drivers,
+server-class databases, storage-outage chaos and high concurrency — which
+surfaced and fixed four real issues.
+
+### Fixed
+- **Long-running daemons were captured as perpetually-"running" command runs.**
+  `octane:start`, `reverb:start`, `pulse:work` and `pulse:check` were not in the
+  default command-ignore list, so running Vigilance under Octane (or alongside
+  Reverb/Pulse) recorded the daemon itself as a command run that never finishes —
+  and was left dangling in `running` forever every time the process was signalled
+  (deploy, restart, OOM). They are now excluded. The exclusion is also enforced as
+  an unconditional code-level baseline (`Defaults::daemonCommands()`), so it
+  protects installs whose published config predates this list — not only fresh
+  publishes. Mirrors how `queue:work`/`schedule:work`/`horizon` were already
+  handled.
+- **Redis jobs were recorded under a different queue name than other drivers.**
+  Laravel's Redis queue reports the queue as its storage key (`queues:default`)
+  rather than the logical name (`default`) used by the database/beanstalkd
+  drivers — and by the supervisor, the queue-depth probe and the supervisor
+  config. The recorder now normalizes it, so per-queue grouping is consistent
+  across drivers and Redis runs correlate to their configured supervisor/queue.
+- **Batched jobs were not linked to their batch.** The `batch_id` column on runs
+  was never populated, so a batch could not be drilled into its individual job
+  runs. Batchable jobs now record their `batchId` (matching Laravel's
+  `job_batches`), while non-batch jobs stay null.
+- **Workers orphaned by a hard-killed supervisor are now reaped on the next
+  boot.** When the `vigilance:supervise` master is killed without a chance to
+  clean up — a `SIGKILL`, an OOM kill, or a restart under a process manager that
+  does not tear down the worker group (e.g. Supervisor/supervisord, unlike
+  systemd's cgroup teardown) — its `queue:work` children were left running, so a
+  crashed-then-restarted master piled fresh workers on top of the old ones
+  (over-provisioning, double-draining, stale code/config). The supervisor now
+  sweeps any worker carrying its own `#vigilance` name marker before launching
+  its pools. POSIX support completes the cross-platform reap the marker was
+  always intended for (previously Windows-only).
+
+### Validated (no code change)
+- **Web servers**: Nginx + PHP-FPM, Apache (mod_proxy_fcgi) + PHP-FPM, and
+  Caddy + PHP-FPM — request/trace/APM capture works under each, and the
+  after-response flush fires under FPM's `fastcgi_finish_request`.
+- **Laravel Octane on every server** — FrankenPHP, Swoole 6.2, OpenSwoole 26.2
+  and RoadRunner 2025.1 — each under 800 requests at concurrency 16 with 0 failed
+  and a constant per-request span count (the `RequestReceived` state-reset hook
+  isolates each request — no cross-request telemetry leakage on persistent
+  workers).
+- **All four supervisable queue drivers**: database, Redis (phpredis),
+  beanstalkd (1.13 + pheanstalk v8) and the auto-scaling supervisor draining each
+  — including the cross-driver supervisor claim on beanstalkd, which cannot be
+  tested on Windows.
+- **Running under Supervisor (supervisord)** and with OPcache + `config:cache` /
+  `route:cache` / `event:cache` — capture and the dashboard work under fully
+  cached, optimized production config.
+- **Never breaks the app when its storage is down.** With Vigilance's storage on
+  a separate connection, taking that database down mid-traffic left the
+  application serving 100% of requests and draining its queue; capture resumed
+  automatically when storage returned, with no stuck or corrupt rows.
+- **Job lifecycles**: retries (`tries`), timeouts (captured as failures), batches
+  and chains all captured correctly.
+- **Concurrency**: 1200 requests at concurrency 24 against MySQL storage — no
+  lost writes and the incremental aggregate counts summed exactly, with no
+  deadlocks.
+- **Dashboard at scale**: every page renders (HTTP 200, sub-300 ms) against
+  60k runs / 100k APM entries / 22k traces.
+- **Fresh install** on a clean Laravel 12 app: `vigilance:install`, `migrate`,
+  `vigilance:doctor` (green) and the dashboard all work.
+- **Full suite green on real server-class databases**: PostgreSQL 18.4 and
+  MySQL 8.4 (the CI matrix uses PostgreSQL 16 + MariaDB 11.4).
+
+### Known limitations
+- A job whose worker is hard-killed mid-execution (SIGKILL / OOM / cgroup
+  teardown) leaves its in-flight run in `running` status, since no
+  completion/failure event fires. Rare, and the job itself is retried by the
+  queue as normal; a future reconciliation pass will reconcile such rows.
+
 ## [0.5.3] - 2026-06-16
 
 Cross-database hardening — the full suite now runs against SQLite, PostgreSQL

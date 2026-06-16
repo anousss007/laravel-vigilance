@@ -9,6 +9,7 @@ use Vigilance\Apm\Apm;
 use Vigilance\Contracts\ShouldNotBeMonitored;
 use Vigilance\Events\ExceptionReported;
 use Vigilance\Notifications\Alert;
+use Vigilance\Support\Defaults;
 
 /**
  * Central coordination object: authorization gate, recording state, ignore
@@ -17,7 +18,7 @@ use Vigilance\Notifications\Alert;
  */
 class Vigilance
 {
-    public static string $version = '0.5.3';
+    public static string $version = '0.5.4';
 
     /** Cache-busting token for the bundled stylesheet, derived from its contents. */
     protected static ?string $assetVersion = null;
@@ -277,6 +278,16 @@ class Vigilance
     {
         if ($name === null || $name === '') {
             return true;
+        }
+
+        // Long-running daemons are excluded unconditionally: they never finish,
+        // so capturing them would leave a "running" row dangling forever once
+        // the process is signalled. This baseline applies even if the user's
+        // published config predates a daemon being added to the default list.
+        foreach (Defaults::daemonCommands() as $pattern) {
+            if (Str::is($pattern, $name)) {
+                return true;
+            }
         }
 
         foreach ((array) config('vigilance.except.commands', []) as $pattern) {

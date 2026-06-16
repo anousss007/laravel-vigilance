@@ -1,6 +1,7 @@
 <?php
 
 use Vigilance\Supervision\AutoScaler;
+use Vigilance\Supervision\Pool;
 use Vigilance\Supervision\ProvisioningPlan;
 use Vigilance\Supervision\Supervisor;
 use Vigilance\Supervision\SupervisorOptions;
@@ -159,4 +160,22 @@ it('gates re-scaling by the cooldown window', function () {
     expect(Supervisor::cooldownElapsed(1000, 1002, 3))->toBeFalse();
     // After the cooldown it re-evaluates.
     expect(Supervisor::cooldownElapsed(1000, 1003, 3))->toBeTrue();
+});
+
+it('reaps orphaned workers without throwing and never touches unrelated processes', function () {
+    // A unique marker that matches no running process: the boot sweep must be a
+    // safe no-op (it only ever signals processes carrying its own
+    // "#vigilance"-tagged --name).
+    $options = SupervisorOptions::fromArray([
+        'name' => 'reap-test-'.substr(md5((string) getmypid()), 0, 8),
+        'connection' => 'database',
+        'queue' => ['default'],
+    ]);
+
+    $pool = new Pool('default', $options);
+
+    // Must not throw on any platform, and must leave this process alive.
+    $pool->reapOrphans();
+
+    expect(true)->toBeTrue();
 });

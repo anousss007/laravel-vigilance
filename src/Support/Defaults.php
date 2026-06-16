@@ -10,6 +10,36 @@ namespace Vigilance\Support;
 class Defaults
 {
     /**
+     * Long-running daemon commands that never "finish" under normal operation.
+     *
+     * These are excluded from command capture unconditionally (regardless of
+     * the published config), because a command run is modelled as start→finish:
+     * a daemon would sit in "running" forever and, when the process is killed
+     * by a signal (deploy, restart, OOM), be left dangling as a stuck "running"
+     * row with no end. The user-facing "except.commands" list mirrors these for
+     * discoverability, but this baseline guarantees protection even for configs
+     * published before a given daemon was added here.
+     *
+     * @return list<string>
+     */
+    public static function daemonCommands(): array
+    {
+        return [
+            'queue:work',
+            'queue:listen',
+            'schedule:work',
+            'horizon',
+            'horizon:*',
+            'octane:start',
+            'reverb:start',
+            'pulse:work',
+            'pulse:check',
+            'vigilance:supervise',
+            'vigilance:work',
+        ];
+    }
+
+    /**
      * Framework / vendor commands that are noise in a monitoring context.
      *
      * @return list<string>

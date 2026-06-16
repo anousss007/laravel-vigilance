@@ -83,6 +83,18 @@ class Supervisor
     }
 
     /**
+     * Clear any workers orphaned by a previous master (hard kill / OOM / a
+     * non-cgroup process manager restart) before this supervisor launches its
+     * own pools. Called once at boot, where the pools are guaranteed empty.
+     */
+    public function reapOrphans(): void
+    {
+        foreach ($this->pools as $pool) {
+            $pool->reapOrphans();
+        }
+    }
+
+    /**
      * Live worker PIDs across all pools.
      *
      * @return list<int>

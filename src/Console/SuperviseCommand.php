@@ -38,6 +38,13 @@ class SuperviseCommand extends Command
 
         $this->components->info('Vigilance is supervising '.count($supervisors).' supervisor(s) in ['.app()->environment().']. Use vigilance:terminate to stop.');
 
+        // Clear workers orphaned by a previous master (e.g. one hard-killed by
+        // OOM, or restarted under a process manager that does not tear down the
+        // worker group) before launching fresh pools, so they don't pile up.
+        foreach ($supervisors as $supervisor) {
+            $supervisor->reapOrphans();
+        }
+
         $running = true;
         $once = (bool) $this->option('once');
         $maxTime = (int) $this->option('max-time');

@@ -116,6 +116,11 @@ return [
     | to avoid noise and feedback loops. A job may also opt out by implementing
     | Vigilance\Contracts\ShouldNotBeMonitored.
     |
+    | Long-running daemons (octane:start, reverb:start, pulse:work, queue:work,
+    | schedule:work, horizon, …) are ALSO excluded unconditionally in code, even
+    | if removed from this list: a command run is start→finish, and a daemon
+    | would otherwise sit "running" forever — and be left dangling on shutdown.
+    |
     */
 
     'except' => [
@@ -130,6 +135,13 @@ return [
             'schedule:work',
             'horizon',
             'horizon:*',
+            'octane:start',
+            'octane:reload',
+            'octane:stop',
+            'octane:status',
+            'reverb:start',
+            'pulse:work',
+            'pulse:check',
             'vigilance:*',
             'boost:*',
             'package:discover',

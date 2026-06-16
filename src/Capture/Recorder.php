@@ -80,7 +80,7 @@ class Recorder
                 'name' => $class,
                 'display_name' => $payload['displayName'] ?? $class,
                 'connection_name' => $connection,
-                'queue' => $queue,
+                'queue' => $this->normalizeQueue($connection, $queue),
                 'attempt' => 1,
                 'queued_at' => Carbon::now(),
                 'via' => $manual ? 'manual' : 'auto',
@@ -150,6 +150,14 @@ class Recorder
                 $changes->set('tags', $tags);
             }
 
+            // Link the run to its batch (Batchable jobs carry a batchId; it is
+            // null for jobs not dispatched as part of a batch) so a batch can be
+            // drilled into its individual job runs.
+            $batchId = $payload['data']['batchId'] ?? null;
+            if (is_string($batchId) && $batchId !== '') {
+                $changes->set('batch_id', $batchId);
+            }
+
             $open = $this->runs->findOpenByUuid($uuid);
 
             if ($open) {
@@ -177,7 +185,7 @@ class Recorder
                 'name' => $class,
                 'display_name' => $payload['displayName'] ?? $class,
                 'connection_name' => $event->connectionName,
-                'queue' => $event->job->getQueue(),
+                'queue' => $this->normalizeQueue($event->connectionName, $event->job->getQueue()),
                 'via' => $manual ? 'manual' : 'auto',
                 'caused_by' => $manual['user'] ?? null,
                 'type' => RunType::Job->value,
@@ -436,6 +444,32 @@ class Recorder
         return config('vigilance.capture.capture_memory', true)
             ? memory_get_peak_usage(true)
             : null;
+    }
+
+    /**
+     * Reduce a driver-reported queue name to its logical name so per-queue
+     * grouping is consistent across drivers. Laravel's Redis driver reports the
+     * queue as its storage key ("queues:default") rather than the logical name
+     * ("default") used by the database/beanstalkd drivers — and by the
+     * supervisor, the queue-depth probe and the supervisor config. Without this,
+     * the same queue would split into two names on the dashboard and redis runs
+     * would never correlate to their configured supervisor/queue.
+     */
+    protected function normalizeQueue(?string $connection, ?string $queue): ?string
+    {
+        if ($queue === null || $queue === '') {
+            return $queue;
+        }
+
+        $driver = $connection !== null
+            ? config("queue.connections.$connection.driver")
+            : null;
+
+        if ($driver === 'redis' && str_starts_with($queue, 'queues:')) {
+            return substr($queue, 7);
+        }
+
+        return $queue;
     }
 
     /**
