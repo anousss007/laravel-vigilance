@@ -56,9 +56,26 @@ return [
     |--------------------------------------------------------------------------
     |
     | Vigilance persists everything to its own tables, which makes it fully
-    | driver-agnostic (database, Redis, SQS, Beanstalkd, sync). You may point
-    | it at a dedicated database connection to keep monitoring writes off your
-    | primary connection.
+    | driver-agnostic (database, Redis, SQS, Beanstalkd, sync). It writes to your
+    | application's default connection unless you set VIGILANCE_DB_CONNECTION.
+    |
+    | Point it at a DEDICATED connection to keep monitoring writes off your
+    | primary database — no bloat, independent pruning, and no write contention.
+    | Any driver works. This matters most on SQLite, which locks per file (one
+    | writer at a time): a separate file means a burst of telemetry never blocks
+    | the app ("database is locked"). Enable WAL on that connection so dashboard
+    | reads don't serialize against writes, e.g. in config/database.php:
+    |
+    |   'monitoring' => [
+    |       'driver' => 'sqlite',
+    |       'database' => database_path('vigilance.sqlite'),
+    |       'journal_mode' => 'WAL',
+    |   ],
+    |   // .env: VIGILANCE_DB_CONNECTION=monitoring
+    |
+    | A single SQLite file is still one writer at a time, so at high telemetry
+    | volume move this to MySQL/PostgreSQL or switch to the Redis write-behind
+    | APM ingest (VIGILANCE_APM_INGEST=redis).
     |
     */
 

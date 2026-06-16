@@ -38,6 +38,7 @@ Capture is automatic via framework events. **Never** add manual tracking. To red
 - Mark a job/command class with `Vigilance\Contracts\ShouldNotBeMonitored`.
 - Or list patterns in `except.jobs` / `except.commands` in config.
 - Tune volume with `capture.sample_rate` (fraction of **successful** runs kept; failures are always captured) and keep monitoring writes off your primary DB with `storage.connection`.
+- **Storage isolation:** Vigilance writes to the app's default connection unless `VIGILANCE_DB_CONNECTION` names a dedicated one. Prefer a dedicated connection in production. On SQLite especially — it locks per file, so a telemetry burst can block the app (`database is locked`) — give Vigilance its own SQLite file with `'journal_mode' => 'WAL'`, then `VIGILANCE_DB_CONNECTION=that`. A single SQLite file is one-writer-at-a-time; at high volume move to MySQL/Postgres or `VIGILANCE_APM_INGEST=redis`.
 
 ```php
 // Run a block without Vigilance observing it (e.g. its own writes):

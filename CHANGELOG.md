@@ -6,6 +6,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-06-16
+
+### Documentation
+- **Isolating monitoring storage.** Documented how to keep Vigilance's writes off
+  your primary database with a dedicated `VIGILANCE_DB_CONNECTION`, and in
+  particular how to give Vigilance its **own SQLite file** so a telemetry burst
+  can't lock the app's database (`database is locked`). Covers enabling WAL on the
+  monitoring connection, the fact that Vigilance already buffers and flushes
+  batched inserts after the response, and the single-writer-per-file ceiling
+  (where to move to MySQL/PostgreSQL or the Redis write-behind APM ingest). Added
+  to the README, the inline `config/vigilance.php` storage section, and the Laravel
+  Boost guidelines/skill. No code change — the capability already existed.
+
 ## [0.5.6] - 2026-06-16
 
 Multi-node fix from a distributed-deployment attack pass, plus an adversarial

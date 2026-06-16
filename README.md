@@ -216,6 +216,50 @@ VIGILANCE_DB_CONNECTION=monitoring # optional dedicated connection
 VIGILANCE_RETENTION_DAYS=7
 ```
 
+### Isolating monitoring storage
+
+By default Vigilance writes its `vigilance_*` tables to your application's default
+database connection. Point `VIGILANCE_DB_CONNECTION` at a **dedicated connection**
+to keep monitoring writes off your primary database — no bloat, independent
+retention/pruning, and (most importantly) no write contention with your app.
+
+This is especially worthwhile **if your app runs on SQLite**: SQLite locks at the
+*file* level (one writer at a time), so a burst of telemetry writes sharing your
+app's file can block the app itself (`database is locked`). A separate file removes
+that — the app and the monitor never fight for the same lock:
+
+```php
+// config/database.php → 'connections'
+'monitoring' => [
+    'driver' => 'sqlite',
+    'database' => database_path('vigilance.sqlite'),
+    'journal_mode' => 'WAL',          // lets the dashboard read while telemetry writes
+    'prefix' => '',
+    'foreign_key_constraints' => false,
+],
+```
+
+```env
+VIGILANCE_DB_CONNECTION=monitoring
+```
+
+Then `php artisan migrate` creates every `vigilance_*` table in that file; all
+reads, writes and pruning resolve to it automatically. Create the file first if it
+doesn't exist (`touch database/vigilance.sqlite`).
+
+Notes:
+
+- **Enable WAL** (`journal_mode=WAL`) on the monitoring connection — without it the
+  dashboard's reads serialize against telemetry writes within that file.
+- Vigilance already buffers per request/job and flushes **batched** inserts after
+  the response (not one row per event), so normal load is comfortable on SQLite.
+- A single SQLite file is still **one writer at a time**, so at high telemetry
+  volume the monitoring file itself becomes the serialization point. That's the
+  ceiling where you move `VIGILANCE_DB_CONNECTION` to a server database
+  (MySQL/PostgreSQL) or switch the APM ingest to the Redis write-behind driver
+  (`VIGILANCE_APM_INGEST=redis`). Any connection driver works — the dedicated
+  connection is not SQLite-specific.
+
 ## Alerting
 
 Vigilance evaluates rule-based alerts at `vigilance:snapshot` time — queue
