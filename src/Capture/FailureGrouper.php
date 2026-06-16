@@ -3,6 +3,7 @@
 namespace Vigilance\Capture;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Vigilance\Events\FailureRecorded;
 use Vigilance\Models\FailureGroup;
 use Vigilance\Support\FailureSignature;
@@ -29,29 +30,34 @@ class FailureGrouper
     ): int {
         $signature = FailureSignature::for($type, $name, $exceptionClass, $message);
         $now = Carbon::now();
-
-        $group = FailureGroup::query()->firstOrNew(['signature' => $signature]);
-
-        $isNew = ! $group->exists;
         $release = Vigilance::currentRelease();
 
-        if (! $group->exists) {
-            $group->type = $type;
-            $group->name = $name;
-            $group->exception_class = $exceptionClass;
-            $group->message = $message;
-            $group->first_seen_at = $now;
-            $group->occurrences = 0;
-            $group->first_release = $release;
-        }
+        // Race-safe create. Under a failing-job storm, many workers record the
+        // same signature at once: createOrFirst() leans on the unique "signature"
+        // index so they converge on one row instead of inserting duplicates.
+        $group = FailureGroup::createOrFirst(
+            ['signature' => $signature],
+            [
+                'type' => $type,
+                'name' => $name,
+                'exception_class' => $exceptionClass,
+                'message' => $message,
+                'first_seen_at' => $now,
+                'first_release' => $release,
+                'occurrences' => 0,
+                'source' => $source ?? $type,
+            ],
+        );
 
+        $isNew = $group->wasRecentlyCreated;
+
+        // Latest-wins metadata (sample / request context / regression re-open).
+        // A race here only changes which sample is kept — never the count — so
+        // the model save is fine. Crucially it does NOT touch "occurrences": a
+        // read-modify-write on the counter loses increments under concurrency.
         $group->last_seen_at = $now;
-        $group->occurrences = (int) $group->occurrences + 1;
         $group->source = $source ?? $group->source ?? $type;
 
-        // Keep the latest stack-trace sample / request context on the group so
-        // the issue detail has something to show even for request errors (which
-        // have no captured run row).
         if ($sample !== null) {
             $group->sample = $sample;
         }
@@ -70,6 +76,19 @@ class FailureGrouper
         }
 
         $group->save();
+
+        // The occurrence count is the one value that must survive concurrency, so
+        // bump it with an atomic SQL increment (DB-serialized per row) rather than
+        // writing a value read into PHP — otherwise simultaneous failures clobber
+        // each other and the count drifts low.
+        FailureGroup::query()->whereKey($group->getKey())->update([
+            'occurrences' => DB::raw('occurrences + 1'),
+        ]);
+
+        // Reflect the increment in the in-memory model the event carries (the
+        // authoritative value lives in the DB; listeners that need an exact count
+        // re-read it).
+        $group->occurrences = (int) $group->occurrences + 1;
 
         FailureRecorded::dispatch($group, $isNew);
 

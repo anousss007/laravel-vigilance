@@ -18,7 +18,7 @@ use Vigilance\Support\Defaults;
  */
 class Vigilance
 {
-    public static string $version = '0.5.4';
+    public static string $version = '0.5.5';
 
     /** Cache-busting token for the bundled stylesheet, derived from its contents. */
     protected static ?string $assetVersion = null;

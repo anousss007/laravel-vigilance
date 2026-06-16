@@ -6,6 +6,47 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-06-16
+
+A second, harder adversarial pass — DDoS/flood amplification, a cardinality bomb,
+a failing-job storm, a job-dispatching endpoint under flood, multi-driver
+supervision and the public RUM endpoint — which surfaced and fixed one real
+concurrency bug.
+
+### Fixed
+- **Failure-group occurrence counts undercounted under concurrent failures.**
+  The per-group `occurrences` counter was a read-modify-write
+  (`$group->occurrences = $group->occurrences + 1; $group->save()`), so when
+  several workers recorded the same failure signature at once — exactly what a
+  failing-job storm produces — increments clobbered each other and the count
+  drifted low (measured ~10% loss across 2000 failures on 3 workers). It now uses
+  a race-safe `createOrFirst()` (leaning on the unique `signature` index, so no
+  duplicate groups) plus an **atomic SQL increment** (`occurrences = occurrences
+  + 1`), so the count is exact under any concurrency. Failure *grouping* itself
+  was already bounded — 2000 distinct failures still collapse to one group.
+
+### Validated (no code change)
+- **No DDoS amplification.** Under sustained flood, throughput and error rate are
+  statistically identical with Vigilance on or off (the after-response flush adds
+  no user-facing latency); enabling it never introduced an error.
+- **Cardinality is bounded.** A flood of thousands of distinct URLs collapses to
+  the route pattern in APM (1 key, not thousands), and a flood of random
+  non-existent URLs (the common DDoS shape) writes **nothing** — only matched
+  routes are recorded. The APM aggregate tables cannot be made to explode.
+- **Job-dispatch storm**: an endpoint enqueuing 10 jobs/request under flood
+  captured every job exactly (queued-row parity) with no failed requests;
+  `VIGILANCE_SAMPLE_RATE` throttles the enqueue-write load proportionally.
+- **Multiple queue drivers supervised at once**: a single `vigilance:supervise`
+  process drained database + Redis + beanstalkd concurrently, each captured with
+  the correct connection.
+- **Public RUM ingest endpoint** is safe to expose: rate-limited
+  (`rum.throttle`, default 120/min), and each request is capped to ≤12 validated
+  metrics + ≤5 errors with length-bounded fields — it cannot be used to bloat
+  storage.
+- **Extreme concurrency** (hundreds of concurrent connections): the app degrades
+  gracefully and recovers immediately, with no Vigilance-induced errors and
+  connection use bounded to ~one storage connection per worker.
+
 ## [0.5.4] - 2026-06-16
 
 A relentless prod-scenario validation pass on real Linux infrastructure — every
