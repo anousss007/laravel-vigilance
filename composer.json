@@ -26,12 +26,14 @@
     },
     "require-dev": {
         "larastan/larastan": "^3.0",
+        "laravel/mcp": "^0.8.1",
         "laravel/pint": "^1.18",
         "orchestra/testbench": "^10.0 || ^11.0",
         "pestphp/pest": "^3.0 || ^4.0",
         "pestphp/pest-plugin-laravel": "^3.0 || ^4.0"
     },
     "suggest": {
+        "laravel/mcp": "Exposes Vigilance's errors/runs/APM/traces/SLOs/releases to an AI agent over MCP (php artisan mcp:start vigilance). Enable with VIGILANCE_MCP_ENABLED=true.",
         "ext-redis": "For the write-behind 'redis' APM ingest driver (vigilance:apm-work).",
         "predis/predis": "Alternative pure-PHP Redis client for the 'redis' APM ingest driver.",
         "pda/pheanstalk": "Lets vigilance:supervise auto-scale a beanstalkd connection by tube backlog (queue depth).",

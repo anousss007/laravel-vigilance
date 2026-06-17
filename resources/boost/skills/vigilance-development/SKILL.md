@@ -1,6 +1,6 @@
 ---
 name: vigilance-development
-description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, the observability suite (Issues error tracking, per-route performance, RUM/Web Vitals, SLOs, custom metrics, trace-correlated logs), and rule-based alerting with incidents (mail/Slack/Discord/Teams/webhooks/custom). Use when installing, configuring, securing, or extending Vigilance.
+description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, the observability suite (Issues error tracking, per-route performance, RUM/Web Vitals, SLOs, custom metrics, trace-correlated logs), rule-based alerting with incidents (mail/Slack/Discord/Teams/webhooks/custom), and an MCP server that exposes all of it to an AI coding agent (read-only by default, gated writes). Use when installing, configuring, securing, or extending Vigilance.
 ---
 
 # Vigilance Development
@@ -135,6 +135,31 @@ Vigilance::gauge('cart_value', $cart->total());  // gauge (avg / peak / min)
 
 > **Exclude noisy endpoints once:** `vigilance.ignore_paths` (e.g. `['/admin/*', 'livewire/*']`) drops a path from APM, tracing, RUM and request-error capture together — use it instead of editing each recorder's `ignore`.
 
+## MCP server (query telemetry from an AI agent)
+
+Optional, **off by default**, built on `laravel/mcp` (`composer require laravel/mcp`). Set `VIGILANCE_MCP_ENABLED=true` and Vigilance registers a local stdio server your AI client launches with `php artisan mcp:start vigilance`. It exposes a tool for **every dashboard page**, so an agent can investigate (and, when allowed, fix) against live data:
+
+- **Errors / runs:** `overview`, `issues`/`issue`, `exceptions`, `runs`/`run`, `job-metrics`.
+- **APM:** `performance`, `slow-requests`, `slow-queries`, `slow-jobs`, `slow-http`, `cache`, `servers`, `usage`.
+- **Front-end / tracing / logs:** `vitals` (RUM Web Vitals), `traces`/`trace`, `logs`.
+- **Reliability:** `slos`, `incidents`, `releases`.
+- **Queues & workers:** `workers`, `queues`, `pending`, `schedule`, `batches`, `tags`.
+- **Business metrics:** `custom-metrics`.
+
+- **Read-only by default.** Output is redacted (same `redact` keys as storage) and bounded by `mcp.max_results` / `mcp.max_field_length`, so a tool can't leak a secret or dump the DB into the agent's context.
+- **Writes are opt-in:** `VIGILANCE_MCP_ALLOW_WRITES=true` adds `resolve-issue`, `acknowledge-issue`, `mute-issue`, `reopen-issue`, `retry-run`, `retry-issue`. While off they aren't even advertised to the client. Every write is recorded in the same audit log as a dashboard action.
+- **Manual control is double-gated:** `dispatchable-jobs` / `runnable-commands` (discovery) need `VIGILANCE_CONTROL_ENABLED=true`; `dispatch-job` / `run-command` need that **and** `VIGILANCE_MCP_ALLOW_WRITES=true`, and obey the same `control` allowlist as the dashboard.
+- **Remote access** is off by default; `VIGILANCE_MCP_WEB_ENABLED=true` serves over HTTP wrapped in the `viewVigilance` gate (add Sanctum/Passport for real remote auth).
+
+```bash
+composer require laravel/mcp
+# .env: VIGILANCE_MCP_ENABLED=true  (+ VIGILANCE_MCP_ALLOW_WRITES=true for triage tools)
+php artisan mcp:start vigilance       # the stdio command your MCP client launches
+php artisan mcp:inspector vigilance   # sanity-check the server
+```
+
+Full guide: `docs/mcp.md`. Complements Laravel Boost: Boost teaches conventions, MCP serves live data.
+
 ## Alerting (mail / Slack / Discord / Teams / webhooks / custom) + incidents
 
 Rules are evaluated at `vigilance:snapshot` time and throttled per key: `queue_long_wait`, `error_rate`, `exception_spike`, `slow_request_rate`, `scheduled_task_late` (a **dead-man's-switch**), `slo_burn`, `new_issue`, `issue_regression`, `anomaly` (dynamic baselines) and `deploy_regression` (bad deploy). Configure them under `alerts.rules`; route delivery from `.env` or code. Fired alerts are persisted as **incidents** (`alerts.incidents`, on by default) — opened on first fire, auto-resolved when they stop recurring — with occurrence counts and MTTR on the **Incidents** page (`/vigilance/incidents`). You're notified **once per incident** (open / escalate / recur), so a sustained condition doesn't spam every window; set `alerts.renotify_minutes` for periodic reminders.
@@ -234,4 +259,5 @@ interface Ingest
 - Don't run the supervisor and Horizon on the same queues.
 - **RUM and the log explorer are off by default** — they need `VIGILANCE_RUM=true` (+ the `@vigilanceRum` directive in your layout) and `VIGILANCE_LOGS=true` respectively. SLOs show nothing until you define one under `slos`.
 - Log–trace correlation only happens when **both** logs and tracing are enabled (a log's `trace_id` is the in-flight trace).
-- If you published `config/vigilance.php`, re-publish (or merge new keys — `issues`, `rum`, `slos`, `logs`, `alerts.incidents`, `notifications.discord` / `teams` / `webhooks`) after upgrading so `.env` settings resolve.
+- If you published `config/vigilance.php`, re-publish (or merge new keys — `issues`, `rum`, `slos`, `logs`, `alerts.incidents`, `mcp`, `notifications.discord` / `teams` / `webhooks`) after upgrading so `.env` settings resolve.
+- The **MCP server is off by default** and needs `laravel/mcp` installed; its write/triage tools require `VIGILANCE_MCP_ALLOW_WRITES=true` and aren't advertised to the client otherwise.

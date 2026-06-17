@@ -24,6 +24,7 @@ use Illuminate\Redis\Events\CommandExecuted;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Facades\Mcp;
 use Livewire\Livewire;
 use Vigilance\Apm\Apm;
 use Vigilance\Apm\Console\CheckCommand;
@@ -90,6 +91,7 @@ use Vigilance\Http\Middleware\Authorize;
 use Vigilance\Logs\Contracts\LogStorage;
 use Vigilance\Logs\LogCollector;
 use Vigilance\Logs\Storage\DatabaseLogStorage;
+use Vigilance\Mcp\VigilanceServer;
 use Vigilance\Storage\DatabaseMetricsRepository;
 use Vigilance\Storage\DatabaseRunRepository;
 use Vigilance\Tracing\Contracts\TraceStorage;
@@ -242,6 +244,41 @@ class VigilanceServiceProvider extends ServiceProvider
         $this->bootApm();
         $this->bootTracing();
         $this->bootLogs();
+        $this->bootMcp();
+    }
+
+    /**
+     * Expose Vigilance's data to an AI agent over MCP (the laravel/mcp package):
+     * a local stdio server run with `php artisan mcp:start <name>`, plus an
+     * optional HTTP server for remote agents. The HTTP server is always wrapped
+     * in the dashboard's own authorization on top of its middleware, so it is
+     * local-only until access is explicitly granted. No-op unless the feature is
+     * enabled in config and laravel/mcp is installed.
+     */
+    protected function bootMcp(): void
+    {
+        if (! config('vigilance.mcp.enabled', false)) {
+            return;
+        }
+
+        if (! class_exists(Mcp::class)) {
+            return;
+        }
+
+        Mcp::local(
+            (string) config('vigilance.mcp.name', 'vigilance'),
+            VigilanceServer::class,
+        );
+
+        if (config('vigilance.mcp.web.enabled', false)) {
+            Mcp::web(
+                (string) config('vigilance.mcp.web.path', 'vigilance/mcp'),
+                VigilanceServer::class,
+            )->middleware(array_merge(
+                (array) config('vigilance.mcp.web.middleware', ['web']),
+                [Authorize::class],
+            ));
+        }
     }
 
     /**

@@ -1,6 +1,6 @@
 ## Vigilance
 
-`anousss007/vigilance` is a driver-agnostic **control center** for Laravel queues, jobs, commands and the scheduler: full lifecycle capture, a worker supervisor (a Horizon replacement that runs on **any** queue driver), whole-app APM, per-request/job tracing, manual job/command dispatch, and a full **observability suite** — a unified Issues error tracker, per-route performance (p50/p95/p99 + Apdex), Real User Monitoring of Core Web Vitals, SLOs with error budgets, custom business metrics, a trace-correlated log explorer, and rule-based alerting with incident tracking. The standalone Livewire dashboard lives at `/vigilance` (configurable via `vigilance.path`). Every option is documented inline in `config/vigilance.php`.
+`anousss007/vigilance` is a driver-agnostic **control center** for Laravel queues, jobs, commands and the scheduler: full lifecycle capture, a worker supervisor (a Horizon replacement that runs on **any** queue driver), whole-app APM, per-request/job tracing, manual job/command dispatch, and a full **observability suite** — a unified Issues error tracker, per-route performance (p50/p95/p99 + Apdex), Real User Monitoring of Core Web Vitals, SLOs with error budgets, custom business metrics, a trace-correlated log explorer, rule-based alerting with incident tracking, and an optional **MCP server** that exposes all of this to an AI coding agent. The standalone Livewire dashboard lives at `/vigilance` (configurable via `vigilance.path`). Every option is documented inline in `config/vigilance.php`.
 
 ### Conventions (follow these — don't reinvent them)
 
@@ -16,6 +16,7 @@
 - **Alerting finds the unknowns too.** On top of the threshold rules, Vigilance alerts on a brand-new error signature (`new_issue`), a resolved issue that regressed (`issue_regression`), metric anomalies vs a dynamic baseline (`anomaly`), and a bad deploy (`deploy_regression`). All evaluate at `vigilance:snapshot` time — don't add your own polling.
 - **Release health is the deploy guard.** Record deploys with `php artisan vigilance:deploy --release=...` (set `VIGILANCE_RELEASE` / `app.version` so issues are release-tagged). Vigilance scores each deploy's before/after error-rate & latency on the **Releases** page; a regression fires `deploy_regression` — point a generic webhook at it to auto-roll-back. Upload source maps with `php artisan vigilance:sourcemaps <build-dir> --release=...` so RUM browser errors are symbolicated.
 - **Exclude noisy endpoints once** via `vigilance.ignore_paths` (wildcards like `/admin/*` or `#regex#`) — it drops a path from APM, tracing, RUM and request-error capture together. Prefer it over per-recorder ignore lists.
+- **Let the AI query live data over MCP.** With `laravel/mcp` installed and `VIGILANCE_MCP_ENABLED=true`, Vigilance exposes a tool for **every dashboard page** — errors/exceptions, runs & job-metrics, the full APM surface (route performance, slow requests/queries/jobs/outgoing-HTTP, cache, servers, per-user usage), RUM Web Vitals, traces, logs, SLOs, incidents, releases, the worker/queue fleet (workers/queues/pending/schedule/batches/tags) and custom metrics — via `php artisan mcp:start vigilance`. Tools are **read-only** and redacted/size-capped by default; `VIGILANCE_MCP_ALLOW_WRITES=true` adds audited triage tools (resolve/ack/mute/reopen an issue, retry a job). Manual control (dispatch a job / run a command) is **double-gated** — it needs `VIGILANCE_MCP_ALLOW_WRITES=true` AND `VIGILANCE_CONTROL_ENABLED=true` and obeys the `control` allowlist. Use this to debug a live app — don't scrape the `vigilance_*` tables by hand. (This is the runtime complement to these guidelines: Boost teaches conventions, MCP serves live data.)
 
 ### Authorize the dashboard
 
@@ -87,6 +88,16 @@ Vigilance::gauge('cart_value', $cart->total()); // gauge (avg / peak / min)
 <code-snippet name="Long-running processes" lang="bash">
 php artisan vigilance:supervise   # worker supervisor + autoscaler (any driver)
 php artisan vigilance:check       # APM heartbeat (one per app server)
+</code-snippet>
+@endverbatim
+
+### Let an AI agent query Vigilance (MCP)
+
+@verbatim
+<code-snippet name="Enable the MCP server, then register it with your AI client" lang="bash">
+composer require laravel/mcp          # optional dependency, only needed for MCP
+# .env: VIGILANCE_MCP_ENABLED=true    (read-only; add VIGILANCE_MCP_ALLOW_WRITES=true for triage tools)
+php artisan mcp:start vigilance       # the stdio command your MCP client launches
 </code-snippet>
 @endverbatim
 

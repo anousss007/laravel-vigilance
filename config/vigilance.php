@@ -246,6 +246,65 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | MCP server (let an AI agent query Vigilance directly)
+    |--------------------------------------------------------------------------
+    |
+    | Vigilance can expose its observability data — errors, queue/command runs,
+    | APM performance, traces, logs, SLOs, incidents and release health — to an
+    | AI coding agent (Claude Code, Cursor, Copilot, …) over the Model Context
+    | Protocol, using the official laravel/mcp package. The agent can then
+    | "check the errors / slow endpoints in Vigilance and fix them" against the
+    | live data, the same way it would with a hosted tool's MCP — but self-hosted
+    | and spanning errors AND performance AND traces AND releases, not just one.
+    |
+    | Requires laravel/mcp:  composer require laravel/mcp
+    |
+    | OFF by default. Once enabled, point your MCP client at the server (it runs
+    | over stdio as a normal artisan command):
+    |
+    |     php artisan mcp:start vigilance
+    |
+    | Tools are READ-ONLY unless you set "allow_writes" => true, which also
+    | exposes triage/retry tools (resolve / acknowledge / mute an issue, retry a
+    | failed job). Every write is recorded in the same audit log as the dashboard.
+    | Output is redacted (using "redact" below) and bounded by the caps here, so a
+    | tool can never leak a secret or dump the whole database into the agent.
+    |
+    */
+
+    'mcp' => [
+        'enabled' => env('VIGILANCE_MCP_ENABLED', false),
+
+        // The local (stdio) server name your MCP client launches with
+        // "php artisan mcp:start <name>".
+        'name' => env('VIGILANCE_MCP_NAME', 'vigilance'),
+
+        // Expose the write tools (resolve/acknowledge/mute issues, retry a failed
+        // job). OFF by default — with this off, no MCP tool can mutate anything.
+        'allow_writes' => env('VIGILANCE_MCP_ALLOW_WRITES', false),
+
+        // Safety caps applied to every tool response: the maximum number of rows
+        // a list tool returns, and the character length any single field
+        // (stacktrace, command output, context blob) is truncated to. They keep
+        // a tool from dumping the whole database into the agent's context window.
+        'max_results' => 50,
+        'max_field_length' => 4000,
+
+        // Optionally serve the same tools over HTTP for a remote agent. OFF by
+        // default. When enabled the endpoint is ALWAYS wrapped in the dashboard's
+        // own authorization (Vigilance::auth() / the viewVigilance gate) on top
+        // of the middleware below — so it is local-only until you explicitly
+        // authorize access. Add real token auth (Sanctum/Passport) to the
+        // middleware for production remote use.
+        'web' => [
+            'enabled' => env('VIGILANCE_MCP_WEB_ENABLED', false),
+            'path' => env('VIGILANCE_MCP_WEB_PATH', 'vigilance/mcp'),
+            'middleware' => ['web'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Redaction
     |--------------------------------------------------------------------------
     |

@@ -6,6 +6,36 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-17
+
+### Added
+- **MCP server — query Vigilance from your AI agent.** A new, optional
+  [Model Context Protocol](https://modelcontextprotocol.io) server (built on the
+  official `laravel/mcp`) exposes Vigilance to an AI coding agent (Claude Code,
+  Cursor, …) so it can investigate and fix problems against live data. Enable with
+  `VIGILANCE_MCP_ENABLED=true` and run `php artisan mcp:start vigilance`. The tools
+  cover **every dashboard page** — overview; issues & exceptions; runs & per-job
+  metrics; APM (route performance, slow requests / queries / jobs / outgoing HTTP,
+  cache hit-rate, servers, per-user usage); RUM Core Web Vitals; traces; logs;
+  SLOs; incidents; release health; the worker/queue fleet (workers, queues,
+  pending, scheduled tasks, batches, tags); and custom business metrics. All read
+  tools are **read-only by default**, with every payload passed through the same
+  secret redaction as storage and bounded by `mcp.max_results` /
+  `mcp.max_field_length` caps, so a tool can never leak a secret or dump the
+  database into the agent's context. Setting `VIGILANCE_MCP_ALLOW_WRITES=true`
+  additionally exposes audited triage tools (resolve / acknowledge / mute / reopen
+  an issue, retry a failed job or a whole issue). **Manual control** (dispatch a
+  job, run an artisan command) is double-gated — it needs both
+  `VIGILANCE_MCP_ALLOW_WRITES=true` and the dashboard's `VIGILANCE_CONTROL_ENABLED`
+  — and obeys the same `control` allowlist. While a capability is off, its tools
+  are not even advertised to the client, and every write is recorded in the same
+  audit log as a dashboard action. An optional HTTP transport
+  (`VIGILANCE_MCP_WEB_ENABLED`) is always wrapped in the dashboard's
+  `viewVigilance` authorization. `laravel/mcp` is an **optional** dependency
+  (`composer require laravel/mcp`); the feature is a no-op without it. New `mcp`
+  config section, a guide in `docs/mcp.md`, and updated Laravel Boost
+  guidelines/skill.
+
 ## [0.5.7] - 2026-06-16
 
 ### Documentation

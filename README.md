@@ -32,6 +32,7 @@ See what ran — with the parameters it ran with — whether it failed, and **di
 | Release health / deploy gating | ❌ | ❌ | ✅ (before/after regression guard + rollback alert) |
 | Anomaly detection | ❌ | ❌ | ✅ (dynamic baselines, not fixed thresholds) |
 | Alerting | ❌ | ❌ | ✅ (mail · Slack · Discord · Teams · webhooks + incidents) |
+| **AI agent access (MCP)** | ❌ | ❌ | ✅ (query errors · APM · traces · releases · SLOs — read-only, with gated writes) |
 | Production-oriented | ✅ | ❌ (debug tool) | ✅ (see below) |
 
 ### Built for production
@@ -110,6 +111,65 @@ Vigilance::gauge('cart_value', $cart->total());  // custom gauge
 {{-- drop in your layout <head> after VIGILANCE_RUM=true to collect Web Vitals --}}
 @vigilanceRum
 ```
+
+## Query from your AI agent (MCP)
+
+Vigilance ships a first-class **MCP server** (built on the official
+[`laravel/mcp`](https://github.com/laravel/mcp)) so an AI coding agent — Claude
+Code, Cursor, Copilot, … — can query your live telemetry and fix what it finds.
+Where a hosted tool's MCP typically only sees errors, Vigilance exposes
+**errors, queue/command runs, APM performance, traces, logs, SLOs, incidents and
+release health** through one self-hosted server — and because the agent runs
+inside your project, "check the errors / slow endpoints in Vigilance and fix
+them" works end-to-end.
+
+```bash
+composer require laravel/mcp        # optional dependency, only needed for MCP
+```
+
+```env
+VIGILANCE_MCP_ENABLED=true
+```
+
+Then point your MCP client at the local (stdio) server:
+
+```json
+{
+  "mcpServers": {
+    "vigilance": { "command": "php", "args": ["artisan", "mcp:start", "vigilance"] }
+  }
+}
+```
+
+Tools are **read-only by default** — a redacted, size-capped window onto the
+data, so a tool can never leak a secret or dump the database into the agent's
+context. Set `VIGILANCE_MCP_ALLOW_WRITES=true` to additionally expose triage
+tools (resolve / acknowledge / mute an issue, retry a failed job); every write is
+recorded in the same audit log as the dashboard. Full guide:
+[docs/mcp.md](docs/mcp.md).
+
+The tool set mirrors **every dashboard page**, so the agent can reach anything you can:
+
+| Area | Tools |
+|---|---|
+| Health | `overview` |
+| Errors | `issues` · `issue` · `exceptions` |
+| Runs | `runs` · `run` · `job-metrics` |
+| Performance (APM) | `performance` · `slow-requests` · `slow-queries` · `slow-jobs` · `slow-http` · `cache` · `servers` · `usage` |
+| Front-end (RUM) | `vitals` |
+| Tracing & logs | `traces` · `trace` · `logs` |
+| Reliability | `slos` · `incidents` · `releases` |
+| Queues & workers | `workers` · `queues` · `pending` · `schedule` · `batches` · `tags` |
+| Business metrics | `custom-metrics` |
+| **Writes** (opt-in) | `resolve-issue` · `acknowledge-issue` · `mute-issue` · `reopen-issue` · `retry-run` · `retry-issue` |
+| **Manual control** (opt-in, double-gated) | `dispatchable-jobs` · `runnable-commands` · `dispatch-job` · `run-command` |
+
+The **manual-control** tools (dispatch a job / run an artisan command) require **both** `VIGILANCE_MCP_ALLOW_WRITES=true` **and** the dashboard's own `VIGILANCE_CONTROL_ENABLED=true`, and obey the same `control` allowlist — so they're off unless you deliberately opt in twice.
+
+This complements the [Laravel Boost](#ai-assisted-development-laravel-boost)
+integration below: **Boost teaches your agent Vigilance's conventions (how to
+code with it); the MCP server gives it your live data (what's happening right
+now).**
 
 ## Requirements
 
@@ -195,6 +255,7 @@ See `config/vigilance.php` — every option is documented inline. Highlights:
 - `capture.store_parameters`, `capture.store_for_retry`, size caps
 - `except.jobs` / `except.commands` — exclusions
 - `control.jobs` / `control.commands` — manual-control allowlists
+- `mcp` — expose your data to an AI agent over MCP (read-only by default; gated writes)
 - `redact` — secret key names
 - `retention.days` / `retention.failed_days` — pruning windows
 - `notifications.mail` / `slack` / `discord` / `teams` / `webhooks` — where alerts are delivered
@@ -354,7 +415,8 @@ support. In any project that uses Boost, `php artisan boost:install` (and
 **`vigilance-development` agent skill** — so your coding agent (Claude Code,
 Cursor, Copilot, …) already knows Vigilance's conventions: securing the dashboard
 with `viewVigilance`, the `Dispatchable` / `ShouldNotBeMonitored` markers, the
-driver-agnostic worker supervisor, `.env` alert routing, APM/tracing and more.
+driver-agnostic worker supervisor, `.env` alert routing, APM/tracing, the MCP
+server (`php artisan mcp:start vigilance`) and more.
 Nothing to wire up — the guidelines live in
 `resources/boost/guidelines/core.blade.php` and the skill in
 `resources/boost/skills/vigilance-development/`.
