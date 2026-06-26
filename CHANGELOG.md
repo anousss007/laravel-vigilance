@@ -6,6 +6,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-26
+
+### Fixed
+- **Incident occurrence counts no longer drift low under concurrency.**
+  `AlertManager` recorded a recurring incident by writing back
+  `occurrences + 1` read into PHP, so two nodes (or scheduler runs) recording the
+  same incident at once could clobber each other and undercount. The bump is now
+  an atomic SQL increment, applying the same concurrency-safe pattern already used
+  for failure-group occurrences in 0.5.5.
+
+### Documentation
+- **MySQL durability tuning for the dedicated monitoring connection.** Documented
+  trading strict durability for insert throughput on a dedicated monitoring MySQL
+  instance (`innodb_flush_log_at_trx_commit = 2`, `innodb_flush_log_at_timeout = 5`)
+  — safe because the connection only carries telemetry and queued work is retried,
+  with an explicit warning never to apply it to a connection the app also uses.
+
 ## [0.6.0] - 2026-06-17
 
 ### Added

@@ -320,6 +320,19 @@ Notes:
   (MySQL/PostgreSQL) or switch the APM ingest to the Redis write-behind driver
   (`VIGILANCE_APM_INGEST=redis`). Any connection driver works — the dedicated
   connection is not SQLite-specific.
+- **On a dedicated MySQL monitoring connection you can trade strict durability
+  for insert throughput.** Because the connection only carries telemetry — and a
+  crash at most loses the last second or two of monitoring data, never app data —
+  relaxing the redo-log flush is a safe, high-impact win:
+  ```ini
+  # my.cnf — applies to the dedicated monitoring instance/connection only
+  innodb_flush_log_at_trx_commit = 2   # flush redo log to OS cache per commit, to disk ~once/sec
+  innodb_flush_log_at_timeout    = 5   # widen the flush interval to every 5s
+  ```
+  This drops a disk fsync from every insert and can roughly **halve insert cost**
+  under load. The trade-off is a few seconds of telemetry loss on an unclean crash
+  — acceptable here since the data is non-critical and queued work is retried by
+  the queue anyway. **Never apply this to a connection your application also uses.**
 
 ## Alerting
 

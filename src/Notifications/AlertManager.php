@@ -4,6 +4,7 @@ namespace Vigilance\Notifications;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -149,8 +150,16 @@ class AlertManager
             // never downgrade a recorded incident's level.
             $escalated = $this->levelRank($alert->level) > $this->levelRank((string) $incident->level);
 
-            $incident->update([
-                'occurrences' => $incident->occurrences + 1,
+            // The occurrence count must survive concurrency (multiple nodes can
+            // evaluate alerts at once), so bump it with an atomic SQL increment
+            // rather than writing back a value read into PHP — otherwise
+            // simultaneous occurrences clobber each other and the count drifts
+            // low. The other columns are latest-wins and may safely race. Goes
+            // through the query builder (not $incident->update()) so the raw
+            // expression isn't swallowed by the integer cast on `occurrences`.
+            // Mirrors the failure-group counter in FailureGrouper.
+            Incident::query()->whereKey($incident->getKey())->update([
+                'occurrences' => DB::raw('occurrences + 1'),
                 'last_seen_at' => now(),
                 'message' => $alert->message,
                 'level' => $escalated ? $alert->level : $incident->level,
