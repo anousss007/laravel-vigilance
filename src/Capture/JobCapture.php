@@ -10,16 +10,25 @@ use Illuminate\Support\Facades\Queue;
 
 class JobCapture
 {
+    /**
+     * Prevents Queue::createPayloadUsing() accumulating in the static callback array when the app boots twice (e.g. Vapor's Octane runtime).
+     */
+    private static bool $payloadCallbackRegistered = false;
+
     public function __construct(protected Recorder $recorder) {}
 
     public function register(): void
     {
-        // The correlation trick: a uuid lives inside the payload, so a job can
-        // be tracked from "queued" through "processed/failed" across ANY queue
-        // driver (sync, database, redis, sqs, beanstalkd).
-        Queue::createPayloadUsing(function ($connection, $queue, $payload) {
-            return $this->recorder->onJobPayloadCreate((string) $connection, $queue, $payload);
-        });
+        if (! self::$payloadCallbackRegistered) {
+            self::$payloadCallbackRegistered = true;
+
+            // The correlation trick: a uuid lives inside the payload, so a job can
+            // be tracked from "queued" through "processed/failed" across ANY queue
+            // driver (sync, database, redis, sqs, beanstalkd).
+            Queue::createPayloadUsing(function ($connection, $queue, $payload) {
+                return $this->recorder->onJobPayloadCreate((string) $connection, $queue, $payload);
+            });
+        }
 
         $events = app('events');
 

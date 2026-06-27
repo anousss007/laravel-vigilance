@@ -4,10 +4,25 @@ namespace Vigilance\Tests;
 
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use ReflectionProperty;
+use Vigilance\Capture\JobCapture;
 use Vigilance\VigilanceServiceProvider;
 
 class TestCase extends Orchestra
 {
+    protected function setUp(): void
+    {
+        $this->resetCaptureRegistration();
+
+        parent::setUp();
+    }
+
+    private function resetCaptureRegistration(): void
+    {
+        $prop = new ReflectionProperty(JobCapture::class, 'payloadCallbackRegistered');
+        $prop->setValue(null, false);
+    }
+
     /** @return array<int, class-string> */
     protected function getPackageProviders($app): array
     {
