@@ -266,7 +266,11 @@ return [
     |
     | Tools are READ-ONLY unless you set "allow_writes" => true, which also
     | exposes triage/retry tools (resolve / acknowledge / mute an issue, retry a
-    | failed job). Every write is recorded in the same audit log as the dashboard.
+    | failed job) and worker/queue control (pause / resume / restart / terminate
+    | the fleet, and pause / resume a single queue). Clearing a queue's backlog
+    | and cancelling individual pending jobs additionally require "control.enabled"
+    | (the same manual-control master switch as job dispatch / command running).
+    | Every write is recorded in the same audit log as the dashboard.
     | Output is redacted (using "redact" below) and bounded by the caps here, so a
     | tool can never leak a secret or dump the whole database into the agent.
     |

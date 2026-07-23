@@ -57,10 +57,19 @@ class Supervisor
         $this->working = ! $this->control->isPaused();
 
         if ($this->working) {
-            $this->autoScale();
+            // Per-queue pause: narrow each pool to its still-active queues. Pools
+            // whose every queue is paused are held at zero; the rest scale and
+            // monitor as usual.
+            $activePools = $this->applyQueuePauses();
 
-            foreach ($this->pools as $pool) {
-                $pool->monitor();
+            $this->autoScale($activePools);
+
+            foreach ($this->pools as $key => $pool) {
+                if (in_array($key, $activePools, true)) {
+                    $pool->monitor();
+                } else {
+                    $pool->scaleTo(0);
+                }
             }
         } else {
             foreach ($this->pools as $pool) {
@@ -71,6 +80,34 @@ class Supervisor
         $this->heartbeat();
 
         return true;
+    }
+
+    /**
+     * Push the current per-queue pause state down to the pools and report which
+     * pools still have work to do. A pool serving several queues (balance=false)
+     * is narrowed to just its unpaused queues; a pool whose queues are all paused
+     * is omitted from the returned list so tick() holds it at zero workers.
+     *
+     * @return list<string> keys of pools with at least one active queue
+     */
+    protected function applyQueuePauses(): array
+    {
+        $active = [];
+
+        foreach ($this->pools as $key => $pool) {
+            $live = array_values(array_filter(
+                explode(',', $key),
+                fn (string $queue) => ! $this->control->isQueuePaused($this->options->connection, $queue),
+            ));
+
+            $pool->setActiveQueues(implode(',', $live));
+
+            if ($live !== []) {
+                $active[] = $key;
+            }
+        }
+
+        return $active;
     }
 
     public function terminate(): void
@@ -134,7 +171,23 @@ class Supervisor
         return array_sum(array_map(fn (Pool $p) => $p->count(), $this->pools));
     }
 
-    protected function autoScale(): void
+    /**
+     * The queues each pool is currently serving after per-queue pauses are
+     * applied (pool key => active queue list, '' when the pool is fully paused).
+     * Reflects the live decision the last tick() acted on.
+     *
+     * @return array<string, string>
+     */
+    public function poolActiveQueues(): array
+    {
+        return array_map(fn (Pool $p): string => $p->activeQueues(), $this->pools);
+    }
+
+    /**
+     * @param  list<string>  $activePools  pool keys eligible to scale this tick
+     *                                     (paused-out pools are handled by tick())
+     */
+    protected function autoScale(array $activePools): void
     {
         // Throttle how often the desired pool sizes are re-evaluated: at most once
         // per balance_cooldown seconds. Between evaluations the pools hold steady
@@ -161,8 +214,12 @@ class Supervisor
             fn (string $pool): float => $this->runtimeFor($pool),
         );
 
+        // Only resize pools that still have an active queue this tick — never
+        // spin up workers for a paused pool just to tear them down again below.
         foreach ($desired as $key => $target) {
-            $this->pools[$key]->scaleTo($target);
+            if (in_array($key, $activePools, true)) {
+                $this->pools[$key]->scaleTo($target);
+            }
         }
     }
 

@@ -123,6 +123,24 @@ to `mcp` (or `mcp:<user>` over an authenticated web transport) — exactly like 
 manual action taken from the dashboard. Retries re-dispatch the original job via
 the same path as the dashboard's retry, so lineage and capture are preserved.
 
+### Worker & queue control (opt-in)
+
+Also disabled until `VIGILANCE_MCP_ALLOW_WRITES=true`. These drive the same
+control plane as `vigilance:pause` / `continue` / `restart` and the Workload page,
+so the agent can act on what `workers` / `queues` report (both now surface the
+control status and per-queue paused state).
+
+| Tool | Purpose |
+|---|---|
+| `control-workers` | Pause / resume / restart / terminate every supervisor (global). Needs `allow_writes`. |
+| `pause-queue` | Pause a single queue — indefinitely or for N seconds — while the others keep draining. Needs `allow_writes`. |
+| `resume-queue` | Resume a single paused queue. Needs `allow_writes`. |
+| `clear-queue` | Purge a whole queue's backlog (database / redis / sqs; beanstalkd/sync unsupported). Destructive — needs `allow_writes` **and** `control.enabled`. |
+| `cancel-pending` | Delete specific waiting jobs by id (database driver; discover ids with `pending`). Destructive — needs `allow_writes` **and** `control.enabled`. |
+
+Per-queue pauses survive a worker restart or deploy until resumed or their timer
+lapses. Every call is recorded in the audit log.
+
 ### Manual control (opt-in, double-gated)
 
 Dispatching jobs and running artisan commands is **off** unless you enable **both**

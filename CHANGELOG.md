@@ -6,6 +6,41 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-23
+
+### Added
+- **Per-queue pause — stop draining one queue while the rest keep running.**
+  The supervisor now honours a per-queue pause flag: it narrows each pool to its
+  still-active queues (a `balance=false` pool serving several queues is relaunched
+  bound to only its unpaused ones) and holds a fully-paused pool at zero workers
+  without ever spinning workers up just to tear them down. Pauses can be timed
+  (auto-resume after N seconds) or indefinite, are delivered through the same
+  cache-flag channel as the global pause (so they work on every driver and OS),
+  and deliberately survive a supervisor restart or deploy until resumed or lapsed.
+  Drive it from the **Workload** page (Pause / 15m / 1h / Resume per queue, plus a
+  strip listing paused-but-idle queues), or from the CLI:
+  `vigilance:pause --queue=emails [--connection=redis] [--for=900]` and
+  `vigilance:continue --queue=emails`. `vigilance:status` lists paused queues and
+  their expiry. Pausing is an operational lever and is always available.
+- **Clear a queue from the dashboard.** A driver-agnostic purge (database, redis, sqs
+  — anything implementing `ClearableQueue`; beanstalkd is not supported) exposed as a **Clear**
+  button per queue on the Workload page.
+- **Cancel individual pending jobs.** Select waiting jobs on the **Pending** page
+  (database driver) and cancel them by id.
+  Both destructive operations require the manual-control master switch
+  (`VIGILANCE_CONTROL_ENABLED=true`), are guarded behind a confirm dialog, and are
+  written to the same audit log as every other manual action.
+- **Full worker & queue control over MCP.** Five new MCP tools let an AI agent
+  drive the control plane against live data, not just read it: `control-workers`
+  (pause / resume / restart / terminate the fleet), `pause-queue` / `resume-queue`
+  (single queue, optionally timed), `clear-queue` (purge a backlog on
+  database/redis/sqs) and `cancel-pending` (delete waiting jobs by id, database
+  driver). All self-gate
+  on `VIGILANCE_MCP_ALLOW_WRITES`; the two destructive ones additionally require
+  `VIGILANCE_CONTROL_ENABLED` — and every call is audited. The read tools now
+  surface the state to act on: `workers` reports the global control status and
+  `queues` flags each paused queue plus lists their auto-resume expiry.
+
 ### Fixed
 - **Duplicate "queued" job runs under Laravel Octane on Vapor.** Vapor's Octane
   runtime boots the application twice in the same PHP process (once for
@@ -15,6 +50,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one of which was ever advanced to `Running`/`Succeeded`, leaving a permanent
   ghost row. Registration is now guarded so the hook is installed once per
   process regardless of how many times the service provider boots.
+- **Static analysis stayed clean against newer Larastan.** The APM aggregate
+  SQL builder used inline `match` expressions whose default arm a newer Larastan
+  proved unreachable (`match.alwaysTrue`) while older versions required it — an
+  irreconcilable pair for the floating dev toolchain. The two branches are now
+  extracted into `tailAggregate()` / `bucketAggregate()` helpers that take a
+  plain `string`, so the default stays reachable and analysis is version-stable.
+  No behavioural change.
 
 ## [0.6.1] - 2026-06-26
 

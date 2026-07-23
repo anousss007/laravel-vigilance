@@ -9,6 +9,15 @@
         return number_format($ms / 1000, 2).'s';
     };
     $fmtMem = fn (?int $b) => $b === null ? '—' : number_format($b / 1048576, 1).'MB';
+    $fmtExpiry = function (?int $ts): string {
+        if ($ts === null) {
+            return 'indefinitely';
+        }
+        $mins = (int) ceil(($ts - time()) / 60);
+        return $mins > 0 ? "for ~{$mins} min" : 'briefly';
+    };
+    // Queues shown as cards below (so a paused-but-idle queue can still be listed).
+    $listed = collect($queues)->map(fn ($q) => ($q['connection_name'] ?? '').'|'.$q['queue'])->all();
 @endphp
 
 <div wire:poll.visible.5s class="space-y-6">
@@ -31,11 +40,32 @@
         @endif
     </div>
 
+    @php $orphanPaused = collect($paused)->reject(fn ($e, $key) => in_array($key, $listed, true)); @endphp
+    @if ($orphanPaused->isNotEmpty())
+        <div class="v-card v-card--pad space-y-2">
+            <span class="v-stat__label">Paused queues (no recent activity)</span>
+            <div class="flex flex-wrap gap-2">
+                @foreach ($orphanPaused as $key => $expiresAt)
+                    @php [$conn, $q] = array_pad(explode('|', $key, 2), 2, ''); @endphp
+                    <span class="inline-flex items-center gap-2 v-pill is-paused">
+                        <span class="v-dot"></span>
+                        <span class="font-mono">{{ $q }}</span>
+                        <span class="v-faint">· {{ $conn }} · {{ $fmtExpiry($expiresAt) }}</span>
+                        <button type="button" wire:click="resumeQueue(@js($conn), @js($q))" class="v-btn v-btn--sm">Resume</button>
+                    </span>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <p class="text-xs v-muted">Live queue depth is only available for the <code class="v-code">database</code> and <code class="v-code">redis</code> drivers; other drivers show “n/a”.</p>
 
     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @forelse ($queues as $queue)
             @php
+                $conn = (string) ($queue['connection_name'] ?? '');
+                $qKey = $conn.'|'.$queue['queue'];
+                $isPaused = array_key_exists($qKey, $paused);
                 $series = collect($queue['series'])->map(fn ($p) => (int) ($p->throughput ?? 0))->values();
                 $maxPt = max(1, $series->max() ?? 1);
                 $sw = 240; $sh = 40; $n = max(1, $series->count());
@@ -49,7 +79,12 @@
             @endphp
             <div class="v-card v-card--pad">
                 <div class="flex items-baseline justify-between gap-2">
-                    <h2 class="truncate font-semibold font-mono v-strong">{{ $queue['queue'] }}</h2>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 class="truncate font-semibold font-mono v-strong">{{ $queue['queue'] }}</h2>
+                        @if ($isPaused)
+                            <span class="v-pill is-paused uppercase tracking-wide text-[10px]"><span class="v-dot"></span>paused</span>
+                        @endif
+                    </div>
                     <span class="text-[10px] font-mono v-faint">{{ $queue['connection_name'] ?: 'no connection' }}</span>
                 </div>
 
@@ -87,6 +122,24 @@
                         <line x1="0" y1="{{ $sh - 2 }}" x2="{{ $sw }}" y2="{{ $sh - 2 }}" stroke="rgb(113 113 122 / 0.4)" stroke-dasharray="3 3" />
                     @endif
                 </svg>
+
+                @if ($conn !== '')
+                    <div class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                        @if ($isPaused)
+                            <button type="button" wire:click="resumeQueue(@js($conn), @js($queue['queue']))" class="v-btn v-btn--primary v-btn--sm">Resume</button>
+                        @else
+                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']))" class="v-btn v-btn--sm">Pause</button>
+                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 15)" class="v-btn v-btn--sm" title="Pause for 15 minutes">15m</button>
+                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 60)" class="v-btn v-btn--sm" title="Pause for 1 hour">1h</button>
+                        @endif
+                        @if ($controlEnabled)
+                            <button type="button"
+                                wire:click="clearQueue(@js($conn), @js($queue['queue']))"
+                                wire:confirm="Delete ALL pending jobs on [{{ $queue['queue'] }}]? This cannot be undone."
+                                class="v-btn v-btn--sm v-btn--danger ml-auto">Clear</button>
+                        @endif
+                    </div>
+                @endif
             </div>
         @empty
             <div class="md:col-span-2 xl:col-span-3">

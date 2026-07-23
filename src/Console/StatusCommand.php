@@ -18,6 +18,17 @@ class StatusCommand extends Command
         $this->newLine();
         $this->components->twoColumnDetail('<fg=cyan;options=bold>Vigilance supervision</>', 'control: '.$control->status());
 
+        foreach ($control->pausedQueues() as $paused) {
+            $until = $paused['expires_at'] !== null
+                ? 'until '.date('H:i:s', $paused['expires_at'])
+                : 'indefinitely';
+
+            $this->components->twoColumnDetail(
+                '  <fg=yellow>paused queue</> <fg=gray>'.$paused['connection'].' · '.$paused['queue'].'</>',
+                $until,
+            );
+        }
+
         $supervisors = $state->active((int) config('vigilance.supervision.heartbeat_expire', 30));
 
         if ($supervisors->isEmpty()) {

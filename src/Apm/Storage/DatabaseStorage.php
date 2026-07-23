@@ -637,14 +637,7 @@ class DatabaseStorage implements Storage
                     $query->select('key_hash');
 
                     foreach ($aggregates as $aggregate) {
-                        $query->selectRaw(match ($aggregate) {
-                            'count' => 'count(*)',
-                            'min' => "min({$this->wrap('value')})",
-                            'max' => "max({$this->wrap('value')})",
-                            'sum' => "sum({$this->wrap('value')})",
-                            'avg' => "avg({$this->wrap('value')})",
-                            default => $this->invalidAggregate($aggregate),
-                        }." as {$this->wrap($aggregate)}");
+                        $query->selectRaw($this->tailAggregate($aggregate)." as {$this->wrap($aggregate)}");
                     }
 
                     $query
@@ -661,14 +654,7 @@ class DatabaseStorage implements Storage
 
                             foreach ($aggregates as $aggregate) {
                                 if ($aggregate === $currentAggregate) {
-                                    $query->selectRaw(match ($aggregate) {
-                                        'count' => "sum({$this->wrap('value')})",
-                                        'min' => "min({$this->wrap('value')})",
-                                        'max' => "max({$this->wrap('value')})",
-                                        'sum' => "sum({$this->wrap('value')})",
-                                        'avg' => "avg({$this->wrap('value')})",
-                                        default => $this->invalidAggregate($aggregate),
-                                    }." as {$this->wrap($aggregate)}");
+                                    $query->selectRaw($this->bucketAggregate($aggregate)." as {$this->wrap($aggregate)}");
                                 } else {
                                     $query->selectRaw("null as {$this->wrap($aggregate)}");
                                 }
@@ -801,6 +787,39 @@ class DatabaseStorage implements Storage
     protected function invalidAggregate(string $aggregate): string
     {
         throw new InvalidArgumentException("Invalid aggregate type [$aggregate], allowed types: [".implode(', ', $this->allowedAggregates).'].');
+    }
+
+    /**
+     * SQL for one aggregate over the raw "tail" rows (vigilance_entries). Taking
+     * a plain string keeps the match's default reachable regardless of how tight
+     * the caller's type is narrowed, so static analysis stays version-stable.
+     */
+    protected function tailAggregate(string $aggregate): string
+    {
+        return match ($aggregate) {
+            'count' => 'count(*)',
+            'min' => "min({$this->wrap('value')})",
+            'max' => "max({$this->wrap('value')})",
+            'sum' => "sum({$this->wrap('value')})",
+            'avg' => "avg({$this->wrap('value')})",
+            default => $this->invalidAggregate($aggregate),
+        };
+    }
+
+    /**
+     * SQL for one aggregate over the pre-rolled bucket rows (vigilance_aggregates),
+     * where a stored "count" is itself a partial sum to be re-summed.
+     */
+    protected function bucketAggregate(string $aggregate): string
+    {
+        return match ($aggregate) {
+            'count' => "sum({$this->wrap('value')})",
+            'min' => "min({$this->wrap('value')})",
+            'max' => "max({$this->wrap('value')})",
+            'sum' => "sum({$this->wrap('value')})",
+            'avg' => "avg({$this->wrap('value')})",
+            default => $this->invalidAggregate($aggregate),
+        };
     }
 
     /**

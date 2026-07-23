@@ -159,12 +159,13 @@ The tool set mirrors **every dashboard page**, so the agent can reach anything y
 | Front-end (RUM) | `vitals` |
 | Tracing & logs | `traces` · `trace` · `logs` |
 | Reliability | `slos` · `incidents` · `releases` |
-| Queues & workers | `workers` · `queues` · `pending` · `schedule` · `batches` · `tags` |
+| Queues & workers | `workers` (+ control status) · `queues` (+ paused state) · `pending` · `schedule` · `batches` · `tags` |
 | Business metrics | `custom-metrics` |
 | **Writes** (opt-in) | `resolve-issue` · `acknowledge-issue` · `mute-issue` · `reopen-issue` · `retry-run` · `retry-issue` |
+| **Worker & queue control** (opt-in) | `control-workers` · `pause-queue` · `resume-queue` · `clear-queue` · `cancel-pending` |
 | **Manual control** (opt-in, double-gated) | `dispatchable-jobs` · `runnable-commands` · `dispatch-job` · `run-command` |
 
-The **manual-control** tools (dispatch a job / run an artisan command) require **both** `VIGILANCE_MCP_ALLOW_WRITES=true` **and** the dashboard's own `VIGILANCE_CONTROL_ENABLED=true`, and obey the same `control` allowlist — so they're off unless you deliberately opt in twice.
+The **worker & queue control** tools let the agent run the control plane, not just observe it: `control-workers` pauses / resumes / restarts / terminates the fleet, and `pause-queue` / `resume-queue` toggle a single queue (optionally timed). These need `VIGILANCE_MCP_ALLOW_WRITES=true`. The destructive `clear-queue` (purge a backlog) and `cancel-pending` (delete waiting jobs by id) — like **manual control** (dispatch a job / run an artisan command) — require **both** `VIGILANCE_MCP_ALLOW_WRITES=true` **and** `VIGILANCE_CONTROL_ENABLED=true`, so they're off unless you deliberately opt in twice. Every write is audited.
 
 This complements the [Laravel Boost](#ai-assisted-development-laravel-boost)
 integration below: **Boost teaches your agent Vigilance's conventions (how to
@@ -395,10 +396,19 @@ If no mail recipient and no Slack webhook is configured, alerting stays silent
 | Command | Purpose |
 |---|---|
 | `vigilance:supervise` | Run & auto-scale your queue workers (replaces `queue:work`). `--once` / `--max-time=N` for bounded/test runs |
-| `vigilance:status` | Show running supervisors and their workers |
-| `vigilance:pause` / `vigilance:continue` | Pause / resume all supervisors |
+| `vigilance:status` | Show running supervisors, their workers, and any paused queues |
+| `vigilance:pause` / `vigilance:continue` | Pause / resume all supervisors — or a single queue with `--queue=` (`--for=SECONDS` for a timed pause, `--connection=`) |
 | `vigilance:restart` | Gracefully restart all workers (e.g. after a deploy) |
 | `vigilance:terminate` | Gracefully stop the supervisor and all its workers |
+
+**Per-queue controls.** Beyond the global pause, you can pause / resume an
+individual queue (indefinitely or for a set duration) while every other queue
+keeps draining — from the CLI above or the **Workload** page. A paused queue
+survives worker restarts and deploys until you resume it or its timer lapses.
+With manual control enabled (`VIGILANCE_CONTROL_ENABLED=true`) you can also
+**clear** a queue's backlog (`database` / `redis` / `sqs`) from the Workload page
+and **cancel** individual pending jobs (database driver) from the Pending page —
+both audited.
 
 **APM heartbeat & uptime**
 
