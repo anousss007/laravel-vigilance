@@ -203,3 +203,32 @@ it('retries a failed job from its stored payload and audits it', function () {
     expect(Run::query()->where('name', SampleJob::class)->where('status', RunStatus::Succeeded->value)->count())
         ->toBeGreaterThanOrEqual(1);
 });
+
+it('links a manually retried run to its parent via retry_of', function () {
+    config()->set('vigilance.control.jobs', [
+        'mode' => 'list', 'paths' => [], 'allow' => [SampleJob::class], 'deny' => [],
+    ]);
+    ControlGate::flush();
+
+    (new JobDispatcher)->dispatch(SampleJob::class, ['amount' => '1'], queued: false, user: 'admin@test');
+    $original = Run::query()->where('name', SampleJob::class)->latest('id')->first();
+    $original->forceFill([
+        'status' => RunStatus::Failed->value,
+        'payload_raw' => serialize(new SampleJob(1)),
+    ])->save();
+
+    (new JobRetrier)->retry($original->id, user: 'admin@test');
+
+    // The capture layer read the lineage marker at dispatch time and linked the
+    // fresh run back to the one it retried.
+    $child = Run::query()
+        ->where('name', SampleJob::class)
+        ->where('id', '>', $original->id)
+        ->whereNotNull('retry_of')
+        ->latest('id')
+        ->first();
+
+    expect($child)->not->toBeNull()
+        ->and($child->retry_of)->toBe($original->id)
+        ->and($original->fresh()->retries)->toHaveCount(1);
+});
