@@ -31,6 +31,14 @@ class Tracer
      */
     protected ?array $current = null;
 
+    /**
+     * Upstream context (W3C traceparent) to fold into the next trace, set by
+     * continueFrom() and consumed by start(). Null when this unit is a root.
+     *
+     * @var array{trace_id:string, span_id:string}|null
+     */
+    protected ?array $pendingParent = null;
+
     protected bool $enabled;
 
     protected int $maxSpans;
@@ -80,10 +88,20 @@ class Tracer
     public function start(string $type, string $name, ?float $start = null, array $attributes = []): void
     {
         if (! $this->enabled || $this->current !== null) {
+            $this->pendingParent = null;
+
             return;
         }
 
         $this->rescue(function () use ($type, $name, $start, $attributes) {
+            // Distributed tracing: if an upstream context was handed in (an HTTP
+            // traceparent header, or a dispatching request's context carried on
+            // the job payload), record it so this trace links to its parent.
+            if ($this->pendingParent !== null) {
+                $attributes['parent_trace_id'] = $this->pendingParent['trace_id'];
+                $attributes['parent_span_id'] = $this->pendingParent['span_id'];
+            }
+
             $this->current = [
                 'id' => (string) Str::orderedUuid(),
                 'type' => $type,
@@ -94,7 +112,54 @@ class Tracer
                 'spans' => [],
                 'dropped' => 0,
             ];
+
+            $this->pendingParent = null;
         });
+    }
+
+    /**
+     * Continue an upstream trace from a W3C traceparent
+     * (00-{trace-id:32hex}-{span-id:16hex}-{flags:2hex}). The parent is folded
+     * into the next start()ed trace's attributes. A null/invalid/all-zero value
+     * is ignored (this unit becomes its own root). Returns whether it was taken.
+     */
+    public function continueFrom(?string $traceparent): bool
+    {
+        $this->pendingParent = null;
+
+        if (! is_string($traceparent) || ! config('vigilance.tracing.propagation', true)) {
+            return false;
+        }
+
+        if (! preg_match('/^[0-9a-f]{2}-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/i', trim($traceparent), $m)) {
+            return false;
+        }
+
+        if (trim($m[1], '0') === '' || trim($m[2], '0') === '') {
+            return false; // all-zero ids are invalid per the spec
+        }
+
+        $this->pendingParent = ['trace_id' => strtolower($m[1]), 'span_id' => strtolower($m[2])];
+
+        return true;
+    }
+
+    /**
+     * A W3C traceparent for the in-flight trace, to propagate downstream (into an
+     * outgoing HTTP call or a dispatched job). Null when no trace is active. The
+     * span-id is fresh per call so each downstream hop has a distinct parent span.
+     */
+    public function traceparent(): ?string
+    {
+        if ($this->current === null) {
+            return null;
+        }
+
+        $traceId = substr(str_replace('-', '', (string) $this->current['id']).str_repeat('0', 32), 0, 32);
+        $spanId = substr(bin2hex(random_bytes(8)), 0, 16);
+        $flags = ! empty($this->current['sampled']) ? '01' : '00';
+
+        return "00-{$traceId}-{$spanId}-{$flags}";
     }
 
     /**
@@ -213,6 +278,7 @@ class Tracer
     public function flush(): void
     {
         $this->current = null;
+        $this->pendingParent = null;
     }
 
     public function setContainer(Container $container): void

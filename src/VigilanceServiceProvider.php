@@ -23,6 +23,7 @@ use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Redis\Events\CommandExecuted;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
@@ -411,10 +412,17 @@ class VigilanceServiceProvider extends ServiceProvider
 
         if (config('vigilance.tracing.capture.jobs', true)) {
             $events->listen(JobProcessing::class, fn ($e) => $tracer->rescue(
-                fn () => $tracer->start('job', $e->job->resolveName(), null, [
-                    'connection' => $e->connectionName,
-                    'queue' => $e->job->getQueue(),
-                ])
+                function () use ($tracer, $e) {
+                    // Continue the trace from the request/job that dispatched this
+                    // one (the traceparent is carried on the job payload), so the
+                    // job links back to what enqueued it across the queue boundary.
+                    $tracer->continueFrom($e->job->payload()['vigilance_traceparent'] ?? null);
+
+                    $tracer->start('job', $e->job->resolveName(), null, [
+                        'connection' => $e->connectionName,
+                        'queue' => $e->job->getQueue(),
+                    ]);
+                }
             ));
             $events->listen(JobProcessed::class, fn () => $tracer->finish('ok'));
             $events->listen(JobFailed::class, fn () => $tracer->finish('error'));
@@ -430,6 +438,24 @@ class VigilanceServiceProvider extends ServiceProvider
             $events->listen(CommandFinished::class, fn ($e) => $tracer->finish(
                 ((int) ($e->exitCode ?? 0)) !== 0 ? 'error' : 'ok'
             ));
+        }
+
+        // --- Distributed propagation --------------------------------------
+        // Emit a W3C traceparent on outgoing HTTP so downstream services can
+        // continue the trace. Guarded and only when a trace is in flight.
+        if (config('vigilance.tracing.propagation', true)
+            && method_exists(Http::class, 'globalRequestMiddleware')) {
+            Http::globalRequestMiddleware(function ($request) use ($tracer) {
+                try {
+                    if (! $request->hasHeader('traceparent') && ($tp = $tracer->traceparent()) !== null) {
+                        return $request->withHeader('traceparent', $tp);
+                    }
+                } catch (\Throwable) {
+                    // Propagation is best-effort; never break the outgoing call.
+                }
+
+                return $request;
+            });
         }
 
         // --- Child spans ---------------------------------------------------

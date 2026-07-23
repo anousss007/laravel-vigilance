@@ -14,6 +14,7 @@ use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\Redactor;
+use Vigilance\Tracing\Tracer;
 use Vigilance\Vigilance;
 
 class Recorder
@@ -114,9 +115,14 @@ class Recorder
                 $this->runs->insert($data);
             }
 
+            // Carry the in-flight trace across the queue boundary so the job
+            // links back to the request/job that dispatched it.
+            $traceparent = app(Tracer::class)->traceparent();
+
             return array_merge(
                 ['vigilance_keep' => $keep ? 1 : 0],
                 $injectUuid ? ['uuid' => $uuid] : [],
+                $traceparent !== null ? ['vigilance_traceparent' => $traceparent] : [],
             );
         }) ?? [];
     }

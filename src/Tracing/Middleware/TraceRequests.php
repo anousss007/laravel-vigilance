@@ -23,6 +23,9 @@ class TraceRequests
         if ($this->shouldTrace($request)) {
             $start = defined('LARAVEL_START') ? LARAVEL_START : microtime(true);
 
+            // Continue an upstream distributed trace when the caller sent one.
+            $this->tracer->continueFrom($request->header('traceparent'));
+
             $this->tracer->start('request', $request->method().' '.$this->path($request), $start, [
                 'method' => $request->method(),
                 'path' => $this->path($request),
