@@ -32,7 +32,7 @@ class Vigilance
 
     protected static bool $recording = true;
 
-    /** @var array{user: ?string, via: string}|null */
+    /** @var array{user: ?string, via: string, retry_of?: ?int}|null */
     protected static ?array $manualContext = null;
 
     /** @var list<string>|null null = not set in code, fall back to config */
@@ -314,10 +314,10 @@ class Vigilance
      * @param  Closure(): T  $callback
      * @return T
      */
-    public static function asManual(?string $user, Closure $callback): mixed
+    public static function asManual(?string $user, Closure $callback, ?int $retryOf = null): mixed
     {
         $previous = static::$manualContext;
-        static::$manualContext = ['user' => $user, 'via' => 'manual'];
+        static::$manualContext = ['user' => $user, 'via' => 'manual', 'retry_of' => $retryOf];
 
         try {
             return $callback();
@@ -326,7 +326,7 @@ class Vigilance
         }
     }
 
-    /** @return array{user: ?string, via: string}|null */
+    /** @return array{user: ?string, via: string, retry_of?: ?int}|null */
     public static function manualContext(): ?array
     {
         return static::$manualContext;

@@ -116,16 +116,9 @@ class JobRetrier
     {
         $job = $this->restore($run);
 
-        // Tag the lineage: the capture layer reads this back at dispatch time
-        // (Recorder::onJobPayloadCreate) and links the fresh run's retry_of to
-        // this run. The audit trail records it too, as a fallback for jobs that
-        // forbid dynamic properties.
-        try {
-            $job->vigilanceRetryOf = $run->id;
-        } catch (\Throwable) {
-            // Some jobs may forbid dynamic properties; lineage stays in audit.
-        }
-
+        // Re-dispatch inside a manual context carrying the parent run id, which
+        // the capture layer reads at createPayloadUsing time to set the fresh
+        // run's retry_of — no dynamic property on the job (deprecated on 8.2+).
         Vigilance::asManual($user, function () use ($job, $run) {
             $pending = dispatch($job);
 
@@ -136,7 +129,7 @@ class JobRetrier
             if ($run->connection_name) {
                 $pending->onConnection($run->connection_name);
             }
-        });
+        }, retryOf: $run->id);
     }
 
     /**

@@ -444,9 +444,9 @@ class VigilanceServiceProvider extends ServiceProvider
 
         // --- Distributed propagation --------------------------------------
         // Emit a W3C traceparent on outgoing HTTP so downstream services can
-        // continue the trace. Guarded and only when a trace is in flight.
-        if (config('vigilance.tracing.propagation', true)
-            && method_exists(Http::class, 'globalRequestMiddleware')) {
+        // continue the trace (globalRequestMiddleware exists on the Http client
+        // factory in all supported Laravel versions). Only when a trace is live.
+        if (config('vigilance.tracing.propagation', true)) {
             Http::globalRequestMiddleware(function ($request) use ($tracer) {
                 try {
                     if (! $request->hasHeader('traceparent') && ($tp = $tracer->traceparent()) !== null) {

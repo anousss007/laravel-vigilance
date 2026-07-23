@@ -89,12 +89,12 @@ class Recorder
                 'caused_by' => $manual['user'] ?? null,
             ])->type(RunType::Job)->status(RunStatus::Queued);
 
-            // Retry lineage: a manual retry (JobRetrier) tags the job object with
-            // the id of the run it re-dispatches. At createPayloadUsing time
-            // commandName is still that raw object, so we can read it back and
-            // link the fresh run to its parent.
-            if (is_object($commandName) && ($retryOf = static::readRetryOf($commandName)) !== null) {
-                $data->set('retry_of', $retryOf);
+            // Retry lineage: a manual retry (JobRetrier) dispatches within a
+            // manual context carrying the id of the run it re-dispatches, so the
+            // fresh run links back to its parent — without stamping a dynamic
+            // property on the job (deprecated on PHP 8.2+, fatal on 9).
+            if (($retryOf = $manual['retry_of'] ?? null) !== null) {
+                $data->set('retry_of', (int) $retryOf);
             }
 
             if (config('vigilance.capture.store_for_retry', true)) {
@@ -125,26 +125,6 @@ class Recorder
                 $traceparent !== null ? ['vigilance_traceparent' => $traceparent] : [],
             );
         }) ?? [];
-    }
-
-    /**
-     * Read the retry-lineage marker JobRetrier stamps on a re-dispatched job
-     * ($job->vigilanceRetryOf = originalRunId). Null-safe for jobs that never
-     * carry it or forbid dynamic properties.
-     */
-    protected static function readRetryOf(object $command): ?int
-    {
-        try {
-            $value = $command->vigilanceRetryOf ?? null;
-
-            return match (true) {
-                is_int($value) => $value,
-                is_string($value) && ctype_digit($value) => (int) $value,
-                default => null,
-            };
-        } catch (\Throwable) {
-            return null;
-        }
     }
 
     public function jobProcessing(JobProcessing $event): void
@@ -457,7 +437,12 @@ class Recorder
         $command = PayloadExtractor::command($payload);
 
         if (! $command) {
-            return [null, []];
+            // The command object couldn't be reconstructed (e.g. an encrypted
+            // job's opaque payload). We still know its class, so surface at least
+            // the capability tags derived from the class name.
+            $class = $payload['data']['commandName'] ?? null;
+
+            return [null, TagExtractor::forClass(is_string($class) ? $class : null)];
         }
 
         return [
