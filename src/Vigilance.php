@@ -9,6 +9,7 @@ use Vigilance\Apm\Apm;
 use Vigilance\Contracts\ShouldNotBeMonitored;
 use Vigilance\Events\ExceptionReported;
 use Vigilance\Notifications\Alert;
+use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\Defaults;
 
 /**
@@ -156,6 +157,30 @@ class Vigilance
     {
         static::$recording = true;
         static::$manualContext = null;
+
+        // Breadcrumb trails are per-unit-of-work; drop them at the boundary so a
+        // long-lived worker never attaches one request's trail to the next error.
+        try {
+            app(Breadcrumbs::class)->clear();
+        } catch (\Throwable) {
+            // Breadcrumbs are best-effort; never break the boundary reset.
+        }
+    }
+
+    /**
+     * Leave a breadcrumb — a note about something that just happened — so that if
+     * an error follows, its issue shows the trail that led up to it. Guarded: a
+     * breadcrumb can never break the host application.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public static function breadcrumb(string $message, ?string $category = null, string $level = 'info', array $data = []): void
+    {
+        try {
+            app(Breadcrumbs::class)->add($message, $category, $level, $data);
+        } catch (\Throwable) {
+            //
+        }
     }
 
     public static function shouldRecord(): bool

@@ -13,6 +13,7 @@ use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Client\Factory;
+use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Queue\Events\JobFailed;
@@ -95,6 +96,7 @@ use Vigilance\Logs\Storage\DatabaseLogStorage;
 use Vigilance\Mcp\VigilanceServer;
 use Vigilance\Storage\DatabaseMetricsRepository;
 use Vigilance\Storage\DatabaseRunRepository;
+use Vigilance\Support\Breadcrumbs;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Middleware\TraceRequests;
 use Vigilance\Tracing\Sampling\Sampler;
@@ -110,6 +112,10 @@ class VigilanceServiceProvider extends ServiceProvider
         $this->app->singleton(RunRepository::class, DatabaseRunRepository::class);
         $this->app->singleton(MetricsRepository::class, DatabaseMetricsRepository::class);
         $this->app->singleton(Recorder::class);
+        $this->app->singleton(
+            Breadcrumbs::class,
+            fn ($app) => new Breadcrumbs((int) $app['config']->get('vigilance.issues.breadcrumbs.max', 25)),
+        );
 
         $this->registerApm();
         $this->registerLogs();
@@ -232,6 +238,7 @@ class VigilanceServiceProvider extends ServiceProvider
 
             if (config('vigilance.issues.enabled', true)) {
                 $this->registerIssueCapture();
+                $this->registerBreadcrumbs();
             }
         }
 
@@ -344,6 +351,42 @@ class VigilanceServiceProvider extends ServiceProvider
             ExceptionReported::class,
             fn ($event) => $capture->capture($event->exception, 'reported'),
         );
+    }
+
+    /**
+     * Feed the breadcrumb trail: record log lines automatically (so an error's
+     * issue shows the logs that preceded it) and clear the trail at each job
+     * boundary. Request boundaries are handled by Vigilance::flushState().
+     */
+    protected function registerBreadcrumbs(): void
+    {
+        if (! config('vigilance.issues.breadcrumbs.enabled', true)) {
+            return;
+        }
+
+        $events = $this->app->make('events');
+
+        if (config('vigilance.issues.breadcrumbs.log', true)) {
+            $events->listen(MessageLogged::class, function ($event): void {
+                try {
+                    $this->app->make(Breadcrumbs::class)->add(
+                        (string) $event->message,
+                        category: 'log',
+                        level: (string) $event->level,
+                    );
+                } catch (\Throwable) {
+                    //
+                }
+            });
+        }
+
+        $events->listen(JobProcessing::class, function (): void {
+            try {
+                $this->app->make(Breadcrumbs::class)->clear();
+            } catch (\Throwable) {
+                //
+            }
+        });
     }
 
     protected function bootTracing(): void
