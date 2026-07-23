@@ -2,6 +2,8 @@
 
 namespace Vigilance\Capture;
 
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -27,6 +29,7 @@ class TagExtractor
         }
 
         $tags = array_merge($tags, static::modelsFor($command));
+        $tags = array_merge($tags, static::capabilitiesFor($command));
 
         if ($queue) {
             $tags[] = 'queue:'.$queue;
@@ -36,6 +39,30 @@ class TagExtractor
             fn ($tag) => Str::limit((string) $tag, 80, ''),
             array_filter($tags)
         )));
+    }
+
+    /**
+     * Surface a job's queue capabilities as tags so they're visible and
+     * filterable on the run (properties like these are otherwise skipped by the
+     * payload extractor): "unique" for ShouldBeUnique(-UntilProcessing) and
+     * "encrypted" for ShouldBeEncrypted.
+     *
+     * @return list<string>
+     */
+    protected static function capabilitiesFor(object $command): array
+    {
+        $tags = [];
+
+        // ShouldBeUniqueUntilProcessing extends ShouldBeUnique, so this covers both.
+        if ($command instanceof ShouldBeUnique) {
+            $tags[] = 'unique';
+        }
+
+        if ($command instanceof ShouldBeEncrypted) {
+            $tags[] = 'encrypted';
+        }
+
+        return $tags;
     }
 
     /** @return list<string> */

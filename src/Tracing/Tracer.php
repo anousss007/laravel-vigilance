@@ -7,6 +7,7 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Lottery;
 use Illuminate\Support\Str;
 use Throwable;
+use Vigilance\Apm\Apm;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Sampling\Sampler;
 
@@ -250,6 +251,13 @@ class Tracer
 
             if ($nPlusOne = $this->detectNPlusOne($trace['spans'])) {
                 $attributes['n_plus_one'] = $nPlusOne;
+
+                // Promote N+1 to a first-class, aggregatable APM signal (keyed by
+                // the route/job name) so it can be counted and alerted on, not
+                // only spotted one trace at a time.
+                $this->rescue(fn () => $this->app->make(Apm::class)
+                    ->record('n_plus_one', (string) $trace['name'], (int) $nPlusOne['count'])
+                    ->count()->max());
             }
 
             $this->app->make(TraceStorage::class)->store([
