@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-07-23
+
 ### Added
 - **N+1 incidents now point at the exact query and the exact line.** Query spans
   capture the application frame (`file:line`) that ran them, so a detected N+1
