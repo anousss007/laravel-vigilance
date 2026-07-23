@@ -12,6 +12,7 @@ use Vigilance\Contracts\RunRepository;
 use Vigilance\Data\RunData;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
+use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\Redactor;
 use Vigilance\Vigilance;
 
@@ -282,6 +283,8 @@ class Recorder
                 $class,
                 get_class($exception),
                 $exception->getMessage(),
+                source: RunType::Job->value,
+                context: app(Breadcrumbs::class)->contextFragment(),
             );
 
             $changes = RunData::make([

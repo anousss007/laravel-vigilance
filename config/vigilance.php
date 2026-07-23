@@ -469,6 +469,15 @@ return [
             // \Illuminate\Auth\AuthenticationException::class,
             // \Illuminate\Validation\ValidationException::class,
         ],
+
+        // Breadcrumbs: the trail of events leading up to an error, attached to the
+        // issue (latest occurrence wins). Add your own with
+        // Vigilance::breadcrumb('Charged card', 'billing', data: ['amount' => 20]).
+        'breadcrumbs' => [
+            'enabled' => true,
+            'log' => true, // auto-record application log lines as breadcrumbs
+            'max' => 25,   // ring-buffer size (oldest dropped)
+        ],
     ],
 
     /*

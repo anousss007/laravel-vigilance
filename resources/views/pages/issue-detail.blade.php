@@ -53,17 +53,53 @@
         </div>
     @endif
 
-    @if (! empty($issue->context))
+    @php $breadcrumbs = $issue->context['breadcrumbs'] ?? []; @endphp
+
+    @if (! empty(array_diff_key((array) $issue->context, ['breadcrumbs' => true])))
         <div class="v-card">
             <div class="v-card__header"><h2 class="v-card__title">Context</h2></div>
             <dl class="grid grid-cols-1 gap-x-6 gap-y-2 p-4 sm:grid-cols-2">
                 @foreach ($issue->context as $key => $value)
+                    @continue($key === 'breadcrumbs')
                     <div class="flex gap-3">
                         <dt class="v-stat__label w-20 shrink-0">{{ $key }}</dt>
                         <dd class="min-w-0 break-words font-mono text-[12px] v-muted">{{ is_array($value) ? json_encode($value) : $value }}</dd>
                     </div>
                 @endforeach
             </dl>
+        </div>
+    @endif
+
+    @if (! empty($breadcrumbs))
+        <div class="v-card overflow-hidden">
+            <div class="v-card__header">
+                <h2 class="v-card__title">Breadcrumbs</h2>
+                <span class="text-[10px] uppercase tracking-wide v-faint">trail before the error</span>
+            </div>
+            <ol class="divide-y">
+                @foreach ($breadcrumbs as $crumb)
+                    @php
+                        $lvl = strtolower($crumb['level'] ?? 'info');
+                        $tone = match ($lvl) {
+                            'error', 'critical', 'alert', 'emergency' => 'is-danger',
+                            'warning' => 'is-warn',
+                            'debug' => 'is-neutral',
+                            default => 'is-info',
+                        };
+                    @endphp
+                    <li class="flex items-start gap-3 px-4 py-2 text-[12px]">
+                        <span class="v-pill {{ $tone }} shrink-0 uppercase tracking-wide">{{ $lvl }}</span>
+                        @if (! empty($crumb['category']))
+                            <span class="shrink-0 font-mono v-faint">{{ $crumb['category'] }}</span>
+                        @endif
+                        <span class="min-w-0 break-words v-strong">{{ $crumb['message'] ?? '' }}</span>
+                        @if (! empty($crumb['data']))
+                            <span class="min-w-0 break-words font-mono v-muted">{{ json_encode($crumb['data']) }}</span>
+                        @endif
+                        <span class="ml-auto shrink-0 font-mono v-faint">{{ \Illuminate\Support\Str::after((string) ($crumb['t'] ?? ''), 'T') }}</span>
+                    </li>
+                @endforeach
+            </ol>
         </div>
     @endif
 

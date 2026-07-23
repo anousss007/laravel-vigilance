@@ -4,6 +4,7 @@ namespace Vigilance\Capture;
 
 use Illuminate\Support\Str;
 use Throwable;
+use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\PathMatcher;
 use Vigilance\Support\Redactor;
 use Vigilance\Vigilance;
@@ -124,6 +125,9 @@ class IssueCapture
             }
         }
 
-        return array_filter($context, static fn ($v): bool => $v !== null && $v !== '');
+        $context = array_filter($context, static fn ($v): bool => $v !== null && $v !== '');
+
+        // The trail of events (logs + manual breadcrumbs) leading up to the error.
+        return array_merge($context, app(Breadcrumbs::class)->contextFragment());
     }
 }
