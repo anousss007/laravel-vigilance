@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-23
+
 A broad gap-closing pass across the observability surface (error tracking,
 tracing, alerting, metrics, capture and the MCP server).
 
@@ -44,6 +46,19 @@ tracing, alerting, metrics, capture and the MCP server).
 - **New MCP tools.** `routes` (per-route p50/p95/p99), `workload` (system load +
   job-class breakdown), `record-deploy`, `assign-issue`, plus the `maintenance`,
   `merge-issues` and `feedback` tools above — closing dashboard/MCP parity.
+
+### Fixed
+Three defects surfaced by end-to-end testing against a real Laravel app:
+- **Outgoing `traceparent` was never emitted.** The registration guard probed
+  `method_exists()` on the Http *facade* (always false — the facade proxies via
+  `__callStatic`), so the global request middleware was never installed and
+  distributed propagation silently stopped at the app edge. Fixed.
+- **Encrypted jobs never got the `encrypted` tag.** Capability tags were derived
+  from the command object, which can't be reconstructed from an encrypted job's
+  opaque payload; they're now derived from the class name so the tag applies.
+- **Retry lineage emitted an `E_DEPRECATED`.** It stamped a dynamic property on
+  the job (fatal on PHP 9, and not a `Throwable` so the surrounding catch never
+  suppressed it); the parent run id now travels through the manual context.
 
 ### Notes
 Deferred as out of scope for this pass (each for a concrete reason): continuous
