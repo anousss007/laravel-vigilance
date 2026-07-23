@@ -413,6 +413,18 @@ return [
         // Generic webhook(s) — each receives the alert as JSON (PagerDuty, Opsgenie, …).
         'webhooks' => env('VIGILANCE_ALERT_WEBHOOKS'),
 
+        // Cache store backing the ad-hoc maintenance window (null = default).
+        'cache_store' => null,
+
+        // Recurring maintenance windows during which alert notifications are
+        // suppressed (rules still run on the dashboard, they just don't page).
+        // Each: ['days' => ['sat','sun'], 'from' => '02:00', 'to' => '04:00'].
+        // "days" optional (every day); "to" <= "from" wraps past midnight. Open
+        // an ad-hoc window around a deploy with `php artisan vigilance:maintenance`.
+        'maintenance' => [
+            // ['days' => ['sun'], 'from' => '02:00', 'to' => '03:00'],
+        ],
+
         'long_wait_seconds' => env('VIGILANCE_LONG_WAIT_SECONDS', 60),
         'throttle_minutes' => 15,
     ],

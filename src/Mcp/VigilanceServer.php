@@ -22,6 +22,7 @@ use Vigilance\Mcp\Tools\IssuesTool;
 use Vigilance\Mcp\Tools\IssueTool;
 use Vigilance\Mcp\Tools\JobMetricsTool;
 use Vigilance\Mcp\Tools\LogsTool;
+use Vigilance\Mcp\Tools\MaintenanceTool;
 use Vigilance\Mcp\Tools\MuteIssueTool;
 use Vigilance\Mcp\Tools\OverviewTool;
 use Vigilance\Mcp\Tools\PauseQueueTool;
@@ -146,6 +147,7 @@ class VigilanceServer extends Server
         RetryRunTool::class,
         RetryIssueTool::class,
         RecordDeployTool::class,
+        MaintenanceTool::class,
         // Worker & queue control (self-gate on mcp.allow_writes). Pausing/resuming
         // a queue or the fleet is operational; clearing a queue and cancelling
         // pending jobs are destructive and additionally require control.enabled.
