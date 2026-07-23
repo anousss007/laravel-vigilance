@@ -165,7 +165,7 @@
       <div class="card reveal">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></div>
         <h3>Request &amp; job tracing</h3>
-        <p>Per-request / per-job waterfalls of every query, cache op and outgoing call — with N+1 detection. Tail-sampled: only slow or failed traces are stored.</p>
+        <p>Per-request / per-job waterfalls of every query, cache op and outgoing call — with N+1 detection and <strong>distributed W3C traceparent</strong> propagation across HTTP and the queue boundary. Only slow or failed traces are stored.</p>
       </div>
 
       <div class="card reveal">
@@ -177,7 +177,7 @@
       <div class="card reveal">
         <div class="card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>
         <h3>Error tracking &amp; alerts</h3>
-        <p>A fingerprinted <strong>Issues</strong> inbox over every layer — web, queue, command and browser errors — with stacktraces and context. Rule-based alerts route to mail / Slack / Discord / Teams / webhooks, persisted as incidents with MTTR.</p>
+        <p>A fingerprinted <strong>Issues</strong> inbox over every layer — web, queue, command and browser errors — with stacktraces, context and a <strong>breadcrumb trail</strong>, plus manual issue merge. Rule-based alerts (with maintenance windows) route to mail / Slack / Discord / Teams / webhooks, persisted as incidents with MTTR.</p>
       </div>
 
       <div class="card reveal">

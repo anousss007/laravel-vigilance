@@ -95,10 +95,13 @@ server with `laravel/mcp`'s inspector: `php artisan mcp:inspector vigilance`.
 | `incidents` | Fired alerts as incidents (open/resolved, occurrences, MTTR). |
 | `releases` | Per-deploy health: error-rate / latency / throughput after vs. before, with a verdict. |
 | `vitals` | Real User Monitoring — Core Web Vitals (p75 LCP/INP/CLS/FCP/TTFB) per page, with ratings. |
-| `custom-metrics` | Custom counters & gauges from `Vigilance::increment()` / `gauge()`. |
-| `workers` | The supervisor/worker fleet across nodes (the Horizon-replacement view). |
-| `queues` | Per-queue depth, worker count, throughput, wait and time-to-clear. |
+| `custom-metrics` | Custom counters, gauges & distributions (p50/p95/p99) from `Vigilance::increment()` / `gauge()` / `histogram()`. |
+| `routes` | Per-route HTTP performance: p50/p95/p99, Apdex, error rate over a window. |
+| `workers` | The supervisor/worker fleet across nodes (the Horizon-replacement view) + control status. |
+| `workload` | System load average + per-job-class breakdown (runs, failures, runtime). |
+| `queues` | Per-queue depth, worker count, throughput, wait and time-to-clear (+ paused state). |
 | `pending` | Jobs currently waiting in the (database) queue backend. |
+| `feedback` | Recent user-reported feedback from the widget, tied to the trace the user was on. |
 | `job-metrics` | Per-job-class run counts, failures, duration and memory/CPU. |
 | `schedule` | Scheduled-task monitors: cron, last run, and late/failed flags. |
 | `batches` | Job batches (Laravel bus batches) with progress. |
@@ -114,9 +117,13 @@ are **not even listed** to the client, so the agent cannot call them.
 | `resolve-issue` | Mark an issue resolved. |
 | `reopen-issue` | Reopen a resolved issue. |
 | `acknowledge-issue` | Acknowledge an issue and assign it to the MCP actor. |
+| `assign-issue` | Assign an issue to an arbitrary owner (or unassign). |
+| `merge-issues` | Merge one issue into another (occurrences/runs move; source hidden). |
 | `mute-issue` | Mute an issue for N hours. |
 | `retry-run` | Retry one failed queued job. |
 | `retry-issue` | Retry every failed job in an issue, then resolve it. |
+| `record-deploy` | Record a deployment marker for release-health correlation. |
+| `maintenance` | Start / stop / status an alert-suppression maintenance window. |
 
 Every write is written to Vigilance's **audit log** (`vigilance_audit`), attributed
 to `mcp` (or `mcp:<user>` over an authenticated web transport) — exactly like a

@@ -23,15 +23,16 @@ See what ran — with the parameters it ran with — whether it failed, and **di
 | Scheduler monitoring | ❌ | partial | ✅ (late / failed / grace) |
 | Manual dispatch of jobs | ❌ | ❌ | ✅ (typed form from the constructor) |
 | Run arbitrary commands from UI | ❌ | ❌ | ✅ (allowlisted) |
-| Error tracking (grouped issues) | ❌ | ✅ (view) | ✅ (web · queue · command · browser, fingerprinted inbox) |
+| Error tracking (grouped issues) | ❌ | ✅ (view) | ✅ (web · queue · command · browser, fingerprinted inbox, **breadcrumbs**, manual merge) |
 | Whole-app APM + per-route percentiles | ❌ | ❌ | ✅ (p50/p95/p99, Apdex, error rate) |
 | Real User Monitoring (Core Web Vitals) | ❌ | ❌ | ✅ (LCP/INP/CLS/FCP/TTFB + JS errors) |
 | SLOs + error budgets | ❌ | ❌ | ✅ (burn-rate alerts) |
 | Trace-correlated log explorer | ❌ | ✅ (view) | ✅ (searchable, linked to traces) |
+| Distributed tracing | ❌ | ❌ | ✅ (W3C traceparent in/out + across the queue boundary) |
 | Custom business metrics | ❌ | ❌ | ✅ (one-line API + dashboard) |
 | Release health / deploy gating | ❌ | ❌ | ✅ (before/after regression guard + rollback alert) |
 | Anomaly detection | ❌ | ❌ | ✅ (dynamic baselines, not fixed thresholds) |
-| Alerting | ❌ | ❌ | ✅ (mail · Slack · Discord · Teams · webhooks + incidents) |
+| Alerting | ❌ | ❌ | ✅ (mail · Slack · Discord · Teams · webhooks + incidents + maintenance windows) |
 | **AI agent access (MCP)** | ❌ | ❌ | ✅ (query errors · APM · traces · releases · SLOs — read-only, with gated writes) |
 | Production-oriented | ✅ | ❌ (debug tool) | ✅ (see below) |
 
@@ -91,13 +92,13 @@ its own dashboard page. Full guide in
 
 | Feature | Page | What it gives you |
 |---|---|---|
-| **Issues** — unified error tracking | `/vigilance/issues` | Every exception (web · queue · command · `Vigilance::report()` · browser) fingerprinted into a grouped inbox with stacktrace, context, occurrence sparkline, assign/ack/mute/resolve |
+| **Issues** — unified error tracking | `/vigilance/issues` | Every exception (web · queue · command · `Vigilance::report()` · browser) fingerprinted into a grouped inbox with stacktrace, context, **breadcrumb trail**, occurrence sparkline, assign/ack/mute/resolve/**merge** |
 | **Routes** — per-route performance | `/vigilance/routes` | Throughput, error rate, Apdex and exact **p50/p95/p99** latency per route |
 | **Web Vitals** — RUM | `/vigilance/vitals` | Core Web Vitals (LCP/INP/CLS/FCP/TTFB) + JS errors from real visitors via the `@vigilanceRum` beacon |
 | **SLOs** — error budgets | `/vigilance/slos` | Availability / latency objectives vs. an error budget, with a short-window **burn-rate** alert |
 | **Incidents** — alerting depth | `/vigilance/incidents` | Fired alerts persisted as incidents (open → auto-resolved) with level, occurrences and **MTTR**; channels for Discord / Teams / generic webhooks |
 | **Releases** — deploy health | `/vigilance/releases` | Each deploy's error-rate / latency / throughput **after vs. before**, with a healthy/degraded/**regressed** verdict; a bad deploy fires a rollback-ready alert |
-| **Custom Metrics** — business KPIs | `/vigilance/custom-metrics` | `Vigilance::increment()` / `gauge()` → auto-discovered counter & gauge cards with sparklines |
+| **Custom Metrics** — business KPIs | `/vigilance/custom-metrics` | `Vigilance::increment()` / `gauge()` / `histogram()` → counter, gauge & **distribution** (p50/p95/p99) cards with sparklines |
 | **Logs** — explorer | `/vigilance/logs` | Searchable application logs **correlated to the trace that emitted them** |
 
 ```php
@@ -105,6 +106,8 @@ use Vigilance\Vigilance;
 
 Vigilance::increment('signups');                 // custom counter
 Vigilance::gauge('cart_value', $cart->total());  // custom gauge
+Vigilance::histogram('checkout_ms', $ms);        // distribution (p50/p95/p99)
+Vigilance::breadcrumb('Charged card', 'billing');// trail attached to the next error
 ```
 
 ```blade
@@ -159,9 +162,10 @@ The tool set mirrors **every dashboard page**, so the agent can reach anything y
 | Front-end (RUM) | `vitals` |
 | Tracing & logs | `traces` · `trace` · `logs` |
 | Reliability | `slos` · `incidents` · `releases` |
-| Queues & workers | `workers` (+ control status) · `queues` (+ paused state) · `pending` · `schedule` · `batches` · `tags` |
-| Business metrics | `custom-metrics` |
-| **Writes** (opt-in) | `resolve-issue` · `acknowledge-issue` · `mute-issue` · `reopen-issue` · `retry-run` · `retry-issue` |
+| Queues & workers | `workers` (+ control status) · `workload` · `queues` (+ paused state) · `routes` · `pending` · `schedule` · `batches` · `tags` |
+| Business metrics | `custom-metrics` (counters · gauges · distributions) |
+| Feedback | `feedback` (user-reported problems tied to a trace) |
+| **Writes** (opt-in) | `resolve-issue` · `acknowledge-issue` · `assign-issue` · `merge-issues` · `mute-issue` · `reopen-issue` · `retry-run` · `retry-issue` · `record-deploy` · `maintenance` |
 | **Worker & queue control** (opt-in) | `control-workers` · `pause-queue` · `resume-queue` · `clear-queue` · `cancel-pending` |
 | **Manual control** (opt-in, double-gated) | `dispatchable-jobs` · `runnable-commands` · `dispatch-job` · `run-command` |
 

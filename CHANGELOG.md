@@ -6,6 +6,54 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+A broad gap-closing pass across the observability surface (error tracking,
+tracing, alerting, metrics, capture and the MCP server).
+
+### Added
+- **Breadcrumbs — the trail before an error.** A bounded, per-unit-of-work trail
+  (`Vigilance::breadcrumb()` + automatic log capture) attached to an issue,
+  latest-occurrence-wins like Sentry. Cleared at each request/job boundary;
+  rendered as a timeline on the issue page and surfaced via the MCP `issue` tool.
+  New `issues.breadcrumbs` config.
+- **Distributed trace propagation.** Continue an upstream trace from a W3C
+  `traceparent` header, carry it across the queue boundary onto dispatched jobs
+  (job links back to what enqueued it), and emit `traceparent` on outgoing HTTP
+  so downstream services join the trace. New `tracing.propagation` config.
+- **Manual issue merge.** Merge one issue into another when fingerprinting split
+  the same problem — occurrences/runs move to the canonical group, the source is
+  hidden, and future occurrences of its signature are redirected. From the issue
+  page or the `merge-issues` MCP tool.
+- **Maintenance windows.** Suppress alert notifications during planned
+  maintenance — ad-hoc (`vigilance:maintenance`) or recurring (config) — so a
+  deploy doesn't page anyone; the next cycle re-evaluates after it closes.
+  Also a `maintenance` MCP tool.
+- **First-class N+1 signal + alert.** N+1 patterns the tracer detects are
+  promoted to an aggregatable APM signal keyed by route/job, with a new
+  `long_running_job`- and `n_plus_one`-style opt-in alert rule.
+- **Long-running-job detection.** A rule that alerts on jobs stuck in "running"
+  past a threshold (runaway/stuck workers backlog/failure rules can't see).
+- **Richer custom metrics.** `Vigilance::histogram()` / `timing()` distributions
+  (avg, max, p50/p95/p99) and `decrement()`, on the dashboard and the MCP tool.
+- **User-feedback widget endpoint.** An opt-in public `POST {path}/feedback`
+  endpoint tying a user-reported problem to their trace; read via the `feedback`
+  MCP tool. New `feedback` config.
+- **Job capability tags.** Jobs are tagged `unique` / `encrypted` from their
+  queue contracts, so those traits are visible and filterable on the run.
+- **Retry lineage.** A manually retried run's `retry_of` is now actually set
+  (the marker was written at dispatch but never read), so retry chains show.
+- **New MCP tools.** `routes` (per-route p50/p95/p99), `workload` (system load +
+  job-class breakdown), `record-deploy`, `assign-issue`, plus the `maintenance`,
+  `merge-issues` and `feedback` tools above — closing dashboard/MCP parity.
+
+### Notes
+Deferred as out of scope for this pass (each for a concrete reason): continuous
+profiling and DOM session replay (need extra infrastructure), OTLP trace export
+(follow-up on the existing Ingest/TraceStorage seam), a slow-cache recorder
+(cache events carry no duration), custom-metric dimensional tags, job chain
+lineage (Laravel models no shared chain id), and deploy markers overlaid on
+charts. First-class batches (progress/cancel/retry) and log↔trace correlation
+already existed. Storage percentiles/aggregation remain sqlite/mysql/pgsql only.
+
 ## [0.7.0] - 2026-07-23
 
 ### Added
