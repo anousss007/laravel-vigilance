@@ -46,6 +46,7 @@ use Vigilance\Console\DeployCommand;
 use Vigilance\Console\DoctorCommand;
 use Vigilance\Console\HealthCommand;
 use Vigilance\Console\InstallCommand;
+use Vigilance\Console\MaintenanceCommand;
 use Vigilance\Console\PauseCommand;
 use Vigilance\Console\PruneCommand;
 use Vigilance\Console\RestartCommand;
@@ -686,6 +687,7 @@ class VigilanceServiceProvider extends ServiceProvider
             DeployCommand::class,
             HealthCommand::class,
             SourcemapCommand::class,
+            MaintenanceCommand::class,
         ], 'class_exists');
 
         $this->commands($commands);

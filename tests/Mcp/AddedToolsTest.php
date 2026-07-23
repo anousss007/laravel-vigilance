@@ -2,10 +2,12 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Vigilance\Mcp\Tools\AssignIssueTool;
+use Vigilance\Mcp\Tools\MaintenanceTool;
 use Vigilance\Mcp\Tools\RecordDeployTool;
 use Vigilance\Mcp\Tools\RoutesTool;
 use Vigilance\Mcp\Tools\WorkloadTool;
 use Vigilance\Models\Deployment;
+use Vigilance\Notifications\MaintenanceWindow;
 
 uses(RefreshDatabase::class);
 
@@ -55,4 +57,20 @@ it('assigns and unassigns an issue over mcp', function () {
     expect($issue->fresh()->assignee)->toBeNull();
 
     $this->assertDatabaseHas('vigilance_audit', ['action' => 'assign_issue']);
+});
+
+it('starts, reports and stops maintenance over mcp', function () {
+    config()->set('vigilance.mcp.allow_writes', true);
+
+    $this->tool(MaintenanceTool::class, ['action' => 'start', 'minutes' => 15])
+        ->assertOk()
+        ->assertSee('until');
+    expect(app(MaintenanceWindow::class)->active())->toBeTrue();
+
+    $this->tool(MaintenanceTool::class, ['action' => 'status'])->assertOk()->assertSee('suppressed');
+
+    $this->tool(MaintenanceTool::class, ['action' => 'stop'])->assertOk();
+    expect(app(MaintenanceWindow::class)->active())->toBeFalse();
+
+    $this->assertDatabaseHas('vigilance_audit', ['action' => 'maintenance_start']);
 });

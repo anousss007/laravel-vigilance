@@ -57,6 +57,13 @@ class AlertManager
             return 0;
         }
 
+        // Planned maintenance: suppress notifications entirely. Rules aren't
+        // evaluated/dispatched, so nothing pages; the next cycle after the window
+        // closes re-evaluates and notifies for anything still breaching.
+        if (app(MaintenanceWindow::class)->active()) {
+            return 0;
+        }
+
         $throttle = (int) config('vigilance.alerts.throttle_minutes', 15);
         $renotify = (int) config('vigilance.alerts.renotify_minutes', 0);
         $sent = 0;
