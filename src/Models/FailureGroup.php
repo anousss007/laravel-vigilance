@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property ?Carbon $first_seen_at
  * @property ?Carbon $last_seen_at
  * @property ?Carbon $resolved_at
+ * @property ?int $merged_into
  * @property ?Carbon $regressed_at
  * @property ?Carbon $muted_until
  * @property ?string $sample
@@ -35,6 +36,7 @@ class FailureGroup extends VigilanceModel
 
     protected $casts = [
         'occurrences' => 'integer',
+        'merged_into' => 'integer',
         'acknowledged_at' => 'datetime',
         'first_seen_at' => 'datetime',
         'last_seen_at' => 'datetime',
