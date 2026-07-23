@@ -39,12 +39,30 @@ class ErrorRateRule implements AlertRule
             return;
         }
 
+        // Name the jobs/commands failing the most (with their exception) so the
+        // alert points at the culprit, not just a percentage.
+        $top = Run::query()
+            ->toBase()
+            ->where('created_at', '>=', $since)
+            ->where('status', RunStatus::Failed->value)
+            ->selectRaw('name, exception_class, count(*) as c')
+            ->groupBy('name', 'exception_class')
+            ->orderByDesc('c')
+            ->limit(3)
+            ->get()
+            ->map(fn ($r) => ((string) ($r->name ?? '') ?: 'unknown')
+                .($r->exception_class ? ' ('.class_basename((string) $r->exception_class).')' : '')
+                .' ×'.(int) $r->c)
+            ->all();
+
+        $detail = $top !== [] ? ' Top: '.implode('; ', $top).'.' : '';
+
         // The throttle key includes the rounded percent bucket so a worsening
         // incident can re-alert without spamming on every tick.
         yield new Alert(
             key: 'error_rate',
             title: 'Elevated failure rate',
-            message: "Failure rate is {$percent}% over the last hour ({$failed}/{$total} runs failed).",
+            message: "Failure rate is {$percent}% over the last hour ({$failed}/{$total} runs failed).{$detail}",
             level: 'critical',
         );
     }

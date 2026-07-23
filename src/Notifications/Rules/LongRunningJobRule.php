@@ -43,7 +43,7 @@ class LongRunningJobRule implements AlertRule
             yield new Alert(
                 key: 'long_running_job:'.$run->id,
                 title: 'Long-running job',
-                message: "Job [{$run->name}] has been running for {$seconds}s"
+                message: "Job [{$run->name}] (run #{$run->id}) has been running for {$seconds}s"
                     .($where !== '' ? " on [{$where}]" : '')
                     .' — it may be stuck or runaway.',
                 level: 'warning',
