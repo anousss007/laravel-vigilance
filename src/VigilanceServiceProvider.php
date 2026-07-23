@@ -99,6 +99,7 @@ use Vigilance\Mcp\VigilanceServer;
 use Vigilance\Storage\DatabaseMetricsRepository;
 use Vigilance\Storage\DatabaseRunRepository;
 use Vigilance\Support\Breadcrumbs;
+use Vigilance\Support\CodeLocation;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Middleware\TraceRequests;
 use Vigilance\Tracing\Sampling\Sampler;
@@ -464,9 +465,12 @@ class VigilanceServiceProvider extends ServiceProvider
         if (config('vigilance.tracing.spans.queries', true)) {
             $events->listen(QueryExecuted::class, function ($e) use ($tracer) {
                 if ($tracer->sampling()) {
-                    $tracer->rescue(fn () => $tracer->spanForDuration('query', $e->sql, (float) $e->time, [
+                    $tracer->rescue(fn () => $tracer->spanForDuration('query', $e->sql, (float) $e->time, array_filter([
                         'connection' => $e->connectionName,
-                    ]));
+                        // The app line that ran this query — so an N+1 points
+                        // straight at the offending code.
+                        'caller' => CodeLocation::caller(),
+                    ], fn ($v) => $v !== null)));
                 }
             });
         }

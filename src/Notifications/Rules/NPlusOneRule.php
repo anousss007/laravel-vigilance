@@ -34,14 +34,21 @@ class NPlusOneRule implements AlertRule
                 continue;
             }
 
-            $name = (string) $row->key;
+            // The key encodes the route/job, the exact SQL and the app line.
+            $decoded = json_decode((string) $row->key, true);
+            $name = is_array($decoded) ? (string) ($decoded['name'] ?? $row->key) : (string) $row->key;
+            $sql = is_array($decoded) ? (string) ($decoded['sql'] ?? '') : '';
+            $caller = is_array($decoded) ? ($decoded['caller'] ?? null) : null;
             $worst = (int) $row->max;
 
+            $detail = $sql !== '' ? " Query: {$sql}" : '';
+            $detail .= $caller ? " (at {$caller})" : '';
+
             yield new Alert(
-                key: 'n_plus_one:'.$name,
+                key: 'n_plus_one:'.$name.'|'.($caller ?? $sql),
                 title: 'N+1 query pattern',
-                message: "N+1 queries detected on [{$name}] — seen {$occurrences} time(s) in the last {$window}, "
-                    ."worst trace repeated a query {$worst} times.",
+                message: "N+1 queries on [{$name}] — a query ran {$worst} times in one request/job, "
+                    ."seen {$occurrences} time(s) in the last {$window}.{$detail}",
                 level: 'warning',
             );
         }

@@ -252,11 +252,19 @@ class Tracer
             if ($nPlusOne = $this->detectNPlusOne($trace['spans'])) {
                 $attributes['n_plus_one'] = $nPlusOne;
 
-                // Promote N+1 to a first-class, aggregatable APM signal (keyed by
-                // the route/job name) so it can be counted and alerted on, not
-                // only spotted one trace at a time.
+                // Promote N+1 to a first-class, aggregatable APM signal so it can
+                // be counted and alerted on, not only spotted one trace at a time.
+                // The key carries the route, the exact repeated SQL and the app
+                // line, so the incident points straight at the offending query and
+                // code — no digging through the trace.
+                $key = (string) json_encode([
+                    'name' => (string) $trace['name'],
+                    'sql' => mb_substr((string) $nPlusOne['sql'], 0, 500),
+                    'caller' => $nPlusOne['caller'] ?? null,
+                ], JSON_UNESCAPED_SLASHES);
+
                 $this->rescue(fn () => $this->app->make(Apm::class)
-                    ->record('n_plus_one', (string) $trace['name'], (int) $nPlusOne['count'])
+                    ->record('n_plus_one', $key, (int) $nPlusOne['count'])
                     ->count()->max());
             }
 
@@ -331,7 +339,7 @@ class Tracer
      * repeated at least the configured number of times in one trace.
      *
      * @param  list<array<string, mixed>>  $spans
-     * @return array{sql: string, count: int}|null
+     * @return array{sql: string, count: int, caller?: ?string}|null
      */
     protected function detectNPlusOne(array $spans): ?array
     {
@@ -342,10 +350,13 @@ class Tracer
         }
 
         $counts = [];
+        $callers = [];
         foreach ($spans as $span) {
             if (($span['type'] ?? null) === 'query') {
                 $sql = (string) ($span['label'] ?? '');
                 $counts[$sql] = ($counts[$sql] ?? 0) + 1;
+                // Remember the app line the repeated query came from.
+                $callers[$sql] ??= $span['attributes']['caller'] ?? null;
             }
         }
 
@@ -362,7 +373,9 @@ class Tracer
             }
         }
 
-        return $max >= $threshold ? ['sql' => $sql, 'count' => $max] : null;
+        return $max >= $threshold
+            ? array_filter(['sql' => $sql, 'count' => $max, 'caller' => $callers[$sql] ?? null], fn ($v) => $v !== null)
+            : null;
     }
 
     protected function truncate(string $value): string

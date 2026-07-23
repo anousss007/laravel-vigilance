@@ -6,6 +6,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **N+1 incidents now point at the exact query and the exact line.** Query spans
+  capture the application frame (`file:line`) that ran them, so a detected N+1
+  carries the repeated SQL *and* the offending code location — surfaced on the
+  trace page, in the promoted `n_plus_one` APM signal, and in the alert/incident
+  message itself. No more hunting through the trace to find which query, from
+  where. A new `Vigilance\Support\CodeLocation` helper resolves the nearest app
+  frame (skipping vendor and Vigilance's own frames).
+
 ## [0.8.0] - 2026-07-23
 
 A broad gap-closing pass across the observability surface (error tracking,
