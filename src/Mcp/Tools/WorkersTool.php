@@ -9,13 +9,14 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Vigilance\Models\SupervisorRecord;
 use Vigilance\Models\WorkerRecord;
+use Vigilance\Supervision\ControlPlane;
 use Vigilance\Supervision\SupervisorState;
 
-#[Description('The worker fleet (the Horizon-replacement supervisor view): every live supervisor across all nodes — connection, queues, process count, balance, status, heartbeat — and the worker processes it owns. Empty if you run queue:work/Horizon instead of vigilance:supervise.')]
+#[Description('The worker fleet (the Horizon-replacement supervisor view): the global control status (running/paused/terminating), every live supervisor across all nodes — connection, queues, process count, balance, status, heartbeat — and the worker processes it owns. Empty if you run queue:work/Horizon instead of vigilance:supervise. Use "control-workers" to pause/resume/restart the fleet.')]
 #[IsReadOnly]
 class WorkersTool extends Tool
 {
-    public function handle(Request $request, SupervisorState $state): Response
+    public function handle(Request $request, SupervisorState $state, ControlPlane $control): Response
     {
         $expire = (int) config('vigilance.supervision.heartbeat_expire', 30);
 
@@ -28,6 +29,7 @@ class WorkersTool extends Tool
             ->groupBy(fn (WorkerRecord $w): string => $w->supervisor.'@'.$w->host);
 
         return $this->json([
+            'control' => $control->status(),
             'count' => $supervisors->count(),
             'supervisors' => $supervisors->map(function (SupervisorRecord $s) use ($workers): array {
                 /** @var Collection<int, WorkerRecord> $own */

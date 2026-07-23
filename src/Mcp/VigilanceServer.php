@@ -9,6 +9,9 @@ use Laravel\Mcp\Server\Tool;
 use Vigilance\Mcp\Tools\AcknowledgeIssueTool;
 use Vigilance\Mcp\Tools\BatchesTool;
 use Vigilance\Mcp\Tools\CacheTool;
+use Vigilance\Mcp\Tools\CancelPendingTool;
+use Vigilance\Mcp\Tools\ClearQueueTool;
+use Vigilance\Mcp\Tools\ControlWorkersTool;
 use Vigilance\Mcp\Tools\CustomMetricsTool;
 use Vigilance\Mcp\Tools\DispatchableJobsTool;
 use Vigilance\Mcp\Tools\DispatchJobTool;
@@ -20,12 +23,14 @@ use Vigilance\Mcp\Tools\JobMetricsTool;
 use Vigilance\Mcp\Tools\LogsTool;
 use Vigilance\Mcp\Tools\MuteIssueTool;
 use Vigilance\Mcp\Tools\OverviewTool;
+use Vigilance\Mcp\Tools\PauseQueueTool;
 use Vigilance\Mcp\Tools\PendingTool;
 use Vigilance\Mcp\Tools\PerformanceTool;
 use Vigilance\Mcp\Tools\QueuesTool;
 use Vigilance\Mcp\Tools\ReleasesTool;
 use Vigilance\Mcp\Tools\ReopenIssueTool;
 use Vigilance\Mcp\Tools\ResolveIssueTool;
+use Vigilance\Mcp\Tools\ResumeQueueTool;
 use Vigilance\Mcp\Tools\RetryIssueTool;
 use Vigilance\Mcp\Tools\RetryRunTool;
 use Vigilance\Mcp\Tools\RunCommandTool;
@@ -77,9 +82,18 @@ class VigilanceServer extends Server
         - "logs", "slos", "incidents", "releases" — logs, error budgets, open incidents, deploy health.
 
         Tools are read-only unless the operator enabled writes; when enabled you
-        may also resolve / acknowledge / mute an issue, reopen it, and retry a
-        failed job (each is recorded in Vigilance's audit log). Output is redacted
-        and truncated, so an absent or shortened field may simply be capped.
+        may also resolve / acknowledge / mute an issue, reopen it, retry a failed
+        job, and drive the worker fleet:
+        - "control-workers" — pause / resume / restart / terminate every supervisor.
+        - "pause-queue" / "resume-queue" — pause a single queue (optionally timed)
+          while the others keep draining; check "queues" for the paused state first.
+        - "clear-queue" — purge a whole queue's backlog (any driver).
+        - "cancel-pending" — delete specific waiting jobs by id (database driver);
+          discover ids with "pending".
+        The destructive "clear-queue"/"cancel-pending" additionally require manual
+        control (VIGILANCE_CONTROL_ENABLED=true). Every write is recorded in
+        Vigilance's audit log. Output is redacted and truncated, so an absent or
+        shortened field may simply be capped.
         MARKDOWN;
 
     /**
@@ -124,6 +138,14 @@ class VigilanceServer extends Server
         ReopenIssueTool::class,
         RetryRunTool::class,
         RetryIssueTool::class,
+        // Worker & queue control (self-gate on mcp.allow_writes). Pausing/resuming
+        // a queue or the fleet is operational; clearing a queue and cancelling
+        // pending jobs are destructive and additionally require control.enabled.
+        ControlWorkersTool::class,
+        PauseQueueTool::class,
+        ResumeQueueTool::class,
+        ClearQueueTool::class,
+        CancelPendingTool::class,
         // Manual control: discovery tools gate on control.enabled; the
         // dispatch/run tools additionally require mcp.allow_writes.
         DispatchableJobsTool::class,

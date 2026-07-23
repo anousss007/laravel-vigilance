@@ -3,15 +3,70 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Control\Exceptions\NotAllowed;
+use Vigilance\Control\QueueManager;
 use Vigilance\Metrics\PendingJobs;
 use Vigilance\Models\Run;
+use Vigilance\Vigilance;
 
 /**
  * Live contents of the queue backend (jobs waiting to be processed), per
- * connection. Browsable for the database driver; other drivers are noted.
+ * connection. Browsable for the database driver; other drivers are noted. When
+ * manual control is enabled, individual pending jobs can be cancelled from here.
  */
 class Pending extends Component
 {
+    /**
+     * Selected pending jobs, each entry "connection#id" so ids never collide
+     * across connections.
+     *
+     * @var list<string>
+     */
+    public array $selected = [];
+
+    /**
+     * Cancel the selected pending jobs on the given connection (database driver
+     * only). Silently no-ops when nothing on this connection is selected.
+     */
+    public function cancelSelected(string $connection): void
+    {
+        $ids = [];
+
+        foreach ($this->selected as $entry) {
+            [$conn, $id] = array_pad(explode('#', (string) $entry, 2), 2, null);
+
+            if ($conn === $connection && $id !== null && is_numeric($id)) {
+                $ids[] = (int) $id;
+            }
+        }
+
+        if ($ids === []) {
+            $this->flash('error', 'No pending jobs selected on this connection.');
+
+            return;
+        }
+
+        try {
+            $deleted = app(QueueManager::class)->deletePending($connection, $ids, Vigilance::currentUser());
+        } catch (NotAllowed $e) {
+            $this->flash('error', $e->getMessage());
+
+            return;
+        }
+
+        $this->selected = array_values(array_filter(
+            $this->selected,
+            fn (string $entry) => ! str_starts_with($entry, $connection.'#'),
+        ));
+
+        $this->flash('success', "Cancelled {$deleted} pending job(s).");
+    }
+
+    protected function flash(string $type, string $message): void
+    {
+        session()->flash('vigilance.flash', ['type' => $type, 'message' => $message]);
+    }
+
     public function render()
     {
         $connections = Run::query()
@@ -29,7 +84,9 @@ class Pending extends Component
             'jobs' => $pending->for($connection),
         ])->all();
 
-        return view('vigilance::pages.pending', ['groups' => $groups])
-            ->layout('vigilance::layout', ['title' => 'Pending']);
+        return view('vigilance::pages.pending', [
+            'groups' => $groups,
+            'controlEnabled' => (bool) config('vigilance.control.enabled', false),
+        ])->layout('vigilance::layout', ['title' => 'Pending']);
     }
 }

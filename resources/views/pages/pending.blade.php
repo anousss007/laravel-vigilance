@@ -8,10 +8,19 @@
     </div>
 
     @forelse ($groups as $group)
+        @php $canCancel = $controlEnabled && $group['driver'] === 'database' && ! empty($group['jobs']); @endphp
         <div class="v-card overflow-hidden">
             <div class="v-card__header">
-                <h2 class="v-card__title">{{ $group['connection'] }}</h2>
-                <span class="v-pill is-neutral font-mono">{{ $group['driver'] }}</span>
+                <div class="flex items-center gap-2.5">
+                    <h2 class="v-card__title">{{ $group['connection'] }}</h2>
+                    <span class="v-pill is-neutral font-mono">{{ $group['driver'] }}</span>
+                </div>
+                @if ($canCancel)
+                    <button type="button"
+                        wire:click="cancelSelected(@js($group['connection']))"
+                        wire:confirm="Cancel the selected pending job(s)? This deletes them from the queue and cannot be undone."
+                        class="v-btn v-btn--sm v-btn--danger">Cancel selected</button>
+                @endif
             </div>
 
             @if ($group['jobs'] === null)
@@ -23,6 +32,7 @@
                     <table class="v-table v-table--hover">
                         <thead>
                             <tr>
+                                @if ($canCancel)<th scope="col" class="w-8"><span class="sr-only">Select</span></th>@endif
                                 <th scope="col">ID</th>
                                 <th scope="col">Queue</th>
                                 <th scope="col">Job</th>
@@ -33,6 +43,9 @@
                         <tbody>
                             @foreach ($group['jobs'] as $job)
                                 <tr>
+                                    @if ($canCancel)
+                                        <td><input type="checkbox" wire:model="selected" value="{{ $group['connection'].'#'.$job['id'] }}" aria-label="Select job {{ $job['id'] }}"></td>
+                                    @endif
                                     <td class="font-mono v-num">{{ $job['id'] }}</td>
                                     <td class="font-mono">{{ $job['queue'] }}</td>
                                     <td class="font-medium v-strong">{{ class_basename($job['name']) }}</td>

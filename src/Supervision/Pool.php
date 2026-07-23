@@ -14,14 +14,56 @@ class Pool
     /** @var list<WorkerProcess> */
     protected array $workers = [];
 
+    /**
+     * The queues this pool's workers currently pull from. Defaults to the full
+     * pool key and is narrowed by per-queue pause (see setActiveQueues()); an
+     * empty string means every queue in the pool is paused.
+     */
+    protected string $activeKey;
+
     public function __construct(
         public string $key,
         protected SupervisorOptions $options,
-    ) {}
+    ) {
+        $this->activeKey = $key;
+    }
 
     public function count(): int
     {
         return count($this->workers);
+    }
+
+    /**
+     * The queues this pool is currently serving (its key, narrowed by any
+     * per-queue pause). Empty string when every queue in the pool is paused.
+     */
+    public function activeQueues(): string
+    {
+        return $this->activeKey;
+    }
+
+    /**
+     * Narrow (or restore) the queues this pool serves — the mechanism behind
+     * per-queue pause. When the active set changes, running workers are stopped
+     * so they relaunch bound to the new `--queue` list on the next scale/monitor;
+     * an empty set fully pauses the pool. A no-op when the set is unchanged, so
+     * steady state never cycles workers.
+     */
+    public function setActiveQueues(string $activeKey): void
+    {
+        if ($activeKey === $this->activeKey) {
+            return;
+        }
+
+        $this->activeKey = $activeKey;
+
+        foreach ($this->workers as $worker) {
+            $worker->terminate($this->options->timeout);
+        }
+
+        $this->workers = [];
+
+        $this->reap();
     }
 
     /**
@@ -31,6 +73,12 @@ class Pool
     public function scaleTo(int $target): void
     {
         $target = max(0, $target);
+
+        // No queues left active (fully paused): never launch a worker with an
+        // empty --queue list — hold the pool at zero.
+        if ($this->activeKey === '') {
+            $target = 0;
+        }
 
         while (count($this->workers) < $target) {
             $this->workers[] = $this->launch();
@@ -169,7 +217,7 @@ class Pool
             $pid = $worker->pid();
 
             if ($pid !== null) {
-                $out[] = ['pid' => $pid, 'queue' => $this->key];
+                $out[] = ['pid' => $pid, 'queue' => $this->activeKey];
             }
         }
 
@@ -201,14 +249,14 @@ class Pool
         $command = array_merge(
             $this->options->niceWrapper(),
             [$this->phpBinary(), base_path('artisan')],
-            $this->options->workerCommand($this->key),
+            $this->options->workerCommand($this->activeKey),
         );
 
         $process = new Process($command, base_path());
         $process->setTimeout(null);
         $process->disableOutput();
 
-        return (new WorkerProcess($process, $this->key))->start();
+        return (new WorkerProcess($process, $this->activeKey))->start();
     }
 
     protected function phpBinary(): string
