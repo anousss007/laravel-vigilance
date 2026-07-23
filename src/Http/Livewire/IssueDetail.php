@@ -4,6 +4,7 @@ namespace Vigilance\Http\Livewire;
 
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Vigilance\Control\IssueMerger;
 use Vigilance\Control\JobRetrier;
 use Vigilance\Models\FailureGroup;
 use Vigilance\Models\Run;
@@ -70,6 +71,34 @@ class IssueDetail extends Component
         $result = app(JobRetrier::class)->retryGroup($this->issueId, Vigilance::currentUser());
 
         $this->flash("Retried {$result['retried']} job(s)".($result['skipped'] > 0 ? ", {$result['skipped']} skipped (no stored payload)" : '').'.');
+    }
+
+    public string $mergeInto = '';
+
+    /**
+     * Merge this issue into another (by id) when fingerprinting split the same
+     * problem in two — occurrences/runs move to the target, this one is hidden.
+     */
+    public function merge(): void
+    {
+        $target = (int) trim($this->mergeInto);
+
+        if ($target <= 0) {
+            $this->flash('Enter the target issue id to merge into.');
+
+            return;
+        }
+
+        try {
+            $result = app(IssueMerger::class)->merge($this->issueId, $target, Vigilance::currentUser());
+        } catch (\InvalidArgumentException $e) {
+            session()->flash('vigilance.flash', ['type' => 'error', 'message' => $e->getMessage()]);
+
+            return;
+        }
+
+        $this->mergeInto = '';
+        $this->redirectRoute('vigilance.issues.show', ['group' => $result['merged_into']]);
     }
 
     protected function flash(string $message): void

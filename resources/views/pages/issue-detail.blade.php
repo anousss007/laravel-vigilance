@@ -30,6 +30,10 @@
             @else
                 <button type="button" wire:click="resolve" class="v-btn v-btn--sm v-btn--primary">Resolve</button>
             @endif
+            <form wire:submit.prevent="merge" class="flex items-center gap-1">
+                <input type="number" min="1" wire:model="mergeInto" placeholder="Merge into #" class="v-select v-btn--sm w-28" aria-label="Merge into issue id">
+                <button type="submit" class="v-btn v-btn--sm v-btn--ghost">Merge</button>
+            </form>
         </div>
     </div>
 

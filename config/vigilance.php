@@ -539,6 +539,9 @@ return [
 
         'rules' => [
             'queue_long_wait' => ['enabled' => true, 'seconds' => (int) env('VIGILANCE_LONG_WAIT_SECONDS', 60)],
+            // Jobs stuck in "running" longer than this. Off by default — set the
+            // threshold above your longest legitimate job before enabling.
+            'long_running_job' => ['enabled' => false, 'seconds' => (int) env('VIGILANCE_LONG_JOB_SECONDS', 300), 'limit' => 10],
             'error_rate' => ['enabled' => true, 'min_runs' => 20, 'percent' => 20],
             'exception_spike' => ['enabled' => true, 'count' => 50],
             'slow_request_rate' => ['enabled' => false, 'count' => 100],

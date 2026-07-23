@@ -51,6 +51,15 @@ class FailureGrouper
 
         $isNew = $group->wasRecentlyCreated;
 
+        // If this signature was manually merged into another issue, redirect the
+        // occurrence to the canonical group so the two never diverge again.
+        if ($group->merged_into !== null && ! $isNew) {
+            $target = FailureGroup::query()->whereKey($group->merged_into)->first();
+            if ($target !== null) {
+                $group = $target;
+            }
+        }
+
         // Latest-wins metadata (sample / request context / regression re-open).
         // A race here only changes which sample is kept — never the count — so
         // the model save is fine. Crucially it does NOT touch "occurrences": a

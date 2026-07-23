@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Vigilance\Mcp\Tools\AssignIssueTool;
 use Vigilance\Mcp\Tools\MaintenanceTool;
+use Vigilance\Mcp\Tools\MergeIssuesTool;
 use Vigilance\Mcp\Tools\RecordDeployTool;
 use Vigilance\Mcp\Tools\RoutesTool;
 use Vigilance\Mcp\Tools\WorkloadTool;
@@ -73,4 +74,17 @@ it('starts, reports and stops maintenance over mcp', function () {
     expect(app(MaintenanceWindow::class)->active())->toBeFalse();
 
     $this->assertDatabaseHas('vigilance_audit', ['action' => 'maintenance_start']);
+});
+
+it('merges two issues over mcp', function () {
+    config()->set('vigilance.mcp.allow_writes', true);
+    $a = $this->seedIssue();
+    $b = $this->seedIssue();
+
+    $this->tool(MergeIssuesTool::class, ['from' => $b->id, 'into' => $a->id])
+        ->assertOk()
+        ->assertSee('merged_into');
+
+    expect($b->fresh()->merged_into)->toBe($a->id);
+    $this->assertDatabaseHas('vigilance_audit', ['action' => 'merge_issue']);
 });

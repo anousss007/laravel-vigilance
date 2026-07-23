@@ -112,6 +112,7 @@ class Failures extends Component
     public function render()
     {
         $groups = FailureGroup::query()
+            ->whereNull('merged_into') // merged issues live under their canonical group
             ->when($this->tab === 'open', fn ($query) => $query->whereNull('resolved_at'))
             ->when($this->tab === 'resolved', fn ($query) => $query->whereNotNull('resolved_at'))
             ->when($this->source !== '', fn ($query) => $query->where('source', $this->source))

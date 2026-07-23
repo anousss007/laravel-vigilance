@@ -23,6 +23,7 @@ use Vigilance\Mcp\Tools\IssueTool;
 use Vigilance\Mcp\Tools\JobMetricsTool;
 use Vigilance\Mcp\Tools\LogsTool;
 use Vigilance\Mcp\Tools\MaintenanceTool;
+use Vigilance\Mcp\Tools\MergeIssuesTool;
 use Vigilance\Mcp\Tools\MuteIssueTool;
 use Vigilance\Mcp\Tools\OverviewTool;
 use Vigilance\Mcp\Tools\PauseQueueTool;
@@ -144,6 +145,7 @@ class VigilanceServer extends Server
         MuteIssueTool::class,
         ReopenIssueTool::class,
         AssignIssueTool::class,
+        MergeIssuesTool::class,
         RetryRunTool::class,
         RetryIssueTool::class,
         RecordDeployTool::class,
