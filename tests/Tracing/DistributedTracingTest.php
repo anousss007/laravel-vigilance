@@ -1,12 +1,46 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Vigilance\Capture\Recorder;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Tracer;
 
 uses(RefreshDatabase::class);
+
+it('emits a traceparent on outgoing HTTP while a trace is live', function () {
+    // Regression guard: the global HTTP request middleware must actually be
+    // registered (a method_exists() probe on the Http *facade* is always false
+    // and would silently disable this).
+    Http::fake(['*' => Http::response(['ok' => true])]);
+
+    $tracer = app(Tracer::class);
+    $tracer->start('request', 'GET /outbound');
+    Http::get('https://api.example.com/things');
+    $tracer->finish('ok');
+
+    $sent = null;
+    Http::recorded(function ($request) use (&$sent) {
+        $sent = $request->header('traceparent');
+    });
+
+    expect($sent)->toBeArray()->not->toBeEmpty()
+        ->and($sent[0])->toMatch('/^00-[0-9a-f]{32}-[0-9a-f]{16}-0[01]$/');
+});
+
+it('does not emit a traceparent when no trace is active', function () {
+    Http::fake(['*' => Http::response(['ok' => true])]);
+
+    Http::get('https://api.example.com/things'); // no trace started
+
+    $sent = 'unset';
+    Http::recorded(function ($request) use (&$sent) {
+        $sent = $request->header('traceparent');
+    });
+
+    expect($sent)->toBe([]); // header absent
+});
 
 it('builds a valid W3C traceparent for the in-flight trace', function () {
     $tracer = app(Tracer::class);

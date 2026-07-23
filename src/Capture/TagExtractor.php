@@ -42,23 +42,36 @@ class TagExtractor
     }
 
     /**
-     * Surface a job's queue capabilities as tags so they're visible and
-     * filterable on the run (properties like these are otherwise skipped by the
-     * payload extractor): "unique" for ShouldBeUnique(-UntilProcessing) and
-     * "encrypted" for ShouldBeEncrypted.
-     *
      * @return list<string>
      */
     protected static function capabilitiesFor(object $command): array
     {
+        return static::forClass($command::class);
+    }
+
+    /**
+     * Surface a job's queue capabilities as tags from its class name alone —
+     * "unique" for ShouldBeUnique(-UntilProcessing), "encrypted" for
+     * ShouldBeEncrypted. Class-based (not object-based) so it still works for
+     * encrypted jobs, whose command object cannot be reconstructed at capture
+     * time (the payload is opaque) — the one case that most needs the tag.
+     *
+     * @return list<string>
+     */
+    public static function forClass(?string $class): array
+    {
+        if ($class === null || ! class_exists($class)) {
+            return [];
+        }
+
         $tags = [];
 
         // ShouldBeUniqueUntilProcessing extends ShouldBeUnique, so this covers both.
-        if ($command instanceof ShouldBeUnique) {
+        if (is_a($class, ShouldBeUnique::class, true)) {
             $tags[] = 'unique';
         }
 
-        if ($command instanceof ShouldBeEncrypted) {
+        if (is_a($class, ShouldBeEncrypted::class, true)) {
             $tags[] = 'encrypted';
         }
 

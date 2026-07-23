@@ -14,3 +14,16 @@ it('tags jobs with their queue capabilities', function () {
         ->and(TagExtractor::for($plain))->not->toContain('unique')
         ->and(TagExtractor::for($plain))->not->toContain('encrypted');
 });
+
+it('derives capability tags from a class name alone (for opaque encrypted jobs)', function () {
+    // An encrypted job's command object cannot be reconstructed at capture time,
+    // so tagging must work from the class name — the case that most needs it.
+    $encrypted = new class implements ShouldBeEncrypted {};
+    $unique = new class implements ShouldBeUnique {};
+
+    expect(TagExtractor::forClass($encrypted::class))->toBe(['encrypted'])
+        ->and(TagExtractor::forClass($unique::class))->toBe(['unique'])
+        ->and(TagExtractor::forClass(stdClass::class))->toBe([])
+        ->and(TagExtractor::forClass('Nonexistent\\Class'))->toBe([])
+        ->and(TagExtractor::forClass(null))->toBe([]);
+});
