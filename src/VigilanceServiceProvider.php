@@ -63,6 +63,7 @@ use Vigilance\Contracts\RunRepository;
 use Vigilance\Control\ControlGate;
 use Vigilance\Events\ExceptionReported;
 use Vigilance\Http\Controllers\AssetController;
+use Vigilance\Http\Controllers\FeedbackController;
 use Vigilance\Http\Controllers\RumController;
 use Vigilance\Http\Livewire\Apm as ApmPage;
 use Vigilance\Http\Livewire\ApmCard;
@@ -246,6 +247,7 @@ class VigilanceServiceProvider extends ServiceProvider
         $this->registerAssets();
         $this->registerRoutes();
         $this->registerRum();
+        $this->registerFeedback();
         $this->registerLivewire();
         $this->registerCommands();
         $this->registerAbout();
@@ -663,6 +665,22 @@ class VigilanceServiceProvider extends ServiceProvider
             'as' => 'vigilance.rum.',
         ], function () {
             Route::post('rum', [RumController::class, 'store'])->name('store');
+        });
+    }
+
+    protected function registerFeedback(): void
+    {
+        if (! config('vigilance.feedback.enabled', false)) {
+            return;
+        }
+
+        Route::group([
+            'domain' => config('vigilance.domain'),
+            'prefix' => config('vigilance.path', 'vigilance'),
+            'middleware' => ['throttle:'.config('vigilance.feedback.throttle', '30,1')],
+            'as' => 'vigilance.feedback.',
+        ], function () {
+            Route::post('feedback', [FeedbackController::class, 'store'])->name('store');
         });
     }
 

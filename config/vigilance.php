@@ -504,6 +504,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | User feedback
+    |--------------------------------------------------------------------------
+    |
+    | An opt-in public endpoint (POST {path}/feedback) for a "report a problem"
+    | widget: users describe an issue even when nothing crashed, captured tied to
+    | the trace they were on so the complaint links to the telemetry. Read it back
+    | via the "feedback" MCP tool. Strictly capped; throttled per IP.
+    |
+    */
+
+    'feedback' => [
+        'enabled' => (bool) env('VIGILANCE_FEEDBACK', false),
+        'throttle' => env('VIGILANCE_FEEDBACK_THROTTLE', '30,1'),
+        'max_length' => 2000,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Service Level Objectives (SLOs)
     |--------------------------------------------------------------------------
     |

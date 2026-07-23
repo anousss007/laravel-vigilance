@@ -2,12 +2,14 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Vigilance\Mcp\Tools\AssignIssueTool;
+use Vigilance\Mcp\Tools\FeedbackTool;
 use Vigilance\Mcp\Tools\MaintenanceTool;
 use Vigilance\Mcp\Tools\MergeIssuesTool;
 use Vigilance\Mcp\Tools\RecordDeployTool;
 use Vigilance\Mcp\Tools\RoutesTool;
 use Vigilance\Mcp\Tools\WorkloadTool;
 use Vigilance\Models\Deployment;
+use Vigilance\Models\UserFeedback;
 use Vigilance\Notifications\MaintenanceWindow;
 
 uses(RefreshDatabase::class);
@@ -74,6 +76,18 @@ it('starts, reports and stops maintenance over mcp', function () {
     expect(app(MaintenanceWindow::class)->active())->toBeFalse();
 
     $this->assertDatabaseHas('vigilance_audit', ['action' => 'maintenance_start']);
+});
+
+it('lists user feedback over mcp', function () {
+    UserFeedback::query()->create([
+        'message' => 'The export is broken',
+        'trace_id' => 'abc123',
+        'created_at' => now(),
+    ]);
+
+    $this->tool(FeedbackTool::class, [])
+        ->assertOk()
+        ->assertSee('The export is broken');
 });
 
 it('merges two issues over mcp', function () {
