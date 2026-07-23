@@ -10,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Vigilance\Metrics\CustomMetrics;
 use Vigilance\Metrics\CustomMetricStat;
 
-#[Description('Custom business metrics recorded via Vigilance::increment() / gauge(): counters (sum + event count) and gauges (average + peak) over a window.')]
+#[Description('Custom business metrics recorded via Vigilance::increment() / gauge() / histogram() / timing(): counters (sum + event count), gauges (average + peak) and distributions (average, max and p50/p95/p99) over a window.')]
 #[IsReadOnly]
 class CustomMetricsTool extends Tool
 {
@@ -30,12 +30,15 @@ class CustomMetricsTool extends Tool
         $window = (string) ($request->get('window') ?: '24h');
 
         $rows = $metrics->all($this->interval($window))
-            ->map(fn (CustomMetricStat $m): array => [
+            ->map(fn (CustomMetricStat $m): array => array_filter([
                 'name' => $m->name,
                 'type' => $m->type,
                 'value' => $m->value,
                 'peak' => $m->peak,
-            ])->all();
+                'p50' => $m->p50,
+                'p95' => $m->p95,
+                'p99' => $m->p99,
+            ], fn ($v) => $v !== null))->all();
 
         return $this->json([
             'window' => $window,

@@ -252,6 +252,39 @@ class Vigilance
     }
 
     /**
+     * Decrement a custom counter (records a negative delta into the same series
+     * as increment()). Never throws.
+     */
+    public static function decrement(string $name, int $by = 1): void
+    {
+        static::increment($name, -abs($by));
+    }
+
+    /**
+     * Record a custom distribution / histogram sample (e.g. checkout latency,
+     * payload size). The Custom Metrics dashboard reports p50/p95/p99 + average
+     * over the window from the retained samples. Floats are rounded — scale
+     * first if you need sub-unit precision. Never throws.
+     */
+    public static function histogram(string $name, int|float $value): void
+    {
+        try {
+            app(Apm::class)->record('metric_distribution', $name, (int) round($value))->count()->avg()->max();
+        } catch (\Throwable) {
+            //
+        }
+    }
+
+    /**
+     * Record a timing sample in milliseconds — a distribution named for latency.
+     * Alias of histogram() with duration semantics. Never throws.
+     */
+    public static function timing(string $name, int|float $milliseconds): void
+    {
+        static::histogram($name, $milliseconds);
+    }
+
+    /**
      * Run a callback without recording (prevents the recorder from observing
      * its own writes).
      *
