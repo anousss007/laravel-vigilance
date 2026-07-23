@@ -116,8 +116,10 @@ class JobRetrier
     {
         $job = $this->restore($run);
 
-        // Tag the lineage. The capture layer does not yet read this property,
-        // so we also record the linkage in the audit trail.
+        // Tag the lineage: the capture layer reads this back at dispatch time
+        // (Recorder::onJobPayloadCreate) and links the fresh run's retry_of to
+        // this run. The audit trail records it too, as a fallback for jobs that
+        // forbid dynamic properties.
         try {
             $job->vigilanceRetryOf = $run->id;
         } catch (\Throwable) {
