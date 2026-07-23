@@ -85,7 +85,10 @@
         <div class="v-card v-card--pad text-xs" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             <span class="font-semibold">Possible N+1 query.</span>
             The same query ran <span class="font-semibold">{{ $nPlusOne['count'] }}×</span> in this trace:
-            <code class="mt-1 block truncate font-mono">{{ $nPlusOne['sql'] }}</code>
+            <code class="mt-1 block break-all font-mono">{{ $nPlusOne['sql'] }}</code>
+            @if (! empty($nPlusOne['caller']))
+                <div class="mt-1">at <code class="font-mono font-semibold">{{ $nPlusOne['caller'] }}</code></div>
+            @endif
         </div>
     @endif
 
