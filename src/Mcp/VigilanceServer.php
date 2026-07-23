@@ -17,6 +17,7 @@ use Vigilance\Mcp\Tools\CustomMetricsTool;
 use Vigilance\Mcp\Tools\DispatchableJobsTool;
 use Vigilance\Mcp\Tools\DispatchJobTool;
 use Vigilance\Mcp\Tools\ExceptionsTool;
+use Vigilance\Mcp\Tools\FeedbackTool;
 use Vigilance\Mcp\Tools\IncidentsTool;
 use Vigilance\Mcp\Tools\IssuesTool;
 use Vigilance\Mcp\Tools\IssueTool;
@@ -125,6 +126,7 @@ class VigilanceServer extends Server
         TraceTool::class,
         LogsTool::class,
         VitalsTool::class,
+        FeedbackTool::class,
         SlosTool::class,
         IncidentsTool::class,
         ReleasesTool::class,
