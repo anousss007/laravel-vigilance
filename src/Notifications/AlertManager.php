@@ -16,6 +16,7 @@ use Vigilance\Notifications\Rules\ExceptionSpikeRule;
 use Vigilance\Notifications\Rules\IssueRegressionRule;
 use Vigilance\Notifications\Rules\LongRunningJobRule;
 use Vigilance\Notifications\Rules\NewIssueRule;
+use Vigilance\Notifications\Rules\NPlusOneRule;
 use Vigilance\Notifications\Rules\QueueLongWaitRule;
 use Vigilance\Notifications\Rules\ReleaseHealthRule;
 use Vigilance\Notifications\Rules\ScheduledTaskLateRule;
@@ -36,6 +37,7 @@ class AlertManager
     protected array $builtInRules = [
         QueueLongWaitRule::class,
         LongRunningJobRule::class,
+        NPlusOneRule::class,
         ErrorRateRule::class,
         ExceptionSpikeRule::class,
         SlowRequestRateRule::class,
