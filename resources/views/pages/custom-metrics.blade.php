@@ -38,15 +38,27 @@
                 <div class="v-card v-card--pad space-y-2">
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="truncate font-mono font-semibold v-strong" title="{{ $metric->name }}">{{ $metric->name }}</h2>
-                        <span class="v-pill is-neutral">{{ $metric->type === 'count' ? 'counter' : 'gauge' }}</span>
+                        <span class="v-pill is-neutral">{{ ['count' => 'counter', 'value' => 'gauge', 'distribution' => 'distribution'][$metric->type] ?? $metric->type }}</span>
                     </div>
 
                     <div class="flex items-baseline gap-2">
                         <span class="text-3xl font-semibold v-strong v-num">{{ number_format($metric->value) }}</span>
                         <span class="text-[11px] v-faint">
-                            {{ $metric->type === 'count' ? number_format($metric->peak).' events' : 'peak '.number_format($metric->peak) }}
+                            @switch($metric->type)
+                                @case('count') {{ number_format($metric->peak) }} events @break
+                                @case('distribution') avg · peak {{ number_format($metric->peak) }} @break
+                                @default peak {{ number_format($metric->peak) }}
+                            @endswitch
                         </span>
                     </div>
+
+                    @if ($metric->type === 'distribution')
+                        <div class="flex gap-3 text-[11px] v-muted font-mono">
+                            <span>p50 <span class="v-strong v-num">{{ $metric->p50 ?? '—' }}</span></span>
+                            <span>p95 <span class="v-strong v-num">{{ $metric->p95 ?? '—' }}</span></span>
+                            <span>p99 <span class="v-strong v-num">{{ $metric->p99 ?? '—' }}</span></span>
+                        </div>
+                    @endif
 
                     <svg viewBox="0 0 {{ $sw }} {{ $sh }}" preserveAspectRatio="none" class="h-11 w-full" aria-hidden="true">
                         @if ($path)
