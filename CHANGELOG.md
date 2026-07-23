@@ -6,6 +6,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-07-23
+
+### Added
+- **Aggregate alerts now name the culprit, not just a count.** The
+  failure-rate, exception-spike and slow-request-rate alerts spell out the worst
+  offenders inline: the top failing jobs/commands with their exception, the top
+  exception classes with their `file:line`, and the slowest routes with their max
+  latency — so the incident is actionable without opening a dashboard. The
+  long-running-job alert now includes the run id.
+
 ## [0.8.1] - 2026-07-23
 
 ### Added

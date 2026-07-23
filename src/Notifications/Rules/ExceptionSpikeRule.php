@@ -29,10 +29,24 @@ class ExceptionSpikeRule implements AlertRule
             return;
         }
 
+        // Name the worst offenders (class @ location × count) so the alert is
+        // actionable without opening the exceptions page.
+        $top = [];
+        foreach ($this->storage->aggregate('exception', ['count'], CarbonInterval::hour(), orderBy: 'count', limit: 3) as $row) {
+            $decoded = json_decode((string) $row->key, true);
+            if (is_array($decoded)) {
+                $top[] = ($decoded['class'] ?? 'Exception')
+                    .(($decoded['location'] ?? null) ? ' @ '.$decoded['location'] : '')
+                    .' ('.(int) $row->count.'×)';
+            }
+        }
+
+        $detail = $top !== [] ? ' Top: '.implode('; ', $top).'.' : '';
+
         yield new Alert(
             key: 'exception_spike',
             title: 'Exception spike',
-            message: "{$count} exceptions reported in the last hour (threshold {$threshold}).",
+            message: "{$count} exceptions reported in the last hour (threshold {$threshold}).{$detail}",
             level: 'critical',
         );
     }

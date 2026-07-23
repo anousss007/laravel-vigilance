@@ -29,10 +29,21 @@ class SlowRequestRateRule implements AlertRule
             return;
         }
 
+        // Name the slowest routes (method path × count, worst ms) so you know
+        // where to look.
+        $top = [];
+        foreach ($this->storage->aggregate('slow_request', ['count', 'max'], CarbonInterval::hour(), orderBy: 'count', limit: 3) as $row) {
+            $decoded = json_decode((string) $row->key, true);
+            $route = is_array($decoded) ? trim(($decoded[0] ?? '').' '.($decoded[1] ?? '')) : (string) $row->key;
+            $top[] = $route.' ('.(int) $row->count.'×, max '.(int) $row->max.'ms)';
+        }
+
+        $detail = $top !== [] ? ' Slowest: '.implode('; ', $top).'.' : '';
+
         yield new Alert(
             key: 'slow_request_rate',
             title: 'Many slow requests',
-            message: "{$count} slow requests in the last hour (threshold {$threshold}).",
+            message: "{$count} slow requests in the last hour (threshold {$threshold}).{$detail}",
             level: 'warning',
         );
     }
