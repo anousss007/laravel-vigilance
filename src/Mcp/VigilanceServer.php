@@ -7,6 +7,7 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Tool;
 use Vigilance\Mcp\Tools\AcknowledgeIssueTool;
+use Vigilance\Mcp\Tools\AssignIssueTool;
 use Vigilance\Mcp\Tools\BatchesTool;
 use Vigilance\Mcp\Tools\CacheTool;
 use Vigilance\Mcp\Tools\CancelPendingTool;
@@ -27,12 +28,14 @@ use Vigilance\Mcp\Tools\PauseQueueTool;
 use Vigilance\Mcp\Tools\PendingTool;
 use Vigilance\Mcp\Tools\PerformanceTool;
 use Vigilance\Mcp\Tools\QueuesTool;
+use Vigilance\Mcp\Tools\RecordDeployTool;
 use Vigilance\Mcp\Tools\ReleasesTool;
 use Vigilance\Mcp\Tools\ReopenIssueTool;
 use Vigilance\Mcp\Tools\ResolveIssueTool;
 use Vigilance\Mcp\Tools\ResumeQueueTool;
 use Vigilance\Mcp\Tools\RetryIssueTool;
 use Vigilance\Mcp\Tools\RetryRunTool;
+use Vigilance\Mcp\Tools\RoutesTool;
 use Vigilance\Mcp\Tools\RunCommandTool;
 use Vigilance\Mcp\Tools\RunnableCommandsTool;
 use Vigilance\Mcp\Tools\RunsTool;
@@ -50,6 +53,7 @@ use Vigilance\Mcp\Tools\TraceTool;
 use Vigilance\Mcp\Tools\UsageTool;
 use Vigilance\Mcp\Tools\VitalsTool;
 use Vigilance\Mcp\Tools\WorkersTool;
+use Vigilance\Mcp\Tools\WorkloadTool;
 use Vigilance\Vigilance;
 
 /**
@@ -126,6 +130,8 @@ class VigilanceServer extends Server
         // Operational (workers, queues, scheduler, batches, tags).
         WorkersTool::class,
         QueuesTool::class,
+        WorkloadTool::class,
+        RoutesTool::class,
         PendingTool::class,
         JobMetricsTool::class,
         ScheduleTool::class,
@@ -136,8 +142,10 @@ class VigilanceServer extends Server
         AcknowledgeIssueTool::class,
         MuteIssueTool::class,
         ReopenIssueTool::class,
+        AssignIssueTool::class,
         RetryRunTool::class,
         RetryIssueTool::class,
+        RecordDeployTool::class,
         // Worker & queue control (self-gate on mcp.allow_writes). Pausing/resuming
         // a queue or the fleet is operational; clearing a queue and cancelling
         // pending jobs are destructive and additionally require control.enabled.
