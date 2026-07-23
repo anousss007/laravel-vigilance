@@ -828,6 +828,11 @@ return [
     'tracing' => [
         'enabled' => env('VIGILANCE_TRACING', false),
 
+        // Distributed tracing: continue an upstream trace from an incoming W3C
+        // "traceparent" header, carry it across the queue boundary onto dispatched
+        // jobs, and emit it on outgoing HTTP so downstream services join the trace.
+        'propagation' => env('VIGILANCE_TRACING_PROPAGATION', true),
+
         'sample_rate' => env('VIGILANCE_TRACING_SAMPLE', 0),
 
         'slow_threshold' => (int) env('VIGILANCE_TRACING_SLOW', 1000),
