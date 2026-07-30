@@ -5,6 +5,9 @@ namespace Vigilance\Capture;
 use Illuminate\Support\Str;
 use Throwable;
 use Vigilance\Support\Breadcrumbs;
+use Vigilance\Support\CodeLocation;
+use Vigilance\Support\ExceptionChain;
+use Vigilance\Support\LivewireContext;
 use Vigilance\Support\PathMatcher;
 use Vigilance\Support\Redactor;
 use Vigilance\Vigilance;
@@ -27,20 +30,26 @@ class IssueCapture
         }
 
         try {
-            $class = $e::class;
+            // Unwind the getPrevious() chain: a wrapper (a Blade/Livewire
+            // ViewException, say) hides the real fault. Fingerprint, name and
+            // sample by the ROOT cause so wrappers don't split or merge bugs.
+            $chain = ExceptionChain::from($e);
 
-            if ($this->shouldIgnore($class) || ! $this->shouldSample() || $this->onIgnoredPath($source)) {
+            // Honour the ignore list against either end of the chain, so listing
+            // the wrapper OR the root both work.
+            if ($this->shouldIgnore($e::class) || $this->shouldIgnore($chain->rootClass())
+                || ! $this->shouldSample() || $this->onIgnoredPath($source)) {
                 return;
             }
 
             Vigilance::withoutRecording(fn () => $this->grouper->record(
                 type: $source,
                 name: $this->name(),
-                exceptionClass: $class,
-                message: $e->getMessage() !== '' ? $e->getMessage() : null,
+                exceptionClass: $chain->rootClass(),
+                message: $chain->rootMessage(),
                 source: $source,
-                sample: $this->sample($e),
-                context: $this->context($e),
+                sample: $this->sample($chain),
+                context: $this->context($chain),
             ));
         } catch (Throwable) {
             // Capturing an issue must never break the application.
@@ -89,26 +98,34 @@ class IssueCapture
             return null;
         }
 
+        // A "livewire/update" URL names no component, so the component recovered
+        // from the payload is the only meaningful culprit — prefer it over the
+        // (useless) livewire.update route name.
+        if ($livewire = LivewireContext::culprit()) {
+            return $livewire;
+        }
+
         $request = request();
         $route = $request->route();
 
         return ($route?->getName()) ?: (trim($request->method().' '.$request->path()) ?: null);
     }
 
-    protected function sample(Throwable $e): string
+    protected function sample(ExceptionChain $chain): string
     {
-        $max = (int) config('vigilance.issues.max_sample', 8000);
-
-        return Str::limit($e::class.': '.$e->getMessage()."\n".$e->getTraceAsString(), $max);
+        return $chain->sample((int) config('vigilance.issues.max_sample', 8000));
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function context(Throwable $e): array
+    protected function context(ExceptionChain $chain): array
     {
         $context = [
-            'file' => $e->getFile().':'.$e->getLine(),
+            // The root cause's throw location, and the promoted application frame
+            // (the line to actually fix — not the wrapper's handleViewException).
+            'file' => CodeLocation::relative($chain->root->getFile()).':'.$chain->root->getLine(),
+            'culprit' => $chain->culprit(),
             'release' => (string) (config('vigilance.release') ?? config('app.version') ?? '') ?: null,
         ];
 
@@ -118,6 +135,9 @@ class IssueCapture
             $context['method'] = $request->method();
             $context['url'] = $request->fullUrl();
             $context['route'] = $request->route()?->getName();
+            // The Livewire component behind an opaque "livewire/update" request —
+            // the single most useful tag for a Filament/Livewire render error.
+            $context['livewire'] = LivewireContext::component($request);
             $context['user'] = Vigilance::currentUser($request);
 
             if (config('vigilance.issues.capture_request_input', false)) {

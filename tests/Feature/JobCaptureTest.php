@@ -10,6 +10,7 @@ use Vigilance\Models\Run;
 use Vigilance\Support\Redactor;
 use Vigilance\Tests\Fixtures\FailingJob;
 use Vigilance\Tests\Fixtures\SampleJob;
+use Vigilance\Tests\Fixtures\WrappedFailingJob;
 
 uses(RefreshDatabase::class);
 
@@ -84,6 +85,30 @@ it('records a failed job and groups the failure', function () {
 
     expect($group->occurrences)->toBe(1)
         ->and($group->name)->toBe(FailingJob::class);
+});
+
+it('records a wrapped job failure by its root cause', function () {
+    config()->set('queue.default', 'sync');
+
+    try {
+        WrappedFailingJob::dispatch();
+    } catch (Throwable) {
+        // sync driver rethrows; that's expected
+    }
+
+    $run = Run::query()->where('name', WrappedFailingJob::class)->latest('id')->first();
+
+    // The Run and its failure group name the RuntimeException at the bottom of
+    // getPrevious(), not the LogicException wrapper.
+    expect($run->exception_class)->toBe(RuntimeException::class)
+        ->and($run->exception_message)->toBe('the real cause on null')
+        ->and($run->exception)->toContain('[root cause] RuntimeException: the real cause on null')
+        ->and($run->exception)->toContain('wrapped by');
+
+    $group = FailureGroup::find($run->failure_group_id);
+
+    expect($group->exception_class)->toBe(RuntimeException::class)
+        ->and($group->message)->toBe('the real cause on null');
 });
 
 it('captures queue wait time and cpu usage', function () {

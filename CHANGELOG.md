@@ -6,6 +6,31 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-07-30
+
+### Added
+- **Wrapped exceptions now report their real cause, not the envelope.** A
+  Blade/Livewire `ViewException` is almost always a wrapper — the actual fault
+  (e.g. `Call to a member function newQueryWithoutRelationships() on null`) sits
+  several `getPrevious()` levels down. Issue capture now unwinds the chain and
+  fingerprints, names and samples by the **root cause**, so:
+  - Two unrelated bugs that happen to share a wrapper message no longer collapse
+    into one issue, and the same bug no longer splits when the wrapping depth
+    varies between occurrences.
+  - The repeated `(View: …)` suffix Blade/Livewire tack on at each layer is
+    de-duplicated out of the message (it was pure noise and destabilised the
+    fingerprint).
+  - The stack-trace sample leads with the root cause and its frames, lists the
+    wrappers compactly, and promotes the first **application** frame as the issue
+    culprit — instead of the wrapper's `handleViewException` frame 0.
+  - Errors raised during a `livewire/update` request now carry the **Livewire
+    component** (recovered from the request payload) as the issue's culprit and a
+    `livewire` context tag — the opaque `/livewire/update` URL named nothing;
+    the component names everything (Sentry-style `livewire?component=…`).
+  - **Queue failures** are unwrapped the same way: a failed job records its
+    `exception_class`/`exception_message`, groups, and stores its stack sample by
+    the root cause rather than the wrapper.
+
 ## [0.8.2] - 2026-07-23
 
 ### Added

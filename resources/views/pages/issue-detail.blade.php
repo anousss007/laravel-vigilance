@@ -2,9 +2,19 @@
     <div class="v-page-head">
         <div class="min-w-0">
             <a href="{{ route('vigilance.issues') }}" class="text-xs v-link">&larr; All issues</a>
-            <h1 class="v-page-title mt-1 break-words">{{ $issue->name ?: $issue->exception_class ?: 'Issue' }}</h1>
-            @if ($issue->exception_class)
-                <p class="v-page-sub font-mono">{{ $issue->exception_class }}</p>
+            @php
+                // Title by the (root) exception, Sentry-style: "Error: <message>".
+                $title = $issue->exception_class
+                    ? $issue->exception_class.($issue->message ? ': '.\Illuminate\Support\Str::limit($issue->message, 140) : '')
+                    : ($issue->name ?: 'Issue');
+                $culprit = $issue->context['culprit'] ?? null;
+            @endphp
+            <h1 class="v-page-title mt-1 break-words">{{ $title }}</h1>
+            @if ($issue->name && $issue->exception_class)
+                <p class="v-page-sub font-mono break-words">{{ $issue->name }}</p>
+            @endif
+            @if ($culprit)
+                <p class="v-page-sub font-mono break-words text-[12px]">in {{ $culprit }}</p>
             @endif
         </div>
         <div class="flex flex-wrap items-center gap-1">

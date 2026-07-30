@@ -13,6 +13,7 @@ use Vigilance\Data\RunData;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Support\Breadcrumbs;
+use Vigilance\Support\ExceptionChain;
 use Vigilance\Support\Redactor;
 use Vigilance\Tracing\Tracer;
 use Vigilance\Vigilance;
@@ -264,20 +265,25 @@ class Recorder
             $now = Carbon::now();
             $exception = $event->exception;
 
+            // Report the root cause, not the wrapper: a job failing inside a
+            // wrapped exception (a ViewException, a decorator, …) should group,
+            // name and store by the exception at the bottom of getPrevious().
+            $chain = ExceptionChain::from($exception);
+
             $groupId = $this->failures->record(
                 RunType::Job->value,
                 $class,
-                get_class($exception),
-                $exception->getMessage(),
+                $chain->rootClass(),
+                $chain->rootMessage(),
                 source: RunType::Job->value,
                 context: app(Breadcrumbs::class)->contextFragment(),
             );
 
             $changes = RunData::make([
                 'finished_at' => $now,
-                'exception_class' => get_class($exception),
-                'exception_message' => $exception->getMessage(),
-                'exception' => $this->truncate((string) $exception, 'max_exception_length'),
+                'exception_class' => $chain->rootClass(),
+                'exception_message' => $chain->rootMessage(),
+                'exception' => $chain->sample((int) config('vigilance.capture.max_exception_length', 8192)),
                 'failure_group_id' => $groupId,
                 'memory_peak' => $this->memory(),
                 'cpu_time_ms' => $uuid ? $this->cpuDelta($uuid) : null,
