@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08080b">
 <meta name="color-scheme" content="dark">
 <title>Vigilance — a production control center for Laravel queues, jobs & the scheduler</title>
-<meta name="description" content="Driver-agnostic monitoring, a Horizon-replacement worker supervisor, whole-app APM, per-request tracing, error tracking, RUM, SLOs, a trace-correlated log explorer and an MCP server for AI agents, for Laravel — in one self-contained dashboard. Works on every queue driver.">
+<meta name="description" content="Driver-agnostic monitoring, a Horizon-replacement worker supervisor, whole-app APM with per-page cost (queries, memory, models), per-request tracing, error tracking, RUM, SLOs, a trace-correlated log explorer and an MCP server for AI agents, for Laravel — in one self-contained dashboard. Works on every queue driver.">
 <link rel="canonical" href="https://anousss007.github.io/laravel-vigilance/">
 <meta property="og:title" content="Vigilance — Laravel queue & job control center">
 <meta property="og:description" content="Horizon, but for every queue driver — plus commands, APM, tracing, error tracking, RUM, SLOs, logs, an MCP server for AI agents and a manual control plane. Production-first.">
@@ -29,7 +29,7 @@
 <header class="nav">
   <div class="wrap nav__inner">
     <a class="brand" href="#top">
-      <span class="brand__mark">V</span> Vigilance <span class="brand__v">v0.8.3</span>
+      <span class="brand__mark">V</span> Vigilance <span class="brand__v">v0.9.0</span>
     </a>
     <button class="nav__toggle" type="button" aria-label="Open menu" aria-controls="navlinks" aria-expanded="false">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -57,7 +57,7 @@
 <!-- ============================ HERO ============================ -->
 <section class="hero">
   <div class="wrap">
-    <span class="eyebrow"><span class="dot"></span> v0.8.3 · MIT · works on every queue driver</span>
+    <span class="eyebrow"><span class="dot"></span> v0.9.0 · MIT · works on every queue driver</span>
     <h1>The production <span class="grad">control center</span> for Laravel queues &amp; jobs</h1>
     <p class="hero__sub">See exactly what ran — with the parameters it ran with, whether it failed, and how long it took. Supervise &amp; auto-scale workers on <em>any</em> driver, watch whole-app performance, and dispatch jobs or run commands by hand — from one self-contained dashboard.</p>
     <div class="hero__cta">
@@ -237,6 +237,11 @@
           <tr><td>Alerting channels</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ mail · Slack · Discord · Teams · webhooks · incidents</td></tr>
           <tr><td>Release health / deploy gating</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ before/after regression guard + rollback alert</td></tr>
           <tr><td>Anomaly detection</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ dynamic baselines</td></tr>
+          <tr><td>Per-page cost (queries · DB · memory · models)</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ Debugbar&rsquo;s counters, per route, in production</td></tr>
+          <tr><td>Server resource alerts (CPU · RAM · disk)</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ per volume, with free space left</td></tr>
+          <tr><td>Watches its own pipeline</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ dead-man&rsquo;s switch + doctor exit code</td></tr>
+          <tr><td>Incident mode (auto-expiring full capture)</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ opt-in, expires on its own</td></tr>
+          <tr><td>Shows what the monitoring itself costs</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ rows · growth · retention, per type</td></tr>
           <tr><td>AI agent access (MCP)</td><td class="no">—</td><td class="no">—</td><td class="vig">✓ every dashboard view — read-only + gated writes</td></tr>
           <tr><td>Production-oriented</td><td class="yes">✓</td><td class="no">debug tool</td><td class="vig">✓ sampled · capped · guarded</td></tr>
         </tbody>
@@ -327,6 +332,9 @@
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Routes &amp; Web Vitals</strong> — per-route p50/p95/p99 + Apdex, and RUM of Core Web Vitals from real users.</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>SLOs &amp; incidents</strong> — error budgets with burn-rate alerts; fired alerts tracked as incidents with MTTR.</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Logs &amp; custom metrics</strong> — searchable logs correlated to traces, plus a one-line business-metrics API.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Page cost</strong> — queries, database time, peak memory and hydrated models per route: Debugbar&rsquo;s counters, aggregated and safe for production.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Incident mode</strong> — turn every sampling knob up for N minutes, then it reverts on its own. No config change to remember to undo.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Self-monitoring</strong> — server CPU/RAM/disk alerts, and a dead-man&rsquo;s switch on Vigilance&rsquo;s own pipeline so silence stops looking like health.</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 13 4 4L19 7"/></svg> <span><strong>Release health</strong> — every deploy gets a before/after verdict; a bad release fires a rollback-ready alert and anomaly detection catches the rest.</span></li>
         </ul>
       </div>

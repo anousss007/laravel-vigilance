@@ -1,15 +1,13 @@
-<div class="v-card overflow-hidden">
-    <div class="v-card__header">
-        <h2 class="v-card__title">Application usage</h2>
+<x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+    <x-vigilance::ui.card-header>
+        <x-vigilance::ui.card-title>Application usage</x-vigilance::ui.card-title>
         <div class="flex items-center gap-1" role="group" aria-label="Usage dimension">
             @foreach (['requests' => 'Requests', 'jobs' => 'Jobs'] as $mode => $label)
-                <button type="button" wire:click="setUsageMode('{{ $mode }}')" aria-pressed="{{ $usageMode === $mode ? 'true' : 'false' }}"
-                        @class(['v-btn v-btn--sm', 'v-btn--primary' => $usageMode === $mode, 'v-btn--ghost' => $usageMode !== $mode])>{{ $label }}</button>
+                <x-vigilance::ui.button size="sm" variant="{{ $usageMode === $mode ? 'default' : 'ghost' }}" wire:click="setUsageMode('{{ $mode }}')" aria-pressed="{{ $usageMode === $mode ? 'true' : 'false' }}">{{ $label }}</x-vigilance::ui.button>
             @endforeach
         </div>
-    </div>
-    <div class="overflow-x-auto" tabindex="0">
-        <table class="v-table v-table--hover">
+    </x-vigilance::ui.card-header>
+    <x-vigilance::ui.table>
             <caption class="sr-only">Top users by {{ $usageMode }}</caption>
             <thead>
                 <tr>
@@ -39,6 +37,5 @@
                     <tr><td colspan="3" class="px-4 py-8 text-center v-muted">No authenticated {{ $usageMode }} recorded.</td></tr>
                 @endforelse
             </tbody>
-        </table>
-    </div>
-</div>
+        </x-vigilance::ui.table>
+</x-vigilance::ui.card>

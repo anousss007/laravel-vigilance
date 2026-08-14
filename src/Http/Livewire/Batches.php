@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 
 /**
  * Batch monitoring: reads Laravel's own batch repository (the job_batches
@@ -16,6 +17,8 @@ use Livewire\Component;
  */
 class Batches extends Component
 {
+    use ListensForUpdates;
+
     public function cancel(string $batchId): void
     {
         $batch = rescue(fn () => Bus::findBatch($batchId), null, false);

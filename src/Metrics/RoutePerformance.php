@@ -14,6 +14,10 @@ use Vigilance\Apm\Contracts\Storage;
  * per-request durations the Requests recorder stores as entry values, for the
  * routes actually shown (top by throughput), so the percentile query stays
  * bounded.
+ *
+ * Latency is only half the story, so each row also carries what the route
+ * *costs* — queries, database time, peak memory and hydrated models, from the
+ * RequestProfile recorder.
  */
 class RoutePerformance
 {
@@ -36,7 +40,14 @@ class RoutePerformance
         $errors = $this->storage->aggregate('request_error', ['count'], $interval, limit: $limit * 2)->keyBy('key');
         $percentiles = $this->percentiles($interval, $keys);
 
-        return $base->map(function ($row) use ($apdex, $errors, $percentiles): RouteStat {
+        // Per-request cost, from the RequestProfile recorder. All empty when it
+        // is disabled, in which case the cost columns simply read "—".
+        $queries = $this->storage->aggregate('request_queries', ['avg', 'max'], $interval, limit: $limit * 2)->keyBy('key');
+        $dbMs = $this->storage->aggregate('request_db_ms', ['avg'], $interval, limit: $limit * 2)->keyBy('key');
+        $memory = $this->storage->aggregate('request_memory', ['avg', 'max'], $interval, limit: $limit * 2)->keyBy('key');
+        $models = $this->storage->aggregate('request_models', ['avg'], $interval, limit: $limit * 2)->keyBy('key');
+
+        return $base->map(function ($row) use ($apdex, $errors, $percentiles, $queries, $dbMs, $memory, $models): RouteStat {
             $decoded = json_decode((string) $row->key, true);
             $method = is_array($decoded) ? (string) ($decoded[0] ?? '') : '';
             $path = is_array($decoded) ? (string) ($decoded[1] ?? $row->key) : (string) $row->key;
@@ -57,6 +68,12 @@ class RoutePerformance
                 p50: $p['p50'],
                 p95: $p['p95'],
                 p99: $p['p99'],
+                queries_avg: isset($queries[$row->key]) ? round((float) $queries[$row->key]->avg, 1) : null,
+                queries_max: isset($queries[$row->key]) ? (int) $queries[$row->key]->max : null,
+                db_ms_avg: isset($dbMs[$row->key]) ? (int) round((float) $dbMs[$row->key]->avg) : null,
+                memory_kb_avg: isset($memory[$row->key]) ? (int) round((float) $memory[$row->key]->avg) : null,
+                memory_kb_max: isset($memory[$row->key]) ? (int) $memory[$row->key]->max : null,
+                models_avg: isset($models[$row->key]) ? round((float) $models[$row->key]->avg, 1) : null,
             );
         })->values();
     }

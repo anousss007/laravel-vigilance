@@ -15,6 +15,7 @@
     },
     "require": {
         "php": "^8.2",
+        "gehrisandro/tailwind-merge-laravel": "^1.4",
         "illuminate/bus": "^12.0 || ^13.0",
         "illuminate/console": "^12.0 || ^13.0",
         "illuminate/contracts": "^12.0 || ^13.0",
@@ -25,6 +26,7 @@
         "symfony/process": "^7.0 || ^8.0"
     },
     "require-dev": {
+        "anousss007/blatui": "^1.24",
         "larastan/larastan": "^3.0",
         "laravel/mcp": "^0.8.1",
         "laravel/pint": "^1.18",

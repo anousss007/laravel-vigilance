@@ -7,7 +7,7 @@
     };
 @endphp
 
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <div class="flex items-center gap-2.5">
@@ -21,21 +21,28 @@
 
         <div class="flex items-center gap-2">
             @if ($control === 'paused')
-                <button type="button" wire:click="resume" class="v-btn v-btn--primary v-btn--sm">Resume</button>
+                <x-vigilance::ui.button size="sm" wire:click="resume">Resume</x-vigilance::ui.button>
             @else
-                <button type="button" wire:click="pause" class="v-btn v-btn--sm">Pause</button>
+                <x-vigilance::ui.button variant="outline" size="sm" wire:click="pause">Pause</x-vigilance::ui.button>
             @endif
-            <button type="button" wire:click="restart" class="v-btn v-btn--sm">Restart</button>
+            <x-vigilance::ui.button variant="outline" size="sm" wire:click="restart">Restart</x-vigilance::ui.button>
         </div>
     </div>
 
+    @include('vigilance::partials.fleet-chart', [
+        'series' => $fleetSeries,
+        'ranges' => $this->ranges(),
+        'labels' => $this->rangeLabels(),
+        'current' => $range,
+    ])
+
     @forelse ($supervisors as $supervisor)
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header">
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header>
                 <div class="flex items-center gap-2.5">
-                    <h2 class="v-card__title">{{ $supervisor->name }}</h2>
+                    <x-vigilance::ui.card-title>{{ $supervisor->name }}</x-vigilance::ui.card-title>
                     @if ($supervisor->host)
-                        <span class="v-pill uppercase tracking-wide font-mono" title="node">{{ $supervisor->host }}</span>
+                        <x-vigilance::ui.badge tone="neutral" class="uppercase tracking-wide font-mono" title="node">{{ $supervisor->host }}</x-vigilance::ui.badge>
                     @endif
                     <span class="text-[11px] uppercase tracking-wide v-faint font-mono">{{ $supervisor->connection }} · {{ $supervisor->queues }} · {{ $supervisor->balance }}</span>
                 </div>
@@ -46,12 +53,11 @@
                         <span class="v-faint">beat {{ $supervisor->last_heartbeat_at->diffForHumans() }}</span>
                     @endif
                 </div>
-            </div>
+            </x-vigilance::ui.card-header>
 
             @php $rows = $workers[$supervisor->name.'@'.$supervisor->host] ?? collect(); @endphp
             @if ($rows->isNotEmpty())
-                <div class="overflow-x-auto" tabindex="0">
-                    <table class="v-table v-table--hover">
+                <x-vigilance::ui.table>
                         <thead>
                             <tr>
                                 <th scope="col">PID</th>
@@ -70,22 +76,21 @@
                                 </tr>
                             @endforeach
                         </tbody>
-                    </table>
-                </div>
+                    </x-vigilance::ui.table>
             @else
                 <p class="px-4 py-3 text-xs v-muted">No worker processes running (idle or paused).</p>
             @endif
-        </div>
+        </x-vigilance::ui.card>
     @empty
-        <div class="v-empty">
-            <p class="v-empty__title">Vigilance isn&rsquo;t supervising any workers.</p>
-            <p class="mx-auto mt-1 max-w-md">
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>Vigilance isn&rsquo;t supervising any workers.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p class="mx-auto mt-1 max-w-md">
                 This is optional. To let Vigilance run and auto-scale your queue workers (a
                 driver-agnostic alternative to Horizon), start
                 <code class="v-code">php artisan vigilance:supervise</code>.
                 If you already use Horizon or a <code class="v-code">sync</code>/external
                 worker, you can safely ignore this page.
-            </p>
-        </div>
+            </p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
     @endforelse
 </div>

@@ -3,6 +3,7 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Models\MonitoredTag;
 use Vigilance\Models\RunTag;
 
@@ -12,6 +13,8 @@ use Vigilance\Models\RunTag;
  */
 class Tags extends Component
 {
+    use ListensForUpdates;
+
     public function monitor(string $tag): void
     {
         MonitoredTag::query()->firstOrCreate(['tag' => $tag], ['created_at' => now()]);

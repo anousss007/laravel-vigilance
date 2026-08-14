@@ -3,6 +3,7 @@
 namespace Vigilance\Support;
 
 use Illuminate\Support\Str;
+use Vigilance\Models\Suppression;
 
 /**
  * Matches a request path against a list of patterns. Each pattern is either a
@@ -52,6 +53,13 @@ final class PathMatcher
      */
     public static function ignored(string $path): bool
     {
-        return self::matchesAny($path, (array) config('vigilance.ignore_paths', []));
+        if (self::matchesAny($path, (array) config('vigilance.ignore_paths', []))) {
+            return true;
+        }
+
+        // Rules created from the dashboard hang off the same entry point as the
+        // config list, so every consumer of it — APM, tracing, RUM and web error
+        // capture — honours them without a second implementation.
+        return Suppressions::ignores(Suppression::SCOPE_ROUTE, $path);
     }
 }

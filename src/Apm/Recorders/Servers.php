@@ -38,6 +38,30 @@ class Servers extends Recorder
         $this->apm->record('cpu', $slug, $cpu, $timestamp)->avg()->onlyBuckets();
         $this->apm->record('memory', $slug, $memory['used'], $timestamp)->avg()->onlyBuckets();
 
+        // Memory as a percentage alongside the absolute MB: a 64 GB box and an
+        // 8 GB box are not comparable on raw usage, and "how full is it" is the
+        // question a graph is actually being asked.
+        if ($memory['total'] > 0) {
+            $this->apm->record('memory_percent', $slug, (int) round($memory['used'] / $memory['total'] * 100), $timestamp)
+                ->avg()->onlyBuckets();
+        }
+
+        // Disk had no history at all — only the latest snapshot — so a volume
+        // filling up over days was invisible as a trend, which is exactly the
+        // failure you want to see coming rather than be paged about.
+        foreach ($storage as $disk) {
+            if ($disk['total'] <= 0) {
+                continue;
+            }
+
+            $this->apm->record(
+                'disk',
+                (string) json_encode([$slug, $disk['directory']]),
+                (int) round($disk['used'] / $disk['total'] * 100),
+                $timestamp,
+            )->avg()->onlyBuckets();
+        }
+
         $this->apm->set('system', $slug, (string) json_encode([
             'name' => $this->name(),
             'cpu' => $cpu,

@@ -49,6 +49,41 @@ it('computes error rate from 5xx counts', function () {
         ->and($row->error_rate)->toBe(20.0);
 });
 
+it('carries the per-request cost profile alongside latency', function () {
+    $key = (string) json_encode(['GET', '/orders']);
+
+    $entries = new Collection;
+    $entries->push((new Entry(time(), 'request', $key, 120))->count()->avg()->max());
+    $entries->push((new Entry(time(), 'request_queries', $key, 60))->count()->avg()->max());
+    $entries->push((new Entry(time(), 'request_queries', $key, 40))->count()->avg()->max());
+    $entries->push((new Entry(time(), 'request_db_ms', $key, 85))->avg()->max());
+    $entries->push((new Entry(time(), 'request_memory', $key, 40 * 1024))->count()->avg()->max());
+    $entries->push((new Entry(time(), 'request_models', $key, 320))->avg()->max());
+    app(Storage::class)->store($entries);
+
+    $row = app(RoutePerformance::class)->forInterval(CarbonInterval::hour())->firstWhere('path', '/orders');
+
+    expect($row->queries_avg)->toBe(50.0)
+        ->and($row->queries_max)->toBe(60)
+        ->and($row->db_ms_avg)->toBe(85)
+        ->and($row->memory_kb_avg)->toBe(40 * 1024)
+        ->and($row->models_avg)->toBe(320.0);
+});
+
+it('leaves the cost profile null when the RequestProfile recorder is off', function () {
+    $key = (string) json_encode(['GET', '/plain']);
+
+    app(Storage::class)->store(new Collection([
+        (new Entry(time(), 'request', $key, 120))->count()->avg()->max(),
+    ]));
+
+    $row = app(RoutePerformance::class)->forInterval(CarbonInterval::hour())->firstWhere('path', '/plain');
+
+    expect($row->queries_avg)->toBeNull()
+        ->and($row->memory_kb_max)->toBeNull()
+        ->and($row->models_avg)->toBeNull();
+});
+
 it('derives apdex from the recorded score (avg / 100)', function () {
     $key = (string) json_encode(['GET', '/fast']);
 

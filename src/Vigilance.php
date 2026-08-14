@@ -11,6 +11,7 @@ use Vigilance\Events\ExceptionReported;
 use Vigilance\Notifications\Alert;
 use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\Defaults;
+use Vigilance\Support\IncidentMode;
 
 /**
  * Central coordination object: authorization gate, recording state, ignore
@@ -19,7 +20,7 @@ use Vigilance\Support\Defaults;
  */
 class Vigilance
 {
-    public static string $version = '0.8.3';
+    public static string $version = '0.9.0';
 
     /** Cache-busting token for the bundled stylesheet, derived from its contents. */
     protected static ?string $assetVersion = null;
@@ -86,8 +87,19 @@ class Vigilance
             return static::$assetVersion;
         }
 
-        $path = __DIR__.'/../resources/dist/vigilance.css';
-        $hash = is_file($path) ? substr((string) @md5_file($path), 0, 12) : '';
+        // Hash every bundled asset, not just the stylesheet: they are served
+        // immutable for a year, so a JS-only change must still bust the cache.
+        $fingerprint = '';
+
+        foreach (['vigilance.css', 'vigilance.js'] as $file) {
+            $path = __DIR__.'/../resources/dist/'.$file;
+
+            if (is_file($path)) {
+                $fingerprint .= (string) @md5_file($path);
+            }
+        }
+
+        $hash = $fingerprint !== '' ? substr(md5($fingerprint), 0, 12) : '';
 
         return static::$assetVersion = ($hash !== '' ? $hash : static::$version);
     }
@@ -157,6 +169,10 @@ class Vigilance
     {
         static::$recording = true;
         static::$manualContext = null;
+
+        // The incident-mode lookup is memoised per request; a long-lived worker
+        // would otherwise keep answering from the first request it ever served.
+        IncidentMode::flushState();
 
         // Breadcrumb trails are per-unit-of-work; drop them at the boundary so a
         // long-lived worker never attaches one request's trail to the next error.
@@ -379,7 +395,12 @@ class Vigilance
      */
     public static function passesSampling(): bool
     {
-        $rate = (float) config('vigilance.capture.sample_rate', 1.0);
+        // Incident mode overrides the configured rate for its (short, self
+        // expiring) duration — mid-incident the sampling you set up for steady
+        // state is exactly what is hiding the thing you are looking for.
+        $rate = IncidentMode::active()
+            ? IncidentMode::sampleRate()
+            : (float) config('vigilance.capture.sample_rate', 1.0);
 
         if ($rate >= 1.0) {
             return true;

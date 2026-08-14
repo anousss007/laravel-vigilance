@@ -11,12 +11,11 @@
     </div>
 
     {{-- Jobs --}}
-    <div class="v-card overflow-hidden">
-        <div class="v-card__header">
-            <h2 class="v-card__title">By job class</h2>
-        </div>
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+        <x-vigilance::ui.card-header>
+            <x-vigilance::ui.card-title>By job class</x-vigilance::ui.card-title>
+        </x-vigilance::ui.card-header>
+        <x-vigilance::ui.table>
                 <caption class="sr-only">Job classes by throughput, failure rate and runtime</caption>
                 <thead>
                     <tr>
@@ -42,17 +41,15 @@
                         <tr><td colspan="5" class="px-4 py-8 text-center v-muted">No job metrics yet.</td></tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 
     {{-- Queues --}}
-    <div class="v-card overflow-hidden">
-        <div class="v-card__header">
-            <h2 class="v-card__title">By queue</h2>
-        </div>
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+        <x-vigilance::ui.card-header>
+            <x-vigilance::ui.card-title>By queue</x-vigilance::ui.card-title>
+        </x-vigilance::ui.card-header>
+        <x-vigilance::ui.table>
                 <caption class="sr-only">Queues by throughput and runtime</caption>
                 <thead>
                     <tr>
@@ -76,7 +73,6 @@
                         <tr><td colspan="4" class="px-4 py-8 text-center v-muted">No active queues.</td></tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 </div>

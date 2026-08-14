@@ -13,13 +13,16 @@ use Vigilance\Notifications\Contracts\AlertRule;
 use Vigilance\Notifications\Rules\AnomalyRule;
 use Vigilance\Notifications\Rules\ErrorRateRule;
 use Vigilance\Notifications\Rules\ExceptionSpikeRule;
+use Vigilance\Notifications\Rules\HeavyRequestRule;
 use Vigilance\Notifications\Rules\IssueRegressionRule;
 use Vigilance\Notifications\Rules\LongRunningJobRule;
+use Vigilance\Notifications\Rules\MonitoringHealthRule;
 use Vigilance\Notifications\Rules\NewIssueRule;
 use Vigilance\Notifications\Rules\NPlusOneRule;
 use Vigilance\Notifications\Rules\QueueLongWaitRule;
 use Vigilance\Notifications\Rules\ReleaseHealthRule;
 use Vigilance\Notifications\Rules\ScheduledTaskLateRule;
+use Vigilance\Notifications\Rules\ServerResourceRule;
 use Vigilance\Notifications\Rules\SloBurnRateRule;
 use Vigilance\Notifications\Rules\SlowRequestRateRule;
 use Vigilance\Vigilance;
@@ -38,10 +41,13 @@ class AlertManager
         QueueLongWaitRule::class,
         LongRunningJobRule::class,
         NPlusOneRule::class,
+        HeavyRequestRule::class,
         ErrorRateRule::class,
         ExceptionSpikeRule::class,
         SlowRequestRateRule::class,
         ScheduledTaskLateRule::class,
+        ServerResourceRule::class,
+        MonitoringHealthRule::class,
         SloBurnRateRule::class,
         NewIssueRule::class,
         IssueRegressionRule::class,

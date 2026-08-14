@@ -7,13 +7,13 @@
     </div>
 
     @unless ($enabled)
-        <div class="v-card v-card--pad text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             Manual control is disabled. Set <code class="v-code">vigilance.control.enabled</code> to <code class="v-code">true</code> to dispatch jobs from here.
-        </div>
+        </x-vigilance::ui.card>
     @else
         <div class="grid gap-6 lg:grid-cols-3">
             <div class="space-y-4 lg:col-span-2">
-                <div class="v-card v-card--pad">
+                <x-vigilance::ui.card>
                     <label class="block">
                         <span class="v-label">Job</span>
                         <select wire:model.live="jobClass" class="v-select">
@@ -80,17 +80,17 @@
                                 </label>
                             </div>
 
-                            <button type="submit" wire:loading.attr="disabled" class="v-btn v-btn--primary">
+                            <x-vigilance::ui.button type="submit" wire:loading.attr="disabled">
                                 Dispatch
-                            </button>
+                            </x-vigilance::ui.button>
                         </form>
                     @endif
-                </div>
+                </x-vigilance::ui.card>
             </div>
 
             {{-- Recent manual dispatches --}}
-            <div class="v-card">
-                <div class="v-card__header"><h2 class="v-card__title">Recent manual dispatches</h2></div>
+            <x-vigilance::ui.card variant="sectioned">
+                <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Recent manual dispatches</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
                 <ul>
                     @forelse ($recent as $run)
                         <li class="px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
@@ -106,7 +106,7 @@
                         <li class="px-4 py-8 text-center text-xs v-muted">Nothing dispatched yet.</li>
                     @endforelse
                 </ul>
-            </div>
+            </x-vigilance::ui.card>
         </div>
     @endunless
 </div>

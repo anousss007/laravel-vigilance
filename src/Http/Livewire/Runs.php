@@ -7,6 +7,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Models\Run;
 use Vigilance\Support\Like;
 use Vigilance\Vigilance;
@@ -17,6 +18,7 @@ use Vigilance\Vigilance;
  */
 class Runs extends Component
 {
+    use ListensForUpdates;
     use WithPagination;
 
     /** The lean column set shown in the list (excludes heavy blob columns). */

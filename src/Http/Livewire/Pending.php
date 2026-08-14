@@ -5,6 +5,7 @@ namespace Vigilance\Http\Livewire;
 use Livewire\Component;
 use Vigilance\Control\Exceptions\NotAllowed;
 use Vigilance\Control\QueueManager;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\PendingJobs;
 use Vigilance\Models\Run;
 use Vigilance\Vigilance;
@@ -16,6 +17,8 @@ use Vigilance\Vigilance;
  */
 class Pending extends Component
 {
+    use ListensForUpdates;
+
     /**
      * Selected pending jobs, each entry "connection#id" so ids never collide
      * across connections.

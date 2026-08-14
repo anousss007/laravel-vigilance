@@ -1,4 +1,4 @@
-<div wire:poll.visible.15s class="space-y-6">
+<div @vigilancePoll('15s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Custom Metrics</h1>
@@ -6,20 +6,15 @@
         </div>
     </div>
 
-    <div class="v-card v-card--pad">
-        <div class="flex flex-wrap items-center gap-1">
-            @foreach (['1h' => 'Last hour', '24h' => 'Last 24h', '7d' => 'Last 7d'] as $key => $label)
-                <button type="button" wire:click="setWindow('{{ $key }}')"
-                        @class(['v-btn v-btn--sm', 'v-btn--primary' => $window === $key, 'v-btn--ghost' => $window !== $key])>{{ $label }}</button>
-            @endforeach
-        </div>
-    </div>
+    <x-vigilance::ui.card class="p-2">
+        <x-vigilance::range-picker :ranges="$this->ranges()" :labels="$this->rangeLabels()" :current="$range" />
+    </x-vigilance::ui.card>
 
     @if ($metrics->isEmpty())
-        <div class="v-empty">
-            <p class="v-empty__title">No custom metrics yet.</p>
-            <p>Record one anywhere in your app: <code class="v-code">Vigilance::increment('signups')</code> or <code class="v-code">Vigilance::gauge('cart_value', 4250)</code>.</p>
-        </div>
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No custom metrics yet.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Record one anywhere in your app: <code class="v-code">Vigilance::increment('signups')</code> or <code class="v-code">Vigilance::gauge('cart_value', 4250)</code>.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
     @else
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @foreach ($metrics as $metric)
@@ -35,10 +30,10 @@
                         $path .= ($i === 0 ? 'M' : 'L').$x.' '.$y.' ';
                     }
                 @endphp
-                <div class="v-card v-card--pad space-y-2">
+                <x-vigilance::ui.card class="space-y-2">
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="truncate font-mono font-semibold v-strong" title="{{ $metric->name }}">{{ $metric->name }}</h2>
-                        <span class="v-pill is-neutral">{{ ['count' => 'counter', 'value' => 'gauge', 'distribution' => 'distribution'][$metric->type] ?? $metric->type }}</span>
+                        <x-vigilance::ui.badge tone="neutral">{{ ['count' => 'counter', 'value' => 'gauge', 'distribution' => 'distribution'][$metric->type] ?? $metric->type }}</x-vigilance::ui.badge>
                     </div>
 
                     <div class="flex items-baseline gap-2">
@@ -67,7 +62,7 @@
                             <line x1="0" y1="{{ $sh - 2 }}" x2="{{ $sw }}" y2="{{ $sh - 2 }}" stroke="rgb(113 113 122 / 0.4)" stroke-dasharray="3 3" />
                         @endif
                     </svg>
-                </div>
+                </x-vigilance::ui.card>
             @endforeach
         </div>
     @endif

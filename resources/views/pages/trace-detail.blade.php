@@ -49,13 +49,13 @@
     </div>
 
     {{-- Summary --}}
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-2.5">
                 <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true"
                       style="background: {{ $trace->failed() ? 'var(--v-danger)' : 'var(--v-success)' }};"></span>
                 <h1 class="font-mono text-sm font-semibold v-strong">{{ $trace->name }}</h1>
-                <span class="v-pill is-neutral">{{ $trace->type }}</span>
+                <x-vigilance::ui.badge tone="neutral">{{ $trace->type }}</x-vigilance::ui.badge>
                 <span @class(['v-pill', 'is-danger' => $trace->failed(), 'is-success' => ! $trace->failed()])>{{ $trace->status }}</span>
             </div>
             <span class="text-xs v-muted">{{ CarbonImmutable::createFromTimestamp($trace->startedAt)->diffForHumans() }}</span>
@@ -79,23 +79,23 @@
                 @endif
             @endforeach
         </dl>
-    </div>
+    </x-vigilance::ui.card>
 
     @if ($nPlusOne)
-        <div class="v-card v-card--pad text-xs" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-xs" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             <span class="font-semibold">Possible N+1 query.</span>
             The same query ran <span class="font-semibold">{{ $nPlusOne['count'] }}×</span> in this trace:
             <code class="mt-1 block break-all font-mono">{{ $nPlusOne['sql'] }}</code>
             @if (! empty($nPlusOne['caller']))
                 <div class="mt-1">at <code class="font-mono font-semibold">{{ $nPlusOne['caller'] }}</code></div>
             @endif
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     {{-- Waterfall --}}
-    <div class="v-card overflow-hidden">
-        <div class="v-card__header">
-            <h2 class="v-card__title">Timeline</h2>
+    <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+        <x-vigilance::ui.card-header>
+            <x-vigilance::ui.card-title>Timeline</x-vigilance::ui.card-title>
             <div class="flex flex-wrap items-center gap-3 text-[11px] v-muted">
                 @foreach ($byType as $type => $count)
                     <span class="inline-flex items-center gap-1.5">
@@ -104,7 +104,7 @@
                     </span>
                 @endforeach
             </div>
-        </div>
+        </x-vigilance::ui.card-header>
 
         @if (count($trace->spans) === 0)
             <p class="px-4 py-10 text-center text-xs v-muted">No spans were captured for this trace.</p>
@@ -132,7 +132,7 @@
                 @endforeach
             </ul>
         @endif
-    </div>
+    </x-vigilance::ui.card>
 
     {{-- Correlated logs --}}
     @php
@@ -144,11 +144,11 @@
         };
     @endphp
     @if (count($logs) > 0)
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Logs <span class="v-faint">({{ count($logs) }})</span></h2>
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Logs <span class="v-faint">({{ count($logs) }})</span></x-vigilance::ui.card-title>
                 <a href="{{ route('vigilance.logs', ['trace' => $trace->id]) }}" class="text-xs v-link">open in explorer &rarr;</a>
-            </div>
+            </x-vigilance::ui.card-header>
             <ul class="divide-y" style="border-color: var(--v-border);">
                 @foreach ($logs as $log)
                     <li class="flex items-start gap-3 px-4 py-2">
@@ -160,6 +160,6 @@
                     </li>
                 @endforeach
             </ul>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 </div>

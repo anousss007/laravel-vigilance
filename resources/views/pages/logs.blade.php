@@ -13,7 +13,7 @@
     };
 @endphp
 
-<div wire:poll.visible.10s class="space-y-6">
+<div @vigilancePoll('10s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Logs</h1>
@@ -23,15 +23,15 @@
     </div>
 
     @unless ($enabled)
-        <div class="v-card v-card--pad text-sm" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-sm" role="status" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             <span class="font-semibold">Log capture is off.</span>
             Set <code class="font-mono">VIGILANCE_LOGS=true</code> (or <code class="font-mono">vigilance.logs.enabled</code>) to start
             collecting <code class="font-mono">Log::*</code> records here. Existing rows are still browsable below.
-        </div>
+        </x-vigilance::ui.card>
     @endunless
 
     {{-- Filters --}}
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex flex-wrap items-end gap-3">
             <div>
                 <label class="v-label" for="v-l-q">Search</label>
@@ -59,16 +59,16 @@
             </div>
 
             @if ($trace !== '')
-                <span class="v-pill is-info v-num self-center">scoped to trace {{ Str::limit($trace, 8, '…') }}</span>
+                <x-vigilance::ui.badge tone="info" class="v-num self-center">scoped to trace {{ Str::limit($trace, 8, '…') }}</x-vigilance::ui.badge>
             @endif
 
-            <button type="button" wire:click="clear" class="v-btn v-btn--sm ml-auto">Clear</button>
+            <x-vigilance::ui.button variant="outline" size="sm" class="ml-auto" wire:click="clear">Clear</x-vigilance::ui.button>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
-    <div class="v-card overflow-hidden">
+    <x-vigilance::ui.card class="overflow-hidden">
         <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+            <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col" class="w-28">Time</th>
@@ -107,14 +107,14 @@
                         </tr>
                     @empty
                         <tr><td colspan="5">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No logs match.</p>
-                                <p>Captured <code class="font-mono">Log::*</code> records appear here as your app writes them.</p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No logs match.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Captured <code class="font-mono">Log::*</code> records appear here as your app writes them.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
+            </x-vigilance::ui.table>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 </div>

@@ -20,7 +20,7 @@
     $listed = collect($queues)->map(fn ($q) => ($q['connection_name'] ?? '').'|'.$q['queue'])->all();
 @endphp
 
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Workload</h1>
@@ -29,7 +29,7 @@
         <span class="text-xs v-muted v-num">{{ count($queues) }} queues</span>
     </div>
 
-    <div class="v-card v-card--pad flex flex-wrap items-center gap-4 text-xs">
+    <x-vigilance::ui.card class="flex flex-wrap items-center gap-4 text-xs">
         <span class="v-stat__label">System load</span>
         @if ($load !== null)
             <span><span class="font-semibold v-strong v-num">{{ $load[1] }}</span> <span class="v-muted">1m</span></span>
@@ -38,24 +38,24 @@
         @else
             <span class="v-muted">n/a on this platform (sys_getloadavg unavailable)</span>
         @endif
-    </div>
+    </x-vigilance::ui.card>
 
     @php $orphanPaused = collect($paused)->reject(fn ($e, $key) => in_array($key, $listed, true)); @endphp
     @if ($orphanPaused->isNotEmpty())
-        <div class="v-card v-card--pad space-y-2">
+        <x-vigilance::ui.card class="space-y-2">
             <span class="v-stat__label">Paused queues (no recent activity)</span>
             <div class="flex flex-wrap gap-2">
                 @foreach ($orphanPaused as $key => $expiresAt)
                     @php [$conn, $q] = array_pad(explode('|', $key, 2), 2, ''); @endphp
-                    <span class="inline-flex items-center gap-2 v-pill is-paused">
-                        <span class="v-dot"></span>
+                    <x-vigilance::ui.badge tone="warning" class="inline-flex items-center gap-2">
+                        <span class="v-dot"></x-vigilance::ui.badge>
                         <span class="font-mono">{{ $q }}</span>
                         <span class="v-faint">· {{ $conn }} · {{ $fmtExpiry($expiresAt) }}</span>
-                        <button type="button" wire:click="resumeQueue(@js($conn), @js($q))" class="v-btn v-btn--sm">Resume</button>
+                        <x-vigilance::ui.button variant="outline" size="sm" wire:click="resumeQueue(@js($conn), @js($q))">Resume</x-vigilance::ui.button>
                     </span>
                 @endforeach
             </div>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     <p class="text-xs v-muted">Live queue depth is only available for the <code class="v-code">database</code> and <code class="v-code">redis</code> drivers; other drivers show “n/a”.</p>
@@ -77,18 +77,18 @@
                     $path .= ($i === 0 ? 'M' : 'L').$x.' '.$y.' ';
                 }
             @endphp
-            <div class="v-card v-card--pad">
+            <x-vigilance::ui.card>
                 <div class="flex items-baseline justify-between gap-2">
                     <div class="flex items-center gap-2 min-w-0">
                         <h2 class="truncate font-semibold font-mono v-strong">{{ $queue['queue'] }}</h2>
                         @if ($isPaused)
-                            <span class="v-pill is-paused uppercase tracking-wide text-[10px]"><span class="v-dot"></span>paused</span>
+                            <x-vigilance::ui.badge tone="warning" class="uppercase tracking-wide text-[10px]"><span class="v-dot"></x-vigilance::ui.badge>paused</span>
                         @endif
                     </div>
                     <span class="text-[10px] font-mono v-faint">{{ $queue['connection_name'] ?: 'no connection' }}</span>
                 </div>
 
-                <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div class="mt-3 grid grid-cols-1 gap-2 text-center sm:grid-cols-3">
                     <div>
                         <div class="v-stat__label">Depth</div>
                         <div class="font-semibold v-strong v-num">{{ $queue['depth'] === null ? 'n/a' : $queue['depth'] }}</div>
@@ -126,39 +126,35 @@
                 @if ($conn !== '')
                     <div class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                         @if ($isPaused)
-                            <button type="button" wire:click="resumeQueue(@js($conn), @js($queue['queue']))" class="v-btn v-btn--primary v-btn--sm">Resume</button>
+                            <x-vigilance::ui.button size="sm" wire:click="resumeQueue(@js($conn), @js($queue['queue']))">Resume</x-vigilance::ui.button>
                         @else
-                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']))" class="v-btn v-btn--sm">Pause</button>
-                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 15)" class="v-btn v-btn--sm" title="Pause for 15 minutes">15m</button>
-                            <button type="button" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 60)" class="v-btn v-btn--sm" title="Pause for 1 hour">1h</button>
+                            <x-vigilance::ui.button variant="outline" size="sm" wire:click="pauseQueue(@js($conn), @js($queue['queue']))">Pause</x-vigilance::ui.button>
+                            <x-vigilance::ui.button variant="outline" size="sm" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 15)" title="Pause for 15 minutes">15m</x-vigilance::ui.button>
+                            <x-vigilance::ui.button variant="outline" size="sm" wire:click="pauseQueue(@js($conn), @js($queue['queue']), 60)" title="Pause for 1 hour">1h</x-vigilance::ui.button>
                         @endif
                         @if ($controlEnabled)
-                            <button type="button"
-                                wire:click="clearQueue(@js($conn), @js($queue['queue']))"
-                                wire:confirm="Delete ALL pending jobs on [{{ $queue['queue'] }}]? This cannot be undone."
-                                class="v-btn v-btn--sm v-btn--danger ml-auto">Clear</button>
+                            <x-vigilance::ui.button variant="destructive" size="sm" class="ml-auto" wire:click="clearQueue(@js($conn), @js($queue['queue']))" wire:confirm="Delete ALL pending jobs on [{{ $queue['queue'] }}]? This cannot be undone.">Clear</x-vigilance::ui.button>
                         @endif
                     </div>
                 @endif
-            </div>
+            </x-vigilance::ui.card>
         @empty
             <div class="md:col-span-2 xl:col-span-3">
-                <div class="v-empty">
-                    <p class="v-empty__title">No queue activity</p>
-                    <p>No queue activity in the last 24 hours.</p>
-                </div>
+                <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No queue activity</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>No queue activity in the last 24 hours.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
             </div>
         @endforelse
     </div>
 
     @if (count($jobClasses))
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header">
-                <h2 class="v-card__title">By job class</h2>
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>By job class</x-vigilance::ui.card-title>
                 <span class="text-[10px] uppercase tracking-wide v-faint">last 24 hours</span>
-            </div>
-            <div class="overflow-x-auto" tabindex="0">
-                <table class="v-table v-table--hover">
+            </x-vigilance::ui.card-header>
+            <x-vigilance::ui.table>
                     <thead>
                         <tr>
                             <th scope="col">Job</th>
@@ -185,8 +181,7 @@
                             </tr>
                         @endforeach
                     </tbody>
-                </table>
-            </div>
-        </div>
+                </x-vigilance::ui.table>
+        </x-vigilance::ui.card>
     @endif
 </div>

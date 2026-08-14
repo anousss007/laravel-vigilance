@@ -1,6 +1,6 @@
 ---
 name: vigilance-development
-description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, the observability suite (Issues error tracking, per-route performance, RUM/Web Vitals, SLOs, custom metrics, trace-correlated logs), rule-based alerting with incidents (mail/Slack/Discord/Teams/webhooks/custom), and an MCP server that exposes all of it to an AI coding agent (read-only by default, gated writes). Use when installing, configuring, securing, or extending Vigilance.
+description: Build and operate the Vigilance (anousss007/vigilance) control center in a Laravel app — dashboard authorization, automatic job/command/scheduler capture and exclusions, manual-dispatch allowlists, the driver-agnostic worker supervisor that replaces Horizon, APM, request/job tracing, the observability suite (Issues error tracking, per-route performance, RUM/Web Vitals, SLOs, custom metrics, trace-correlated logs), rule-based alerting with incidents (mail/Slack/Discord/Teams/webhooks/custom), per-page cost profiling (Debugbar's counters in production), an auto-expiring incident mode, self-monitoring (server CPU/RAM/disk alerts and a dead-man's switch on Vigilance's own pipeline), dashboard-created suppression rules, and an MCP server that exposes all of it to an AI coding agent (read-only by default, gated writes). Use when installing, configuring, securing, or extending Vigilance.
 ---
 
 # Vigilance Development
@@ -111,6 +111,8 @@ Control it with `vigilance:status`, `vigilance:pause` / `vigilance:continue`, `v
 - The `Requests` recorder rolls **all** requests up per route for the **Routes** page (throughput, error rate, Apdex, p50/p95/p99) — distinct from `SlowRequests` (threshold-only). Apdex target: `VIGILANCE_APM_APDEX_MS`.
 - Optional Redis write-behind ingest: drain with `php artisan vigilance:apm-work`.
 - Tracing is off by default. Enable with `VIGILANCE_TRACING=true`; it tail-samples (keeps only slow / errored / sampled traces). Spans cover query / cache / HTTP / redis / mail / notification.
+- **What a page costs** (opt-in, `VIGILANCE_APM_REQUEST_PROFILE=true`): the `RequestProfile` recorder adds queries, database time, peak memory and hydrated models per route to the Routes page. Not built on tracing on purpose — a trace is only kept when sampled/slow/errored, so a route quietly running 180 queries in 400ms is invisible there. Alert on it with `alerts.rules.heavy_request`.
+- **Incident mode** (`VIGILANCE_INCIDENT_MODE=true` makes it available): engage from the dashboard to keep every trace, stop sampling and lower the log floor for N minutes. The timer is a cache TTL, so it expires even across a redeploy — never raise `sample_rate` by hand "temporarily".
 - Uptime checks: `php artisan vigilance:health` records availability + latency for configured URLs.
 
 ## Observability suite
@@ -222,6 +224,9 @@ class TooManyRefunds implements AlertRule
 
 ## Forwarding telemetry (the Ingest seam)
 
+There is a ready-made `http` exporter: set `apm.ingest.exporters => ['http']` and `VIGILANCE_APM_HTTP_ENDPOINT`. It POSTs the batched `Entry`/`Value` feed (aggregations included) and is strictly additive — a failing sink never breaks local capture. There is deliberately **no Nightwatch driver**: Nightwatch ingests through its own agent and publishes no third-party format, so one could only be a reverse-engineered protocol.
+
+
 To fan APM telemetry out to an external system, bind a custom implementation of `Vigilance\Apm\Contracts\Ingest`:
 
 ```php
@@ -238,7 +243,7 @@ interface Ingest
 | Command | Purpose |
 | --- | --- |
 | `vigilance:install` | Publish config, optionally migrate, print next steps |
-| `vigilance:doctor` | Diagnose the install and surface misconfigurations |
+| `vigilance:doctor` | Diagnose the install; **exits non-zero when `vigilance:snapshot` has gone silent** — point an uptime check at it |
 | `vigilance:prune` | Delete old runs (`--days`, `--failed-days`, `--dry-run`) + trim snapshots |
 | `vigilance:snapshot` | Capture a metric snapshot **and evaluate alerts** |
 | `vigilance:schedule-sync` | Sync defined scheduled tasks into monitors |
@@ -260,4 +265,7 @@ interface Ingest
 - **RUM and the log explorer are off by default** — they need `VIGILANCE_RUM=true` (+ the `@vigilanceRum` directive in your layout) and `VIGILANCE_LOGS=true` respectively. SLOs show nothing until you define one under `slos`.
 - Log–trace correlation only happens when **both** logs and tracing are enabled (a log's `trace_id` is the in-flight trace).
 - If you published `config/vigilance.php`, re-publish (or merge new keys — `issues`, `rum`, `slos`, `logs`, `alerts.incidents`, `mcp`, `notifications.discord` / `teams` / `webhooks`) after upgrading so `.env` settings resolve.
+- **A dead-man's switch cannot watch its own process.** `MonitoringHealthRule` is evaluated *by* `vigilance:snapshot`, so it can never report the snapshotter dying — that is what `vigilance:doctor`'s exit code is for.
+- **`aggregateTotal()` only answers for windows with a matching bucket period** (15m/1h/6h/24h/7d). Any other interval reads back as **zero**, not an error. Add a period in `DatabaseStorage::periods()` before adding a range.
+- **Alpine's `:attr` and Blade's component prop binding share a syntax.** On a `<x-vigilance::ui.*>` component, `:aria-expanded="open"` is evaluated as PHP. Alpine-driven markup stays a plain element.
 - The **MCP server is off by default** and needs `laravel/mcp` installed; its write/triage tools require `VIGILANCE_MCP_ALLOW_WRITES=true` and aren't advertised to the client otherwise.

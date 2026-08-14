@@ -25,53 +25,53 @@
                 @endforeach
             </select>
             @if ($runs->isNotEmpty())
-                <button type="button" wire:click="retryGroup" wire:confirm="Retry the failed jobs in this group?" class="v-btn v-btn--sm">Retry</button>
+                <x-vigilance::ui.button variant="outline" size="sm" wire:click="retryGroup" wire:confirm="Retry the failed jobs in this group?">Retry</x-vigilance::ui.button>
             @endif
             @if (! $issue->isResolved() && $issue->acknowledged_at === null)
-                <button type="button" wire:click="acknowledge" class="v-btn v-btn--sm">Ack</button>
+                <x-vigilance::ui.button variant="outline" size="sm" wire:click="acknowledge">Ack</x-vigilance::ui.button>
             @endif
             @if ($issue->isMuted())
-                <button type="button" wire:click="unmute" class="v-btn v-btn--sm v-btn--ghost">Unmute</button>
+                <x-vigilance::ui.button variant="ghost" size="sm" wire:click="unmute">Unmute</x-vigilance::ui.button>
             @else
-                <button type="button" wire:click="mute(24)" class="v-btn v-btn--sm v-btn--ghost">Mute</button>
+                <x-vigilance::ui.button variant="ghost" size="sm" wire:click="mute(24)">Mute</x-vigilance::ui.button>
             @endif
             @if ($issue->isResolved())
-                <button type="button" wire:click="reopen" class="v-btn v-btn--sm v-btn--ghost">Reopen</button>
+                <x-vigilance::ui.button variant="ghost" size="sm" wire:click="reopen">Reopen</x-vigilance::ui.button>
             @else
-                <button type="button" wire:click="resolve" class="v-btn v-btn--sm v-btn--primary">Resolve</button>
+                <x-vigilance::ui.button size="sm" wire:click="resolve">Resolve</x-vigilance::ui.button>
             @endif
             <form wire:submit.prevent="merge" class="flex items-center gap-1">
                 <input type="number" min="1" wire:model="mergeInto" placeholder="Merge into #" class="v-select v-btn--sm w-28" aria-label="Merge into issue id">
-                <button type="submit" class="v-btn v-btn--sm v-btn--ghost">Merge</button>
+                <x-vigilance::ui.button variant="ghost" size="sm" type="submit">Merge</x-vigilance::ui.button>
             </form>
         </div>
     </div>
 
     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
         @php $status = $issue->status(); @endphp
-        <div class="v-stat">
+        <x-vigilance::ui.card>
             <div class="v-stat__label">Status</div>
             <div class="mt-2">
                 <span @class(['v-pill', 'is-danger' => $status === 'open', 'is-warn' => $status === 'acknowledged', 'is-info' => $status === 'muted', 'is-success' => $status === 'resolved'])><span class="v-dot"></span>{{ $status }}</span>
             </div>
-        </div>
-        <div class="v-stat"><div class="v-stat__label">Occurrences</div><div class="v-stat__value v-num">{{ $issue->occurrences }}</div></div>
-        <div class="v-stat"><div class="v-stat__label">Source</div><div class="mt-2"><span class="v-pill is-neutral">{{ $issue->source ?: $issue->type ?: '—' }}</span></div></div>
-        <div class="v-stat"><div class="v-stat__label">Last seen</div><div class="mt-1.5 text-base font-semibold v-strong" title="{{ $issue->last_seen_at }}">{{ optional($issue->last_seen_at)->diffForHumans() ?? '—' }}</div></div>
+        </x-vigilance::ui.card>
+        <x-vigilance::ui.card><div class="v-stat__label">Occurrences</div><div class="v-stat__value v-num">{{ $issue->occurrences }}</div></x-vigilance::ui.card>
+        <x-vigilance::ui.card><div class="v-stat__label">Source</div><div class="mt-2"><x-vigilance::ui.badge tone="neutral">{{ $issue->source ?: $issue->type ?: '—' }}</x-vigilance::ui.badge></div></x-vigilance::ui.card>
+        <x-vigilance::ui.card><div class="v-stat__label">Last seen</div><div class="mt-1.5 text-base font-semibold v-strong" title="{{ $issue->last_seen_at }}">{{ optional($issue->last_seen_at)->diffForHumans() ?? '—' }}</div></x-vigilance::ui.card>
     </div>
 
     @if ($issue->message)
-        <div class="v-card v-card--pad">
+        <x-vigilance::ui.card>
             <div class="v-stat__label mb-1">Message</div>
             <p class="break-words font-mono text-[13px] v-strong">{{ $issue->message }}</p>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     @php $breadcrumbs = $issue->context['breadcrumbs'] ?? []; @endphp
 
     @if (! empty(array_diff_key((array) $issue->context, ['breadcrumbs' => true])))
-        <div class="v-card">
-            <div class="v-card__header"><h2 class="v-card__title">Context</h2></div>
+        <x-vigilance::ui.card variant="sectioned">
+            <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Context</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
             <dl class="grid grid-cols-1 gap-x-6 gap-y-2 p-4 sm:grid-cols-2">
                 @foreach ($issue->context as $key => $value)
                     @continue($key === 'breadcrumbs')
@@ -81,15 +81,15 @@
                     </div>
                 @endforeach
             </dl>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     @if (! empty($breadcrumbs))
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Breadcrumbs</h2>
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Breadcrumbs</x-vigilance::ui.card-title>
                 <span class="text-[10px] uppercase tracking-wide v-faint">trail before the error</span>
-            </div>
+            </x-vigilance::ui.card-header>
             <ol class="divide-y">
                 @foreach ($breadcrumbs as $crumb)
                     @php
@@ -114,21 +114,21 @@
                     </li>
                 @endforeach
             </ol>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     @if ($issue->sample)
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header"><h2 class="v-card__title">Stack trace</h2></div>
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Stack trace</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
             <pre tabindex="0" class="max-h-96 overflow-auto p-4 font-mono text-[12px] leading-relaxed v-muted">{{ $issue->sample }}</pre>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     @if ($runs->isNotEmpty())
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header"><h2 class="v-card__title">Recent runs</h2></div>
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Recent runs</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
             <div class="overflow-x-auto" tabindex="0">
-                <table class="v-table v-table--hover">
+                <x-vigilance::ui.table>
                     <thead>
                         <tr>
                             <th scope="col">Name</th>
@@ -147,8 +147,8 @@
                             </tr>
                         @endforeach
                     </tbody>
-                </table>
+                </x-vigilance::ui.table>
             </div>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 </div>

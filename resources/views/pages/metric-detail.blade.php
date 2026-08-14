@@ -40,21 +40,21 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2.5">
-        <span class="v-pill is-neutral">{{ $type }}</span>
+        <x-vigilance::ui.badge tone="neutral">{{ $type }}</x-vigilance::ui.badge>
         <h1 class="font-mono text-base font-semibold v-strong">{{ $scope }}</h1>
     </div>
 
     @if ($points->isEmpty())
-        <div class="v-empty">
-            <p class="v-empty__title">No snapshots yet for this {{ $type }}.</p>
-            <p>Schedule <code class="v-code">vigilance:snapshot</code> to collect history.</p>
-        </div>
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No snapshots yet for this {{ $type }}.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Schedule <code class="v-code">vigilance:snapshot</code> to collect history.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
     @else
         <div class="grid gap-4">
             @foreach ($charts as $card)
-                <div class="v-card v-card--pad">
+                <x-vigilance::ui.card>
                     <div class="mb-2 flex items-baseline justify-between">
-                        <h2 class="v-card__title">{{ $card['title'] }}</h2>
+                        <x-vigilance::ui.card-title>{{ $card['title'] }}</x-vigilance::ui.card-title>
                         @if ($card['c'])
                             <span class="text-xs v-muted v-num">peak {{ $card['fmt']($card['c']['max']) }}</span>
                         @endif
@@ -65,7 +65,7 @@
                             <path d="{{ $card['c']['line'] }}" fill="none" stroke="{{ $card['c']['stroke'] }}" stroke-width="1.5" vector-effect="non-scaling-stroke" />
                         </svg>
                     @endif
-                </div>
+                </x-vigilance::ui.card>
             @endforeach
         </div>
     @endif

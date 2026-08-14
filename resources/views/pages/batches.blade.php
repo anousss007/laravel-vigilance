@@ -1,4 +1,4 @@
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Batches</h1>
@@ -7,10 +7,10 @@
     </div>
 
     @unless ($supported)
-        <div class="v-card v-card--pad text-[13px]" style="border-color: var(--v-warn); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-[13px]" style="border-color: var(--v-warn); color: var(--v-warn);">
             Job batching isn't set up. Run <code class="v-code">php artisan make:queue-batches-table</code>
             (or <code class="v-code">queue:batches-table</code>) and migrate.
-        </div>
+        </x-vigilance::ui.card>
     @endunless
 
     @if ($supported)
@@ -21,7 +21,7 @@
                     $processed = $batch->processedJobs();
                     $state = $batch->cancelled() ? 'cancelled' : ($batch->finished() ? 'finished' : 'processing');
                 @endphp
-                <div class="v-card v-card--pad">
+                <x-vigilance::ui.card>
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
                             <span class="font-medium v-strong">{{ $batch->name ?: 'Unnamed batch' }}</span>
@@ -32,7 +32,7 @@
                                 'is-neutral' => $state === 'cancelled',
                             ])><span class="v-dot"></span>{{ $state }}</span>
                             @if ($batch->failedJobs > 0)
-                                <span class="v-pill is-danger v-num">{{ $batch->failedJobs }} failed</span>
+                                <x-vigilance::ui.badge tone="danger" class="v-num">{{ $batch->failedJobs }} failed</x-vigilance::ui.badge>
                             @endif
                         </div>
                         <div class="flex items-center gap-2">
@@ -62,11 +62,11 @@
                         <span class="v-num">{{ $processed }}/{{ $batch->totalJobs }} processed · {{ $batch->pendingJobs }} pending</span>
                         <span>{{ optional($batch->createdAt)->diffForHumans() }}</span>
                     </div>
-                </div>
+                </x-vigilance::ui.card>
             @empty
-                <div class="v-empty">
-                    <p class="v-empty__title">No batches yet.</p>
-                </div>
+                <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No batches yet.</x-vigilance::ui.empty-title>
+</x-vigilance::ui.empty>
             @endforelse
         </div>
     @endif

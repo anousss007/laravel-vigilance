@@ -5,6 +5,8 @@ namespace Vigilance\Console;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
+use Vigilance\Apm\Contracts\Storage;
 use Vigilance\Control\ControlGate;
 use Vigilance\Vigilance;
 
@@ -29,6 +31,7 @@ class DoctorCommand extends Command
         $this->checkTracing();
         $this->checkSupervision();
         $this->checkStorage();
+        $this->checkSnapshotter();
 
         $this->newLine();
         $this->components->bulletList([
@@ -50,7 +53,7 @@ class DoctorCommand extends Command
     {
         try {
             $exists = Schema::connection(config('vigilance.storage.connection') ?: null)->hasTable('vigilance_runs');
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->reportFail('Migrations', 'could not reach the database: '.$e->getMessage());
 
             return;
@@ -172,6 +175,65 @@ class DoctorCommand extends Command
     {
         $connection = config('vigilance.storage.connection') ?: config('database.default');
         $this->reportOk('Storage connection', (string) $connection);
+    }
+
+    /**
+     * Is the snapshotter still running?
+     *
+     * This is the one gap MonitoringHealthRule structurally cannot cover: that
+     * rule is evaluated *by* vigilance:snapshot, so if the snapshotter stops,
+     * the rule stops with it and nothing ever reports the silence. A dead-man's
+     * switch cannot live inside the process it watches.
+     *
+     * Each run therefore records a heartbeat, and reading it from here — a
+     * separate process — closes the loop. Exit code 1 on a stale heartbeat is
+     * what makes `vigilance:doctor` usable as an external uptime check.
+     */
+    protected function checkSnapshotter(): void
+    {
+        if (! config('vigilance.metrics.enabled', true)) {
+            $this->reportOk('Snapshotter', 'metrics disabled — nothing to schedule');
+
+            return;
+        }
+
+        $ranAt = $this->snapshotHeartbeat();
+
+        if ($ranAt === null) {
+            $this->reportWarn('Snapshotter', 'never ran — schedule "vigilance:snapshot" (alerts are evaluated by it, so nothing is alerting yet)');
+
+            return;
+        }
+
+        $minutes = (int) floor((time() - $ranAt) / 60);
+        $stale = max(1, (int) config('vigilance.metrics.snapshot_stale_after', 30));
+
+        if ($minutes >= $stale) {
+            $this->reportFail('Snapshotter', "last ran {$minutes} minute(s) ago — alerts have not been evaluated since, and no alert can tell you that");
+
+            return;
+        }
+
+        $this->reportOk('Snapshotter', "last ran {$minutes} minute(s) ago");
+    }
+
+    protected function snapshotHeartbeat(): ?int
+    {
+        try {
+            $value = app(Storage::class)->values('vigilance')->get('snapshot');
+
+            if ($value === null) {
+                return null;
+            }
+
+            $decoded = json_decode((string) $value->value, true);
+
+            return is_array($decoded) && isset($decoded['ran_at']) ? (int) $decoded['ran_at'] : null;
+        } catch (Throwable) {
+            // Pre-migration, or an unreachable storage connection — the other
+            // checks already report on both.
+            return null;
+        }
     }
 
     protected function reportOk(string $label, string $detail): void

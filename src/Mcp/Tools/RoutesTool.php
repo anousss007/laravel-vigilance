@@ -10,7 +10,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Vigilance\Metrics\RoutePerformance;
 use Vigilance\Metrics\RouteStat;
 
-#[Description('Per-route HTTP performance over a window: request count, error count/rate, Apdex, average/max latency and p50/p95/p99 — the ranked route table from the dashboard (complements "slow-requests"/"slow-http" which surface individual slow calls). Window like 15m, 1h, 24h, 7d.')]
+#[Description('Per-route HTTP performance over a window: request count, error count/rate, Apdex, average/max latency and p50/p95/p99, plus what each page costs — queries per request, database time, peak memory and Eloquent models hydrated. The ranked route table from the dashboard (complements "slow-requests"/"slow-http" which surface individual slow calls). Window like 15m, 1h, 24h, 7d.')]
 #[IsReadOnly]
 class RoutesTool extends Tool
 {
@@ -49,6 +49,14 @@ class RoutesTool extends Tool
                 'p50_ms' => $r->p50,
                 'p95_ms' => $r->p95,
                 'p99_ms' => $r->p99,
+                // What the page costs, from the RequestProfile recorder — null
+                // throughout when it is disabled.
+                'avg_queries' => $r->queries_avg,
+                'max_queries' => $r->queries_max,
+                'avg_db_ms' => $r->db_ms_avg,
+                'avg_memory_kb' => $r->memory_kb_avg,
+                'max_memory_kb' => $r->memory_kb_max,
+                'avg_models_hydrated' => $r->models_avg,
             ])->all(),
         ]);
     }

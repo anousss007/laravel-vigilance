@@ -3,6 +3,7 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\Workload;
 
 /**
@@ -11,6 +12,8 @@ use Vigilance\Metrics\Workload;
  */
 class Schedule extends Component
 {
+    use ListensForUpdates;
+
     public function render()
     {
         return view('vigilance::pages.schedule', [

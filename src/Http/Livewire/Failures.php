@@ -7,6 +7,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Vigilance\Control\JobRetrier;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Models\FailureGroup;
 use Vigilance\Models\Run;
 use Vigilance\Vigilance;
@@ -17,6 +18,7 @@ use Vigilance\Vigilance;
  */
 class Failures extends Component
 {
+    use ListensForUpdates;
     use WithPagination;
 
     #[Url(as: 'tab')]

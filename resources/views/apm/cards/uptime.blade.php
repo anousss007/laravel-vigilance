@@ -1,6 +1,6 @@
 @php $ago = fn (?int $ts) => $ts ? \Carbon\CarbonImmutable::createFromTimestamp($ts)->diffForHumans() : '—'; @endphp
-<div class="v-card overflow-hidden">
-    <div class="v-card__header"><h2 class="v-card__title">Uptime</h2></div>
+<x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+    <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Uptime</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
     <ul>
         @forelse ($endpoints as $endpoint)
             <li class="flex items-center justify-between gap-3 px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
@@ -20,4 +20,4 @@
             </li>
         @endforelse
     </ul>
-</div>
+</x-vigilance::ui.card>

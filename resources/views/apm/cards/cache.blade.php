@@ -2,10 +2,10 @@
     $total = $cacheHits + $cacheMisses;
     $rate = $total > 0 ? round($cacheHits / $total * 100, 1) : null;
 @endphp
-<div class="v-card overflow-hidden">
-    <div class="v-card__header"><h2 class="v-card__title">Cache</h2></div>
+<x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+    <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Cache</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
     <div class="p-4">
-        <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="grid grid-cols-1 gap-3 text-center sm:grid-cols-3">
             <div><div class="text-xs v-muted">Hits</div><div class="mt-1 text-xl font-semibold v-num" style="color: var(--v-success);">{{ number_format($cacheHits) }}</div></div>
             <div><div class="text-xs v-muted">Misses</div><div class="mt-1 text-xl font-semibold v-num" style="color: var(--v-danger);">{{ number_format($cacheMisses) }}</div></div>
             <div><div class="text-xs v-muted">Hit rate</div><div class="mt-1 text-xl font-semibold v-num" style="color: var(--v-info);">{{ $rate === null ? '—' : $rate.'%' }}</div></div>
@@ -26,4 +26,4 @@
             </div>
         @endif
     </div>
-</div>
+</x-vigilance::ui.card>

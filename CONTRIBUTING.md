@@ -37,6 +37,26 @@ npm install
 npm run build
 ```
 
+The stylesheet is Tailwind **v4** (CSS-first: the theme lives in
+`resources/css/vigilance.css`, there is no `tailwind.config.js`).
+
+## Dashboard components
+
+The UI kit is vendored from [BlatUI](https://github.com/anousss007/blatui) into
+`resources/views/components/ui/` and used as `<x-vigilance::ui.card>` — the
+namespace matters, because a consuming app may have its own `<x-ui.card>` and
+the two must never collide.
+
+Only the **static** components are vendored. Anything requiring Alpine is out:
+Livewire already ships its own Alpine and a second copy would conflict, and
+Vigilance has no JS bundler. Native `<input>`/`<select>`/`<textarea>` controls
+get the same look from the `.blat-input` / `.blat-select` / `.blat-checkbox`
+classes, no JS involved.
+
+Both kits read the same tokens, so the dashboard stays coherent while views are
+migrated one at a time. `blatui` is a dev dependency purely as the upstream to
+diff against.
+
 ## Guidelines
 
 - Add or update tests for any behavioral change.

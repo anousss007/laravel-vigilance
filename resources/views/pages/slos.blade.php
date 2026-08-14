@@ -7,7 +7,7 @@
     };
 @endphp
 
-<div wire:poll.visible.30s class="space-y-6">
+<div @vigilancePoll('30s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">SLOs</h1>
@@ -16,15 +16,15 @@
     </div>
 
     @if ($slos->isEmpty())
-        <div class="v-empty">
-            <p class="v-empty__title">No SLOs defined.</p>
-            <p>Add objectives under <code class="v-code">config/vigilance.php</code> &rarr; <code class="v-code">slos</code> (success-rate or latency).</p>
-        </div>
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No SLOs defined.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Add objectives under <code class="v-code">config/vigilance.php</code> &rarr; <code class="v-code">slos</code> (success-rate or latency).</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
     @else
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @foreach ($slos as $slo)
                 @php $status = $slo->status(); @endphp
-                <div class="v-card v-card--pad space-y-3">
+                <x-vigilance::ui.card class="space-y-3">
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <h2 class="truncate font-semibold v-strong">{{ $slo->name }}</h2>
@@ -55,7 +55,7 @@
                         </span>
                         <span class="v-num v-faint">{{ number_format($slo->events) }} events</span>
                     </div>
-                </div>
+                </x-vigilance::ui.card>
             @endforeach
         </div>
     @endif

@@ -3,6 +3,7 @@
 namespace Vigilance\Console;
 
 use Illuminate\Console\Command;
+use Vigilance\Apm\Apm;
 use Vigilance\Metrics\Snapshotter;
 use Vigilance\Notifications\AlertManager;
 
@@ -21,6 +22,15 @@ class SnapshotCommand extends Command
         }
 
         $snapshotter->take();
+
+        // Heartbeat for the snapshotter itself. MonitoringHealthRule runs from
+        // this very command, so it can never notice its own absence — a
+        // dead-man's switch cannot live inside the process it watches. Writing
+        // the timestamp here gives `vigilance:doctor`, the dashboard and any
+        // external uptime check something to read instead.
+        app(Apm::class)->set('vigilance', 'snapshot', (string) json_encode([
+            'ran_at' => time(),
+        ]));
 
         $alerts = app(AlertManager::class)->check();
 

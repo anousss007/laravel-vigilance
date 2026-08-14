@@ -2,38 +2,31 @@
 
 namespace Vigilance\Http\Livewire;
 
-use Livewire\Attributes\Url;
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\HasTimeRange;
 
 /**
- * The APM overview shell: a period selector plus a grid of independent,
+ * The APM overview shell: a range selector plus a grid of independent,
  * lazily-loaded cards (see ApmCard). The card layout lives in the publishable
  * "vigilance::apm-dashboard" view, so apps can rearrange, resize (grid spans),
  * drop, or add their own <livewire:...> cards without touching the package.
  */
 class Apm extends Component
 {
-    #[Url(as: 'period')]
-    public string $period = '1h';
+    use HasTimeRange;
 
-    /** @return list<string> */
-    public function periods(): array
+    public function mount(): void
     {
-        return ['1h', '6h', '24h', '7d'];
-    }
-
-    public function setPeriod(string $period): void
-    {
-        if (in_array($period, $this->periods(), true)) {
-            $this->period = $period;
-        }
+        $this->mountHasTimeRange();
     }
 
     public function render()
     {
         return view('vigilance::pages.apm', [
-            'period' => $this->period,
-            'periods' => $this->periods(),
+            // The card layout is publishable, so an app may already have a copy
+            // that passes :period="$period" to each card. Keep feeding that
+            // exact variable rather than renaming it out from under them.
+            'period' => $this->range,
         ])->layout('vigilance::layout', ['title' => 'APM']);
     }
 }

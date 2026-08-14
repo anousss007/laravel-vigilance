@@ -10,6 +10,7 @@ use Illuminate\Console\Events\CommandStarting;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Foundation\CachesConfiguration;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Console\AboutCommand;
 use Illuminate\Http\Client\Factory;
@@ -23,20 +24,24 @@ use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\WorkerStopping;
 use Illuminate\Redis\Events\CommandExecuted;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Livewire\Livewire;
+use TailwindMerge\Laravel\TailwindMergeServiceProvider;
 use Vigilance\Apm\Apm;
 use Vigilance\Apm\Console\CheckCommand;
 use Vigilance\Apm\Console\WorkCommand;
 use Vigilance\Apm\Contracts\Ingest;
 use Vigilance\Apm\Contracts\Storage;
 use Vigilance\Apm\Ingests\FanOutIngest;
+use Vigilance\Apm\Ingests\HttpIngest;
 use Vigilance\Apm\Ingests\NullIngest;
 use Vigilance\Apm\Ingests\RedisIngest;
 use Vigilance\Apm\Ingests\StorageIngest;
+use Vigilance\Apm\Recorders\RequestProfile;
 use Vigilance\Apm\Storage\DatabaseStorage;
 use Vigilance\Capture\CommandCapture;
 use Vigilance\Capture\IssueCapture;
@@ -72,6 +77,7 @@ use Vigilance\Http\Livewire\CommandRunner;
 use Vigilance\Http\Livewire\Custom;
 use Vigilance\Http\Livewire\Dispatcher;
 use Vigilance\Http\Livewire\Failures;
+use Vigilance\Http\Livewire\IncidentModeBanner;
 use Vigilance\Http\Livewire\Incidents;
 use Vigilance\Http\Livewire\IssueDetail;
 use Vigilance\Http\Livewire\Logs as LogsPage;
@@ -85,9 +91,11 @@ use Vigilance\Http\Livewire\RunDetail;
 use Vigilance\Http\Livewire\Runs;
 use Vigilance\Http\Livewire\Schedule;
 use Vigilance\Http\Livewire\Slos;
+use Vigilance\Http\Livewire\StagedChangesBanner;
 use Vigilance\Http\Livewire\Tags;
 use Vigilance\Http\Livewire\TraceDetail;
 use Vigilance\Http\Livewire\Traces;
+use Vigilance\Http\Livewire\Usage;
 use Vigilance\Http\Livewire\Vitals;
 use Vigilance\Http\Livewire\Workers;
 use Vigilance\Http\Livewire\Workload;
@@ -110,7 +118,15 @@ class VigilanceServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/vigilance.php', 'vigilance');
+        $this->mergeVigilanceConfig();
+
+        // The vendored dashboard components resolve their classes through the
+        // ComponentAttributeBag::twMerge macro. Register its provider ourselves
+        // rather than trusting package auto-discovery — an app can switch that
+        // off with "dont-discover", and the dashboard must still render.
+        // Laravel's register() is idempotent, so this is a no-op when the app
+        // already loaded it.
+        $this->app->register(TailwindMergeServiceProvider::class);
 
         $this->app->singleton(RunRepository::class, DatabaseRunRepository::class);
         $this->app->singleton(MetricsRepository::class, DatabaseMetricsRepository::class);
@@ -122,6 +138,56 @@ class VigilanceServiceProvider extends ServiceProvider
 
         $this->registerApm();
         $this->registerLogs();
+    }
+
+    /**
+     * Merge the package config under the user's published copy.
+     *
+     * Laravel's mergeConfigFrom is *shallow*: it array_merges only the top-level
+     * "vigilance" key, so a published config keeps its own "apm", "alerts", …
+     * sub-arrays wholesale and never sees anything added in a later release. A
+     * recorder or alert rule shipped after a user ran `vigilance:install` would
+     * silently never register — the feature simply wouldn't exist for them, with
+     * no error to explain why. Merge recursively instead, so new defaults reach
+     * every install while any key the user actually defines still wins.
+     *
+     * List-shaped values (ignore patterns, allow/deny lists, SLO definitions)
+     * are *replaced*, never appended to — otherwise narrowing a default list
+     * would be impossible.
+     *
+     * Guarded exactly like mergeConfigFrom: skipped when the config is cached,
+     * because it already ran (with the environment loaded) at cache-build time.
+     */
+    protected function mergeVigilanceConfig(): void
+    {
+        if ($this->app instanceof CachesConfiguration && $this->app->configurationIsCached()) {
+            return;
+        }
+
+        $config = $this->app->make('config');
+
+        $config->set('vigilance', $this->mergeConfigRecursively(
+            require __DIR__.'/../config/vigilance.php',
+            (array) $config->get('vigilance', []),
+        ));
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $defaults
+     * @param  array<array-key, mixed>  $overrides
+     * @return array<array-key, mixed>
+     */
+    protected function mergeConfigRecursively(array $defaults, array $overrides): array
+    {
+        foreach ($overrides as $key => $value) {
+            $existing = $defaults[$key] ?? null;
+
+            $defaults[$key] = is_array($value) && is_array($existing) && ! array_is_list($value)
+                ? $this->mergeConfigRecursively($existing, $value)
+                : $value;
+        }
+
+        return $defaults;
     }
 
     protected function registerLogs(): void
@@ -146,6 +212,10 @@ class VigilanceServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(Apm::class, fn ($app) => new Apm($app));
+
+        // The only stateful recorder: it accumulates per-request counters between
+        // the query events and the terminate hook, so both must see one instance.
+        $this->app->singleton(RequestProfile::class);
 
         $this->registerTracing();
     }
@@ -173,6 +243,10 @@ class VigilanceServiceProvider extends ServiceProvider
 
         if ($driver === 'redis') {
             return new RedisIngest($app->make(Storage::class));
+        }
+
+        if ($driver === 'http') {
+            return new HttpIngest;
         }
 
         $ingest = $app->make($driver);
@@ -236,6 +310,23 @@ class VigilanceServiceProvider extends ServiceProvider
             static fn (): string => "<?php echo view('vigilance::rum')->render(); ?>",
         );
 
+        // @vigilancePoll('5s') — how a dashboard page keeps itself current.
+        //
+        // Normally the page's own poll interval. With realtime on, pages refresh
+        // from a broadcast (see ListensForUpdates) and the timer drops back to a
+        // slow safety net: keeping the fast poll as well would mean hitting the
+        // database on a timer AND re-rendering on every broadcast, which is the
+        // opposite of the point. The slow poll stays because a dropped socket
+        // must not leave the dashboard frozen and confidently wrong.
+        //
+        // Namespaced deliberately: a bare @live would be a landmine the day
+        // Livewire adds a directive by that name.
+        Blade::directive('vigilancePoll', static function (string $expression): string {
+            return "<?php echo config('vigilance.realtime.enabled', false)
+                ? 'wire:poll.visible.120s'
+                : 'wire:poll.visible.'.{$expression}; ?>";
+        });
+
         if (config('vigilance.enabled', true)) {
             $this->registerCapture();
 
@@ -246,6 +337,7 @@ class VigilanceServiceProvider extends ServiceProvider
         }
 
         $this->registerAssets();
+        $this->registerRealtime();
         $this->registerRoutes();
         $this->registerRum();
         $this->registerFeedback();
@@ -395,7 +487,16 @@ class VigilanceServiceProvider extends ServiceProvider
 
     protected function bootTracing(): void
     {
-        if (! config('vigilance.tracing.enabled', false)) {
+        // Instrumentation has to be wired at boot to exist at all, so it is also
+        // wired when incident mode is available to switch tracing on later —
+        // otherwise engaging the switch would produce nothing, because the
+        // listeners and middleware were never registered. Tracer::enabled() is
+        // the runtime gate; with tracing off and nothing engaged, every hook
+        // short-circuits on a null check.
+        $incidentModeCanTrace = config('vigilance.incident_mode.enabled', false)
+            && config('vigilance.incident_mode.tracing', true);
+
+        if (! config('vigilance.tracing.enabled', false) && ! $incidentModeCanTrace) {
             return;
         }
 
@@ -638,16 +739,40 @@ class VigilanceServiceProvider extends ServiceProvider
         }
     }
 
+    /**
+     * Authorise the dashboard's private broadcast channel with the same gate
+     * that guards the dashboard itself. Anything less would let a socket
+     * subscriber learn about production activity the HTTP routes would refuse
+     * to show them.
+     */
+    protected function registerRealtime(): void
+    {
+        if (! config('vigilance.realtime.enabled', false)) {
+            return;
+        }
+
+        try {
+            Broadcast::channel(
+                (string) config('vigilance.realtime.channel', 'vigilance'),
+                static fn ($user) => Vigilance::check(request()),
+            );
+        } catch (\Throwable) {
+            // An app with no broadcasting configured must not fail to boot just
+            // because this flag is on.
+        }
+    }
+
     protected function registerAssets(): void
     {
-        // The bundled stylesheet is served unauthenticated (it carries no data)
-        // so it always loads, independent of the dashboard authorization gate.
+        // The bundled assets are served unauthenticated (they carry no data) so
+        // they always load, independent of the dashboard authorization gate.
         Route::group([
             'domain' => config('vigilance.domain'),
             'prefix' => config('vigilance.path', 'vigilance'),
             'as' => 'vigilance.assets.',
         ], function () {
             Route::get('vigilance.css', [AssetController::class, 'css'])->name('css');
+            Route::get('vigilance.js', [AssetController::class, 'js'])->name('js');
         });
     }
 
@@ -752,6 +877,9 @@ class VigilanceServiceProvider extends ServiceProvider
             'vigilance.batches' => Batches::class,
             'vigilance.metrics' => Metrics::class,
             'vigilance.metric-detail' => MetricDetail::class,
+            'vigilance.usage' => Usage::class,
+            'vigilance.staged-changes' => StagedChangesBanner::class,
+            'vigilance.incident-mode' => IncidentModeBanner::class,
         ];
     }
 

@@ -2,6 +2,8 @@
 
 namespace Vigilance\Supervision;
 
+use Throwable;
+use Vigilance\Apm\Apm;
 use Vigilance\Metrics\QueueDepth;
 
 /**
@@ -20,6 +22,8 @@ class Supervisor
 
     protected ?int $lastScaledAt = null;
 
+    protected ?int $lastWorkerSampleAt = null;
+
     public function __construct(
         public SupervisorOptions $options,
         protected AutoScaler $scaler,
@@ -27,6 +31,7 @@ class Supervisor
         protected ControlPlane $control,
         protected QueueDepth $depth,
         protected ?QueueRuntime $runtime = null,
+        protected ?QueueWait $wait = null,
     ) {
         foreach ($options->pools() as $key) {
             $this->pools[$key] = new Pool($key, $options);
@@ -212,6 +217,7 @@ class Supervisor
             $current,
             fn (string $pool): int => $this->sizeFor($pool),
             fn (string $pool): float => $this->runtimeFor($pool),
+            fn (string $pool): float => $this->waitFor($pool),
         );
 
         // Only resize pools that still have an active queue this tick — never
@@ -264,6 +270,26 @@ class Supervisor
         return $sum / max(1, count($queues));
     }
 
+    /**
+     * The worst measured wait across the pool's queues — worst, not averaged,
+     * because a pool is only as healthy as its slowest queue and averaging
+     * would let one starved queue hide behind three idle ones.
+     */
+    protected function waitFor(string $poolKey): float
+    {
+        if ($this->wait === null) {
+            return 0.0;
+        }
+
+        $worst = 0.0;
+
+        foreach (explode(',', $poolKey) as $queue) {
+            $worst = max($worst, $this->wait->for($this->options->connection, $queue));
+        }
+
+        return $worst;
+    }
+
     protected function heartbeat(): void
     {
         $pools = [];
@@ -280,6 +306,51 @@ class Supervisor
             $pools,
             $workers,
         );
+
+        $this->recordWorkerCount($pools);
+    }
+
+    /**
+     * Record the fleet size as a metric so scaling becomes a graph.
+     *
+     * The supervisor's own state table only ever holds "right now", so when a
+     * pool scales badly there is no way to see what it did or when — you are
+     * left guessing at a decision that already happened. A series makes the
+     * behaviour reviewable next to queue depth and wait time.
+     *
+     * Throttled to the width of the narrowest APM bucket: the loop ticks once a
+     * second and writing at that rate would cost more than the thing it
+     * measures. Flushed inline because this master process is neither an HTTP
+     * request nor a queue worker, so nothing else will drain the buffer.
+     *
+     * @param  array<string, int>  $pools
+     */
+    protected function recordWorkerCount(array $pools): void
+    {
+        $now = time();
+
+        if ($this->lastWorkerSampleAt !== null && $now - $this->lastWorkerSampleAt < 15) {
+            return;
+        }
+
+        $this->lastWorkerSampleAt = $now;
+
+        try {
+            $apm = app(Apm::class);
+
+            foreach ($pools as $key => $count) {
+                $apm->record(
+                    'workers',
+                    (string) json_encode([$this->options->name, $key]),
+                    $count,
+                    $now,
+                )->avg()->max()->onlyBuckets();
+            }
+
+            $apm->ingest();
+        } catch (Throwable) {
+            // Losing a data point must never take down the fleet it supervises.
+        }
     }
 
     /**

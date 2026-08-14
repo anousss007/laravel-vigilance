@@ -8,7 +8,7 @@
 
     The $period variable is provided by the APM shell.
 --}}
-<div wire:poll.visible.10s class="grid gap-4 lg:grid-cols-2">
+<div @vigilancePoll('10s') class="grid gap-4 lg:grid-cols-2">
     <div class="lg:col-span-2">
         <livewire:vigilance.apm-card card="servers" :period="$period" :key="'servers-'.$period" />
     </div>

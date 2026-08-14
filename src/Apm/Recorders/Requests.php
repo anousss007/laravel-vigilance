@@ -3,13 +3,13 @@
 namespace Vigilance\Apm\Recorders;
 
 use DateTimeInterface;
-use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Vigilance\Apm\Apm;
 use Vigilance\Apm\Recorders\Concerns\Ignores;
+use Vigilance\Apm\Recorders\Concerns\ResolvesRequests;
 use Vigilance\Apm\Recorders\Concerns\Sampling;
 
 /**
@@ -22,6 +22,7 @@ use Vigilance\Apm\Recorders\Concerns\Sampling;
 class Requests extends Recorder
 {
     use Ignores;
+    use ResolvesRequests;
     use Sampling;
 
     public function register(Apm $apm): void
@@ -71,36 +72,5 @@ class Requests extends Recorder
             $duration <= $threshold * 4 => 50,
             default => 0,
         };
-    }
-
-    protected function resolveRoutePath(Request $request): string
-    {
-        $route = $request->route();
-        $uri = $route instanceof Route ? $route->uri() : $request->path();
-
-        // Livewire update requests all hit one endpoint; attribute them to the
-        // page they happened on (the referrer) instead of "/livewire/update".
-        if (str_contains($uri, 'livewire/update') || str_contains($uri, 'livewire/message')) {
-            $referer = (string) $request->headers->get('referer', '');
-            $path = $referer !== '' ? parse_url($referer, PHP_URL_PATH) : null;
-
-            if (is_string($path) && $path !== '') {
-                return '/'.ltrim(rtrim($path, '/'), '/').' (livewire)';
-            }
-        }
-
-        return '/'.ltrim($uri, '/');
-    }
-
-    protected function durationMs(DateTimeInterface $startedAt): int
-    {
-        $start = (float) $startedAt->format('U.u');
-
-        return (int) round(max(0, (microtime(true) - $start) * 1000));
-    }
-
-    protected function container(): Container
-    {
-        return $this->apm->container();
     }
 }

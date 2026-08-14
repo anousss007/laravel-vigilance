@@ -7,11 +7,11 @@
     </div>
 
     @unless ($enabled)
-        <div class="v-card v-card--pad text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             Manual control is disabled. Set <code class="v-code">vigilance.control.enabled</code> to <code class="v-code">true</code> to run commands from here.
-        </div>
+        </x-vigilance::ui.card>
     @else
-        <div class="v-card v-card--pad">
+        <x-vigilance::ui.card>
             <label class="block">
                 <span class="v-label">Command</span>
                 <select wire:model.live="command" class="v-select">
@@ -78,23 +78,23 @@
                             <input type="checkbox" wire:model="background" class="v-checkbox">
                             Run in background (queue)
                         </label>
-                        <button type="submit" wire:loading.attr="disabled" class="v-btn v-btn--primary">
+                        <x-vigilance::ui.button type="submit" wire:loading.attr="disabled">
                             <span wire:loading.remove wire:target="runCommand">Run</span>
                             <span wire:loading wire:target="runCommand">Running…</span>
-                        </button>
+                        </x-vigilance::ui.button>
                     </div>
                 </form>
             @endif
-        </div>
+        </x-vigilance::ui.card>
 
         @if ($exitCode !== null)
-            <div class="v-card overflow-hidden">
-                <div class="v-card__header">
-                    <h2 class="v-card__title">Output</h2>
+            <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+                <x-vigilance::ui.card-header>
+                    <x-vigilance::ui.card-title>Output</x-vigilance::ui.card-title>
                     <span @class(['v-pill', 'is-success' => $exitCode === 0, 'is-danger' => $exitCode !== 0])>exit {{ $exitCode }}</span>
-                </div>
+                </x-vigilance::ui.card-header>
                 <pre class="overflow-x-auto p-4 text-xs leading-relaxed font-mono" style="background:#0a0a0a; color:#34d399;">{{ $output !== '' ? $output : '(no output)' }}</pre>
-            </div>
+            </x-vigilance::ui.card>
         @endif
     @endunless
 </div>

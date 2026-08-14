@@ -12,10 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route as RouteFacade;
 use Symfony\Component\HttpFoundation\Response;
 use Vigilance\Apm\Apm;
 use Vigilance\Apm\Contracts\Storage;
 use Vigilance\Apm\Events\SharedBeat;
+use Vigilance\Apm\Recorders\RequestProfile;
 use Vigilance\Apm\Recorders\SlowOutgoingRequests;
 use Vigilance\Apm\Recorders\SlowRequests;
 use Vigilance\Apm\Recorders\UserRequests;
@@ -115,6 +117,20 @@ it('does not record a fast request under the threshold', function () {
     app(Apm::class)->ingest();
 
     expect(apmCount('slow_request'))->toBe(0.0);
+});
+
+it('does not profile request cost unless the recorder is opted into', function () {
+    RouteFacade::get('/_unprofiled', fn () => 'ok');
+
+    $this->get('/_unprofiled')->assertOk();
+
+    app(Apm::class)->ingest();
+
+    // RequestProfile listens to every query and writes 2-4 extra entries per
+    // request, so it stays off until VIGILANCE_APM_REQUEST_PROFILE=true.
+    expect(config('vigilance.apm.recorders.'.RequestProfile::class.'.enabled'))->toBeFalse()
+        ->and(apmCount('request_queries'))->toBe(0.0)
+        ->and(apmCount('request_memory'))->toBe(0.0);
 });
 
 it('records a slow outgoing request keyed by method and grouped uri', function () {

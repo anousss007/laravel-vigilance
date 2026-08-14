@@ -12,6 +12,7 @@ use Vigilance\Contracts\RunRepository;
 use Vigilance\Data\RunData;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
+use Vigilance\Events\DashboardChanged;
 use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\ExceptionChain;
 use Vigilance\Support\Redactor;
@@ -245,6 +246,8 @@ class Recorder
                 'cpu_time_ms' => $this->cpuDelta($uuid),
             ])->status(RunStatus::Succeeded));
         });
+
+        DashboardChanged::throttled('runs');
     }
 
     public function jobFailed(JobFailed $event): void
@@ -315,6 +318,8 @@ class Recorder
 
             $this->runs->insert($changes);
         });
+
+        DashboardChanged::throttled('runs');
     }
 
     public function jobReleased(JobReleasedAfterException $event): void
@@ -424,6 +429,8 @@ class Recorder
 
             $this->runs->update($frame['id'], $changes);
         });
+
+        DashboardChanged::throttled('runs');
     }
 
     // ---------------------------------------------------------------------

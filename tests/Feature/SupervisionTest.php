@@ -101,9 +101,33 @@ it('distributes processes by load share for auto balancing', function () {
 
     $desired = $scaler->desiredPerPool($options, fn ($pool) => $sizes[$pool]);
 
+    // 75/25 of 10. Rounding each share on its own gave 8 and 3 — eleven
+    // processes for a max of ten, because both halves rounded up. maxProcesses
+    // is the supervisor TOTAL, so the split uses largest-remainder and the
+    // parts add up to the whole.
     expect($desired['a'])->toBeGreaterThan($desired['b'])
         ->and($desired['a'])->toBe(8)
-        ->and($desired['b'])->toBe(3);
+        ->and($desired['b'])->toBe(2)
+        ->and(array_sum($desired))->toBe(10);
+});
+
+it('never hands out more processes than max_processes', function () {
+    // Any split that lands on exact halves used to overshoot; walk a range of
+    // pool counts and shares to keep that from coming back.
+    $scaler = new AutoScaler;
+
+    foreach ([2, 3, 4, 7] as $poolCount) {
+        $queues = array_map(fn (int $i) => 'q'.$i, range(1, $poolCount));
+
+        $options = SupervisorOptions::fromArray([
+            'queue' => $queues, 'balance' => 'auto', 'auto_scaling_strategy' => 'size',
+            'min_processes' => 0, 'max_processes' => 10,
+        ]);
+
+        $desired = $scaler->desiredPerPool($options, fn () => 10);
+
+        expect(array_sum($desired))->toBeLessThanOrEqual(10);
+    }
 });
 
 it('throttles scaling by balance_max_shift', function () {

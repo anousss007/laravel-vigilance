@@ -19,6 +19,11 @@
 
     <link rel="stylesheet" href="{{ route('vigilance.assets.css') }}?v={{ \Vigilance\Vigilance::assetVersion() }}">
 
+    {{-- Teaches Livewire's Alpine the plugins/components the UI kit needs. Loaded
+         from the head with defer: deferred scripts run in document order, so this
+         registers its alpine:init listener before @livewireScripts boots Alpine. --}}
+    <script defer src="{{ route('vigilance.assets.js') }}?v={{ \Vigilance\Vigilance::assetVersion() }}"></script>
+
 
     @livewireStyles
 </head>
@@ -52,6 +57,7 @@
         'Control' => [
             'vigilance.dispatch' => ['label' => 'Dispatch', 'icon' => 'dispatch'],
             'vigilance.commands' => ['label' => 'Commands', 'icon' => 'commands'],
+            'vigilance.usage' => ['label' => 'Usage', 'icon' => 'metrics'],
         ],
     ];
 
@@ -151,13 +157,20 @@
     <div class="flex min-w-0 flex-1 flex-col">
         {{-- Top bar --}}
         <header class="v-topbar sticky top-0 z-30 flex h-14 items-center gap-3 px-4 sm:px-6">
-            <button type="button" @click="drawer = true" class="v-btn v-btn--ghost v-btn--sm lg:hidden" aria-label="Open menu" aria-controls="v-sidebar" :aria-expanded="drawer">
+            {{-- Plain <button>, not the component: Alpine's :attr binding and Blade's
+                 component prop binding share the same syntax, so :aria-expanded="drawer"
+                 would be evaluated as PHP and blow up on an undefined constant. --}}
+            <button type="button" @click="drawer = true" aria-label="Open menu" aria-controls="v-sidebar" :aria-expanded="drawer" class="v-btn v-btn--ghost v-btn--sm lg:hidden">
                 @include('vigilance::partials.icon', ['name' => 'menu', 'class' => 'h-5 w-5'])
             </button>
 
             <span class="truncate text-sm font-semibold v-strong">{{ $title ?? 'Dashboard' }}</span>
 
             <div class="flex-1"></div>
+
+            {{-- In the shell rather than on a settings page: a switch you have
+                 to go looking for is a switch nobody finds mid-incident. --}}
+            <livewire:vigilance.incident-mode />
 
             <button type="button" @click="openPalette()" aria-label="Search pages" aria-keyshortcuts="Meta+K Control+K"
                     class="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[13px] v-muted transition-colors hover:v-strong sm:flex"
@@ -167,7 +180,7 @@
                 <span class="v-kbd ml-2">⌘K</span>
             </button>
 
-            <button type="button" @click="toggleTheme()" class="v-btn v-btn--ghost v-btn--sm" aria-label="Toggle theme" :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'" :aria-pressed="dark">
+            <button type="button" @click="toggleTheme()" aria-label="Toggle theme" :aria-label="dark ? 'Switch to light theme' : 'Switch to dark theme'" :aria-pressed="dark" class="v-btn v-btn--ghost v-btn--sm">
                 <template x-if="dark">@include('vigilance::partials.icon', ['name' => 'sun', 'class' => 'h-5 w-5'])</template>
                 <template x-if="!dark">@include('vigilance::partials.icon', ['name' => 'moon', 'class' => 'h-5 w-5'])</template>
             </button>
@@ -188,7 +201,11 @@
 
         {{-- Content --}}
         <main id="v-main" tabindex="-1" class="flex-1 px-4 py-6 sm:px-6 focus:outline-none">
-            <div class="mx-auto max-w-[1400px]">
+            <div class="mx-auto max-w-[1400px] space-y-6">
+                @if (config('vigilance.control.staging', false))
+                    <livewire:vigilance.staged-changes />
+                @endif
+
                 {{ $slot }}
             </div>
         </main>

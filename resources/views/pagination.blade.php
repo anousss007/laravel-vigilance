@@ -6,19 +6,17 @@
 
         <div class="flex items-center gap-2">
             @if (! $paginator->onFirstPage())
-                <button type="button" wire:click="previousPage" wire:loading.attr="disabled" rel="prev"
-                        class="v-btn v-btn--sm">
+                <x-vigilance::ui.button variant="outline" size="sm" wire:click="previousPage" wire:loading.attr="disabled" rel="prev">
                     Prev
-                </button>
+                </x-vigilance::ui.button>
             @endif
 
             <span>page {{ $paginator->currentPage() }} / {{ $paginator->lastPage() }}</span>
 
             @if ($paginator->hasMorePages())
-                <button type="button" wire:click="nextPage" wire:loading.attr="disabled" rel="next"
-                        class="v-btn v-btn--sm">
+                <x-vigilance::ui.button variant="outline" size="sm" wire:click="nextPage" wire:loading.attr="disabled" rel="next">
                     Next
-                </button>
+                </x-vigilance::ui.button>
             @endif
         </div>
     </nav>

@@ -10,18 +10,17 @@
     };
 @endphp
 
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Schedule</h1>
             <p class="v-page-sub">Scheduled tasks with last run, duration and lateness.</p>
         </div>
-        <span class="v-pill is-neutral v-num">{{ $tasks->count() }} tasks</span>
+        <x-vigilance::ui.badge tone="neutral" class="v-num">{{ $tasks->count() }} tasks</x-vigilance::ui.badge>
     </div>
 
-    <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card class="overflow-hidden">
+        <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Task</th>
@@ -45,16 +44,16 @@
                             <td>
                                 <div class="flex flex-wrap items-center gap-1.5">
                                     @if ($task->last_run_failed)
-                                        <span class="v-pill is-danger">last run failed</span>
+                                        <x-vigilance::ui.badge tone="danger">last run failed</x-vigilance::ui.badge>
                                     @endif
                                     @if ($task->is_late)
-                                        <span class="v-pill is-warn">late</span>
+                                        <x-vigilance::ui.badge tone="warning">late</x-vigilance::ui.badge>
                                     @endif
                                     @if (! $task->is_late && ! $task->last_run_failed)
-                                        <span class="v-pill is-success">ok</span>
+                                        <x-vigilance::ui.badge tone="success">ok</x-vigilance::ui.badge>
                                     @endif
                                     @unless ($task->monitored)
-                                        <span class="v-pill is-neutral">unmonitored</span>
+                                        <x-vigilance::ui.badge tone="neutral">unmonitored</x-vigilance::ui.badge>
                                     @endunless
                                 </div>
                             </td>
@@ -63,7 +62,6 @@
                         <tr><td colspan="7" class="px-3 py-10 text-center v-muted">No scheduled tasks have been recorded yet.</td></tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 </div>

@@ -1,20 +1,19 @@
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Issues</h1>
             <p class="v-page-sub"><span class="v-num">{{ $groups->total() }}</span> issues · errors across web, queue &amp; commands</p>
         </div>
         @if ($groups->total() > 0)
-            <button type="button" wire:click="retryAll" wire:confirm="Retry every failed job?"
-                    class="v-btn v-btn--sm">
+            <x-vigilance::ui.button variant="outline" size="sm" wire:click="retryAll" wire:confirm="Retry every failed job?">
                 @include('vigilance::partials.icon', ['name' => 'failures', 'class' => 'h-4 w-4'])
                 Retry all failed
-            </button>
+            </x-vigilance::ui.button>
         @endif
     </div>
 
     {{-- Filters --}}
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex flex-wrap items-center gap-3">
             <div class="flex gap-1">
                 @foreach (['open' => 'Open', 'resolved' => 'Resolved', 'all' => 'All'] as $key => $label)
@@ -29,11 +28,11 @@
                 @endforeach
             </div>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
-    <div class="v-card overflow-hidden">
+    <x-vigilance::ui.card class="overflow-hidden">
         <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+            <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Name / exception</th>
@@ -67,7 +66,7 @@
                                     <div class="text-[11px] font-mono v-faint">{{ $group->exception_class }}</div>
                                 @endif
                             </td>
-                            <td><span class="v-pill is-neutral">{{ $group->source ?: $group->type ?: '—' }}</span></td>
+                            <td><x-vigilance::ui.badge tone="neutral">{{ $group->source ?: $group->type ?: '—' }}</x-vigilance::ui.badge></td>
                             <td class="max-w-xs truncate v-muted" title="{{ $group->message }}">{{ \Illuminate\Support\Str::limit($group->message, 80) }}</td>
                             <td>
                                 @if ($path)
@@ -88,7 +87,7 @@
                                     'is-success' => $status === 'resolved',
                                 ])><span class="v-dot"></span>{{ $status }}</span>
                                 @if ($group->isRegressed())
-                                    <span class="ml-1 v-pill is-danger" title="This issue was resolved and has come back">regressed</span>
+                                    <x-vigilance::ui.badge tone="danger" class="ml-1" title="This issue was resolved and has come back">regressed</x-vigilance::ui.badge>
                                 @endif
                                 @if ($group->priority)
                                     <span @class([
@@ -130,15 +129,15 @@
                         </tr>
                     @empty
                         <tr><td colspan="8">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No issues here.</p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No issues here.</x-vigilance::ui.empty-title>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
+            </x-vigilance::ui.table>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
     <div>{{ $groups->links('vigilance::pagination') }}</div>
 </div>

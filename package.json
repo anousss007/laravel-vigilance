@@ -1,9 +1,16 @@
 {
     "private": true,
     "scripts": {
-        "build": "tailwindcss -i resources/css/vigilance.css -o resources/dist/vigilance.css --minify"
+        "build": "npm run build:css && npm run build:js",
+        "build:css": "tailwindcss -i resources/css/vigilance.css -o resources/dist/vigilance.css --minify",
+        "build:js": "esbuild resources/js/vigilance.js --bundle --minify --format=iife --target=es2020 --outfile=resources/dist/vigilance.js"
     },
     "devDependencies": {
-        "tailwindcss": "^3.4.17"
+        "@alpinejs/anchor": "^3.16.1",
+        "@alpinejs/collapse": "^3.16.1",
+        "@alpinejs/focus": "^3.16.1",
+        "@floating-ui/dom": "^1.8.0",
+        "@tailwindcss/cli": "^4.3.3",
+        "esbuild": "^0.28.2"
     }
 }

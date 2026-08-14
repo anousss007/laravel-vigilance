@@ -27,6 +27,7 @@ class SupervisorOptions
         public int $timeout = 60,
         public int $sleep = 3,
         public int $nice = 0,
+        protected int $targetWaitMs = 5000,
     ) {}
 
     /** @param array<string, mixed> $options */
@@ -44,6 +45,7 @@ class SupervisorOptions
             maxProcesses: (int) ($options['max_processes'] ?? 1),
             balanceMaxShift: (int) ($options['balance_max_shift'] ?? 1),
             balanceCooldown: (int) ($options['balance_cooldown'] ?? 3),
+            targetWaitMs: (int) ($options['target_wait_ms'] ?? 5000),
             maxTime: (int) ($options['max_time'] ?? 0),
             maxJobs: (int) ($options['max_jobs'] ?? 0),
             memory: (int) ($options['memory'] ?? 128),
@@ -67,6 +69,7 @@ class SupervisorOptions
             'max_processes' => $this->maxProcesses,
             'balance_max_shift' => $this->balanceMaxShift,
             'balance_cooldown' => $this->balanceCooldown,
+            'target_wait_ms' => $this->targetWaitMs,
             'max_time' => $this->maxTime,
             'max_jobs' => $this->maxJobs,
             'memory' => $this->memory,
@@ -101,6 +104,27 @@ class SupervisorOptions
     public function autoScaleByNumberOfJobs(): bool
     {
         return $this->autoScalingStrategy === 'size';
+    }
+
+    /**
+     * Scale on the wait time jobs actually experienced, rather than on a drain
+     * time estimated from backlog x average runtime. The estimate falls apart
+     * exactly when it matters — heterogeneous job durations, or one slow job
+     * type arriving — because an average is not a prediction.
+     */
+    public function autoScaleByLatency(): bool
+    {
+        return $this->autoScalingStrategy === 'latency';
+    }
+
+    /**
+     * The wait time (ms) the fleet is being scaled to hold. At or above it the
+     * whole fleet is deployed; comfortably under it, proportionally less — which
+     * is what lets the pool scale back down once latency recovers.
+     */
+    public function targetWaitMs(): int
+    {
+        return max(1, $this->targetWaitMs);
     }
 
     /**

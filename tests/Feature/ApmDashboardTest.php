@@ -5,6 +5,7 @@ use Livewire\Livewire;
 use Vigilance\Apm\Apm;
 use Vigilance\Http\Livewire\Apm as ApmPage;
 use Vigilance\Http\Livewire\ApmCard;
+use Vigilance\Http\Livewire\Routes;
 use Vigilance\Vigilance;
 
 uses(RefreshDatabase::class);
@@ -45,14 +46,28 @@ it('returns 403 on the apm route when not authorized', function () {
     $this->get(route('vigilance.apm'))->assertForbidden();
 });
 
-it('renders the apm shell with the period selector and lazy cards', function () {
+it('renders the apm shell with the range selector and lazy cards', function () {
     Livewire::test(ApmPage::class)
         ->assertOk()
         ->assertSee('Application performance')
         ->assertSeeLivewire('vigilance.apm-card')
-        ->assertSet('period', '1h')
-        ->call('setPeriod', '7d')
-        ->assertSet('period', '7d');
+        ->assertSet('range', '1h')
+        ->call('setRange', '7d')
+        ->assertSet('range', '7d');
+});
+
+it('remembers the chosen range across pages', function () {
+    // The window follows you from one page to the next: chasing a spike from
+    // Routes to APM should not silently snap back to the default.
+    Livewire::test(ApmPage::class)->call('setRange', '15m');
+
+    Livewire::test(Routes::class)->assertSet('range', '15m');
+});
+
+it('ignores a range it has no bucket period for', function () {
+    Livewire::test(ApmPage::class)
+        ->call('setRange', '3m')
+        ->assertSet('range', '1h');
 });
 
 it('renders the cache card', function () {

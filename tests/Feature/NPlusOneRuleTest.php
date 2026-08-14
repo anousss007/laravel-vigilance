@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Vigilance\Apm\Apm;
+use Vigilance\Models\Incident;
 use Vigilance\Notifications\AlertManager;
 use Vigilance\Vigilance;
 
@@ -43,4 +44,20 @@ it('stays quiet below the minimum occurrences', function () {
     app(Apm::class)->ingest();
 
     expect(app(AlertManager::class)->check())->toBe(0);
+});
+
+it('bounds the alert key so the incident row is actually written', function () {
+    // No caller => the key falls back to the SQL, which the tracer truncates at
+    // 500 characters — well past the string(255) incidents.key column. The
+    // insert is rescued, so an over-long key used to cost the alert its incident
+    // silently: notification sent, nothing tracked, nothing to auto-resolve.
+    $sql = 'select * from items where note = '.str_repeat('x', 480);
+
+    recordNPlusOne('GET /list', $sql, null, 12);
+    recordNPlusOne('GET /list', $sql, null, 12);
+    app(Apm::class)->ingest();
+
+    expect(app(AlertManager::class)->check())->toBe(1)
+        ->and(Incident::query()->count())->toBe(1)
+        ->and(mb_strlen((string) Incident::query()->value('key')))->toBeLessThanOrEqual(255);
 });

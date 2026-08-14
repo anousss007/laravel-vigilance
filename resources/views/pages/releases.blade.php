@@ -16,7 +16,7 @@
     };
 @endphp
 
-<div wire:poll.visible.30s class="space-y-6">
+<div @vigilancePoll('30s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Releases</h1>
@@ -24,9 +24,9 @@
         </div>
     </div>
 
-    <div class="v-card overflow-hidden">
+    <x-vigilance::ui.card class="overflow-hidden">
         <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+            <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Release</th>
@@ -77,14 +77,14 @@
                         </tr>
                     @empty
                         <tr><td colspan="7">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No deployments recorded.</p>
-                                <p>Record one from your deploy script: <code class="font-mono">php artisan vigilance:deploy --release=v1.4.0</code></p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No deployments recorded.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Record one from your deploy script: <code class="font-mono">php artisan vigilance:deploy --release=v1.4.0</code></p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
+            </x-vigilance::ui.table>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 </div>

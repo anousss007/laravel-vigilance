@@ -461,6 +461,13 @@ class DatabaseStorage implements Storage
     protected function periods(): array
     {
         return [
+            // 15 minutes: the window you actually want mid-incident. Buckets are
+            // only written for the periods listed here, so a read over a window
+            // that has no matching period silently returns zero — this entry is
+            // what makes the dashboard's "15m" range real rather than empty.
+            // It costs one extra bucket row per entry, but they are 15 seconds
+            // wide and trimmed after 15 minutes, so stored volume barely moves.
+            (int) (CarbonInterval::minutes(15)->totalSeconds / 60),
             (int) (CarbonInterval::hour()->totalSeconds / 60),
             (int) (CarbonInterval::hours(6)->totalSeconds / 60),
             (int) (CarbonInterval::hours(24)->totalSeconds / 60),

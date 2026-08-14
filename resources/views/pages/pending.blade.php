@@ -1,4 +1,4 @@
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Pending jobs</h1>
@@ -9,27 +9,23 @@
 
     @forelse ($groups as $group)
         @php $canCancel = $controlEnabled && $group['driver'] === 'database' && ! empty($group['jobs']); @endphp
-        <div class="v-card overflow-hidden">
-            <div class="v-card__header">
+        <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+            <x-vigilance::ui.card-header>
                 <div class="flex items-center gap-2.5">
-                    <h2 class="v-card__title">{{ $group['connection'] }}</h2>
-                    <span class="v-pill is-neutral font-mono">{{ $group['driver'] }}</span>
+                    <x-vigilance::ui.card-title>{{ $group['connection'] }}</x-vigilance::ui.card-title>
+                    <x-vigilance::ui.badge tone="neutral" class="font-mono">{{ $group['driver'] }}</x-vigilance::ui.badge>
                 </div>
                 @if ($canCancel)
-                    <button type="button"
-                        wire:click="cancelSelected(@js($group['connection']))"
-                        wire:confirm="Cancel the selected pending job(s)? This deletes them from the queue and cannot be undone."
-                        class="v-btn v-btn--sm v-btn--danger">Cancel selected</button>
+                    <x-vigilance::ui.button variant="destructive" size="sm" wire:click="cancelSelected(@js($group['connection']))" wire:confirm="Cancel the selected pending job(s)? This deletes them from the queue and cannot be undone.">Cancel selected</x-vigilance::ui.button>
                 @endif
-            </div>
+            </x-vigilance::ui.card-header>
 
             @if ($group['jobs'] === null)
                 <p class="px-4 py-3 text-xs v-muted">Live browsing isn't available for the <code class="v-code">{{ $group['driver'] }}</code> driver — check the Runs page for captured queued jobs.</p>
             @elseif ($group['jobs'] === [])
                 <p class="px-4 py-3 text-xs v-muted">No pending jobs — the queue is empty.</p>
             @else
-                <div class="overflow-x-auto" tabindex="0">
-                    <table class="v-table v-table--hover">
+                <x-vigilance::ui.table>
                         <thead>
                             <tr>
                                 @if ($canCancel)<th scope="col" class="w-8"><span class="sr-only">Select</span></th>@endif
@@ -52,23 +48,22 @@
                                     <td class="text-right v-num">{{ $job['attempts'] }}</td>
                                     <td>
                                         @if ($job['reserved'])
-                                            <span class="v-pill is-info"><span class="v-dot"></span>reserved</span>
+                                            <x-vigilance::ui.badge tone="info"><span class="v-dot"></x-vigilance::ui.badge>reserved</span>
                                         @elseif ($job['delayed'])
-                                            <span class="v-pill is-warn"><span class="v-dot"></span>delayed</span>
+                                            <x-vigilance::ui.badge tone="warning"><span class="v-dot"></x-vigilance::ui.badge>delayed</span>
                                         @else
-                                            <span class="v-pill is-success"><span class="v-dot"></span>ready</span>
+                                            <x-vigilance::ui.badge tone="success"><span class="v-dot"></x-vigilance::ui.badge>ready</span>
                                         @endif
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
-                    </table>
-                </div>
+                    </x-vigilance::ui.table>
             @endif
-        </div>
+        </x-vigilance::ui.card>
     @empty
-        <div class="v-empty">
-            <p class="v-empty__title">No queue connections seen in the last 24 hours.</p>
-        </div>
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No queue connections seen in the last 24 hours.</x-vigilance::ui.empty-title>
+</x-vigilance::ui.empty>
     @endforelse
 </div>

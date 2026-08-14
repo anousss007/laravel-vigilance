@@ -28,12 +28,12 @@
 @endphp
 
 <div>
-    <h2 class="v-card__title mb-3">Servers</h2>
+    <x-vigilance::ui.card-title class="mb-3">Servers</x-vigilance::ui.card-title>
     @if (count($servers) === 0)
-        <div class="v-empty">
-            <p class="v-empty__title">No server is reporting yet</p>
-            <p>Run <code class="v-code">php artisan vigilance:check</code> on each app server.</p>
-        </div>
+        <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No server is reporting yet</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Run <code class="v-code">php artisan vigilance:check</code> on each app server.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
     @else
         <div class="grid gap-3 md:grid-cols-2">
             @foreach ($servers as $server)
@@ -41,7 +41,7 @@
                     $memPct = $server['memory_total'] > 0 ? min(100, round($server['memory_used'] / $server['memory_total'] * 100)) : 0;
                     $cpuSpark = $spark($server['cpu_series'], 'rgb(59 130 246)');
                 @endphp
-                <div class="v-card v-card--pad">
+                <x-vigilance::ui.card>
                     <div class="flex items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
                             <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true" style="background: {{ $server['online'] ? 'var(--v-success)' : 'var(--v-faint)' }};"></span>
@@ -72,7 +72,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </x-vigilance::ui.card>
             @endforeach
         </div>
     @endif

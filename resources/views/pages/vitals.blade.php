@@ -13,7 +13,7 @@
     };
 @endphp
 
-<div wire:poll.visible.15s class="space-y-6">
+<div @vigilancePoll('15s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Web Vitals</h1>
@@ -22,23 +22,17 @@
     </div>
 
     @unless ($rumEnabled)
-        <div class="v-card v-card--pad" role="note">
+        <x-vigilance::ui.card role="note">
             <p class="text-[13px] v-muted">RUM is disabled. Set <code class="v-code">VIGILANCE_RUM=true</code> and add <code class="v-code">@vigilanceRum</code> to your layout <code class="v-code">&lt;head&gt;</code> to start collecting Web Vitals.</p>
-        </div>
+        </x-vigilance::ui.card>
     @endunless
 
-    <div class="v-card v-card--pad">
-        <div class="flex flex-wrap items-center gap-1">
-            @foreach (['1h' => 'Last hour', '24h' => 'Last 24h', '7d' => 'Last 7d'] as $key => $label)
-                <button type="button" wire:click="setWindow('{{ $key }}')"
-                        @class(['v-btn v-btn--sm', 'v-btn--primary' => $window === $key, 'v-btn--ghost' => $window !== $key])>{{ $label }}</button>
-            @endforeach
-        </div>
-    </div>
+    <x-vigilance::ui.card class="p-2">
+        <x-vigilance::range-picker :ranges="$this->ranges()" :labels="$this->rangeLabels()" :current="$range" />
+    </x-vigilance::ui.card>
 
-    <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card class="overflow-hidden">
+        <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Page</th>
@@ -67,14 +61,13 @@
                         </tr>
                     @empty
                         <tr><td colspan="8">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No Web Vitals yet.</p>
-                                <p>Data appears here once real users load pages with the beacon installed.</p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No Web Vitals yet.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Data appears here once real users load pages with the beacon installed.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 </div>

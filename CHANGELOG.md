@@ -6,6 +6,184 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-14
+
+**Run `php artisan migrate`** — this release adds one new table
+(`vigilance_suppressions`) in its own migration. The base migration is
+unchanged, so no `migrate:fresh` is needed.
+
+
+### Added
+- **Laravel Debugbar's counters, for production.** The **Routes** page now shows
+  what each page *costs*, not only how long it takes: queries per request (avg
+  and worst), time spent in the database, peak memory and Eloquent models
+  hydrated — the four numbers you used to read at the bottom of the screen in
+  local dev, aggregated per route.
+  - Captured by a new `RequestProfile` APM recorder (`request_queries`,
+    `request_db_ms`, `request_memory`, `request_models`), keyed by
+    `[method, route]` so cardinality stays bounded.
+  - Deliberately **not** built on tracing: a trace is only persisted when it is
+    head-sampled, slow or errored, so a route that quietly runs 180 distinct
+    queries in 400 ms — no N+1 shape, never slow enough to keep — was invisible.
+    `RequestProfile` counts on every request instead; the hot path is two
+    increments per query and the metrics are written once, in the terminate
+    phase, after the response is sent.
+  - Queries against `vigilance_*` tables are never counted, so monitoring does
+    not inflate your own numbers (including on a dedicated connection).
+  - Peak memory is rebased with `memory_reset_peak_usage()` on the HTTP path, so
+    it stays per-request under Octane instead of reporting the heaviest request
+    the worker ever served. The queue path is untouched, so job memory capture is
+    unchanged.
+  - **Off by default.** It listens to every query and writes 2–4 entries per
+    request on top of the 2 the `Requests` recorder writes, so like tracing and
+    the log explorer it is opt-in: `VIGILANCE_APM_REQUEST_PROFILE=true`. Drop
+    `VIGILANCE_APM_REQUEST_PROFILE_SAMPLE` at high traffic — averages stay
+    reliable, only the exact worst case blurs. The per-model hydration counter
+    can be dropped on its own with `VIGILANCE_APM_REQUEST_PROFILE_MODELS=false`.
+    The Routes page says how to switch it on when the cost columns are empty.
+- **`heavy_request` alert rule** — fires when a route is expensive rather than
+  slow: too many queries per request, or too high a memory peak. Off by default;
+  thresholds (`queries`, `memory_mb`, `min_requests`, `window`) live under
+  `alerts.rules.heavy_request`, and either threshold can be disabled with `0`.
+
+- **Server resource alerts (CPU / memory / disk).** The `Servers` recorder has
+  always collected these and nothing consumed them, so a filling disk was
+  visible on the APM page and nowhere else. `ServerResourceRule` reads the
+  snapshot already being written — one query, no extra collection — alerts per
+  volume with the free space left, and escalates to critical past 97%. Hosts
+  where detection is unsupported (0/0) and hosts whose heartbeat has gone stale
+  are skipped rather than reported on frozen numbers. On by default.
+- **A dead-man's switch for Vigilance's own pipeline.** A monitoring tool that
+  dies quietly looks exactly like a healthy one. `MonitoringHealthRule` catches
+  a server that stopped heartbeating (its resource alerts are silently dead
+  too) and an ingest path that stopped writing while the app is still serving
+  traffic — an idle app is explicitly not mistaken for a broken one.
+  - It cannot cover its own absence: it runs from `vigilance:snapshot`, which is
+    also what evaluates alerts, and a dead-man's switch cannot live inside the
+    process it watches. Every run now records a `vigilance`/`snapshot`
+    heartbeat so an external uptime check has something to read instead.
+- **Disk usage over time, per volume.** Disk had no history at all — only the
+  latest snapshot — so a volume filling up over days was invisible as a trend.
+  Memory is now also recorded as a percentage alongside the absolute MB, since
+  a 64 GB box and an 8 GB box do not compare on raw usage.
+
+- **Auto-expiring incident mode.** One action keeps every trace, stops sampling
+  anything out and lowers the log floor — then reverts on its own. The timer is
+  the cache entry's TTL, so it expires even if the app is redeployed or nothing
+  ever runs the scheduler again; a config change nobody makes is also one nobody
+  reverts. Off by default (`VIGILANCE_INCIDENT_MODE`); when off it never even
+  reads the cache, and when on the lookup is memoised to one read per request.
+- **Latency-driven supervisor autoscaling** (`auto_scaling_strategy => 'latency'`).
+  The existing strategies weight a pool by backlog × *average* runtime — an
+  estimate, and an average is not a prediction when jobs run 50ms and 50s. This
+  one uses the wait jobs actually experienced (p90 of `wait_ms`) and sizes the
+  fleet by how far that is from `target_wait_ms`, so it is also the only
+  strategy that scales the total back **down**: the others deploy every process
+  the moment anything is queued and merely redistribute them.
+- **Fleet size over time.** The supervisor's state table only ever held "right
+  now", so a bad scaling decision left nothing to review. Worker counts are now
+  sampled every 15 seconds and drawn as a step chart per pool, with toggleable
+  series, on the Workers page.
+- **Turn a finding into a rule in one click.** Muting a noisy route, a chatty
+  cache key or a spammy exception meant editing `config/vigilance.php` and
+  redeploying — which is why the noisy route was still noisy three weeks later.
+  Rules can now be created next to the finding, take effect immediately, carry
+  an optional expiry, and are listed on the page so a filter you cannot see
+  cannot be forgotten.
+- **Usage page.** What Vigilance itself stores: rows per telemetry type, what
+  was written today, the oldest row, whether pruning is keeping up — and the
+  config knob that turns each one down. For a tool that sells itself on being
+  "bounded by design", it could not previously show its own footprint.
+- **Re-run a completed run** with exactly the parameters it ran with. Kept
+  separate from retry, and gated on the control plane and its allowlist:
+  retrying a *failure* restores work that was meant to happen, re-running a
+  *success* creates it a second time — the same charge, the same email — so the
+  UI confirms first.
+- **Staged control-plane changes** (`VIGILANCE_CONTROL_STAGING`). Queue several
+  actions, review them in a persistent banner, apply them as one audited batch.
+  Pausing four queues is otherwise four separate production changes with no
+  moment in between to notice you picked the wrong connection.
+- **Optional real-time dashboard** (`VIGILANCE_REALTIME`). Pages refresh from a
+  broadcast when something actually happens instead of polling on a timer —
+  live, with *less* database load rather than more. Vigilance does not ship
+  Laravel Echo; it uses the app's, and falls back to polling when there is none.
+  Broadcasts are throttled so a busy queue cannot cost more than the poll.
+- **`vigilance:doctor` now checks the snapshotter itself**, and exits non-zero
+  when it has gone silent. This closes the one gap the dead-man's switch cannot:
+  `MonitoringHealthRule` is evaluated *by* `vigilance:snapshot`, so when the
+  snapshotter stops, the rule stops with it and no alert can report the silence.
+  Doctor runs in a separate process, which is what makes it usable as the
+  outside observer — point an uptime check at it. Threshold:
+  `metrics.snapshot_stale_after`.
+- **A generic HTTP ingest exporter** (`apm.ingest.driver` or `exporters` set to
+  `'http'`). Ships the same Entry/Value feed — aggregations included, so a
+  receiver can roll it up the way local storage does — as batched JSON to any
+  endpoint, with an optional bearer token and custom headers. Failures are
+  swallowed: an external sink is strictly additive and can never break local
+  capture.
+  - Deliberately **not** a Nightwatch driver. Nightwatch ingests through its own
+    agent (`NIGHTWATCH_INGEST_URI` plus an environment token) and publishes no
+    third-party ingest format, so such a driver could only be a
+    reverse-engineered protocol that breaks the first time they change it while
+    calling itself an integration. Point the exporter at your own endpoint — an
+    OTel collector, a Lambda, a shim — and shape the payload there.
+- **One time-range control everywhere**, remembered across pages, now including
+  **15m** — which required adding a matching bucket period, since a window with
+  no period silently reads back as zero.
+
+### Changed
+- **The dashboard moved to Tailwind v4 and a vendored BlatUI component kit.**
+  The stylesheet is now CSS-first (`resources/css/vigilance.css`; no
+  `tailwind.config.js`), and the UI kit is vendored into
+  `resources/views/components/ui/`, used as `<x-vigilance::ui.card>`.
+  - **Nothing changes for consumers**: the dashboard still ships a prebuilt,
+    self-contained stylesheet and needs no Vite, npm or Tailwind in the host app.
+    The namespace keeps the kit from colliding with an app's own `<x-ui.*>`.
+  - Vigilance's `--v-*` tokens stay authoritative — they are contrast-tuned —
+    and the component tokens alias them, so both kits share one palette and the
+    views can migrate page by page without the dashboard looking half-finished.
+  - Only static components are vendored: Livewire already bundles Alpine and a
+    second copy would conflict. Native form controls are styled with
+    `.blat-input` / `.blat-select` / `.blat-checkbox` instead, no JS.
+  - Adds one small runtime dependency, `gehrisandro/tailwind-merge-laravel`,
+    registered by Vigilance itself so it works even with `dont-discover`.
+  - Interactive components (dialog, dropdown, tooltip, tabs) are bundled with
+    esbuild into `resources/dist/vigilance.js`, which deliberately contains no
+    Alpine: Livewire already ships one and two would fight over the same DOM.
+  - Alpine-driven shell chrome stays plain markup — Alpine's `:attr` shorthand
+    and Blade's component prop binding are the same syntax, so `:aria-expanded`
+    on a component gets evaluated as PHP. A test pins that down.
+
+### Fixed
+- **The supervisor could exceed `max_processes`.** Each pool's share of the
+  fleet was rounded independently, so two pools splitting an exact half of 10
+  both rounded up and eleven workers started for a documented maximum of ten.
+  The split now uses largest-remainder and the parts add up to the whole.
+- **A published config never saw anything added in a later release.** Laravel's
+  `mergeConfigFrom` is shallow — it `array_merge`s only the top-level `vigilance`
+  key — so a `config/vigilance.php` published by `vigilance:install` kept its own
+  `apm`, `alerts`, … sub-arrays wholesale. Every recorder, alert rule and option
+  shipped after that publish silently never registered, with no error to explain
+  why (the `Requests` recorder added in 0.7 was affected the same way). The
+  provider now merges recursively, so packaged defaults reach existing installs
+  while any key you actually define still wins. List-shaped values (ignore
+  patterns, allow/deny lists, SLO definitions) are **replaced**, never appended
+  to, so narrowing a default list still works.
+  - Note: if you disabled a recorder by *deleting* its entry rather than setting
+    `'enabled' => false`, it comes back at its packaged default. Set the flag.
+- **N+1 alerts were never tracked as incidents on MySQL/PostgreSQL.** The alert
+  key fell back to the offending SQL — up to 500 characters — and overflowed the
+  `string(255)` `incidents.key` column. The insert is rescued, so the
+  notification fired but no incident row was written: nothing to count
+  occurrences on, nothing to auto-resolve. Alert keys are now bounded.
+- **Livewire requests minted one metric key per visited record.** Livewire
+  updates are attributed to the referring page, but the referrer is a concrete
+  URL, so `/orders/42`, `/orders/43`, … each became their own key — unbounded
+  cardinality, the very thing keying by route exists to prevent. The referrer is
+  now collapsed to the route URI that serves it (`/orders/{order}`), falling back
+  to the concrete path when it matches no route. Affects the `Requests`,
+  `SlowRequests` and `RequestProfile` recorders.
+
 ## [0.8.3] - 2026-07-30
 
 ### Added

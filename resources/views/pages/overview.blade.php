@@ -44,13 +44,13 @@
         ->values();
 @endphp
 
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Overview</h1>
             <p class="v-page-sub">Queue, job and scheduler health at a glance.</p>
         </div>
-        <span class="v-pill is-success"><span class="v-dot"></span>live · last 24h</span>
+        <x-vigilance::ui.badge tone="success"><span class="v-dot"></x-vigilance::ui.badge>live · last 24h</span>
     </div>
 
     {{-- Stat cards --}}
@@ -61,20 +61,20 @@
             ['Failed', $counts['failed'], 'var(--v-danger)'],
             ['Success rate', $counts['success_rate'].'%', 'var(--v-accent-strong)'],
         ] as [$label, $value, $tone])
-            <div class="v-stat">
+            <x-vigilance::ui.card>
                 <div class="v-stat__label">{{ $label }}</div>
                 <div class="v-stat__value" @if ($tone) style="color: {{ $tone }}" @endif>{{ $value }}</div>
-            </div>
+            </x-vigilance::ui.card>
         @endforeach
     </div>
 
     {{-- Throughput sparkline --}}
-    <div class="v-card min-w-0">
-        <div class="v-card__header">
-            <h2 class="v-card__title">Throughput</h2>
+    <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+        <x-vigilance::ui.card-header>
+            <x-vigilance::ui.card-title>Throughput</x-vigilance::ui.card-title>
             <span class="text-xs v-muted v-num">{{ $totalThroughput }} runs · {{ $totalFailed }} failed · 60 min</span>
-        </div>
-        <div class="v-card--pad">
+        </x-vigilance::ui.card-header>
+        <x-vigilance::ui.card-content>
             <svg viewBox="0 0 {{ $w }} {{ $h }}" preserveAspectRatio="none" class="h-16 w-full" aria-hidden="true">
                 <path d="{{ $area }}" fill="rgb(16 185 129 / 0.12)" stroke="none" />
                 <path d="{{ $line }}" fill="none" stroke="rgb(16 185 129)" stroke-width="1.5" vector-effect="non-scaling-stroke" />
@@ -85,20 +85,20 @@
             @if ($deployMarkers->isNotEmpty())
                 <p class="mt-2 text-[11px]" style="color: var(--v-info)"><span aria-hidden="true">┊</span> deploy markers on the timeline</p>
             @endif
-        </div>
-    </div>
+        </x-vigilance::ui.card-content>
+    </x-vigilance::ui.card>
 
     {{-- Recent deployments --}}
     @if (count($deployments) > 0)
-        <div class="v-card min-w-0">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Recent deployments</h2>
-            </div>
+        <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Recent deployments</x-vigilance::ui.card-title>
+            </x-vigilance::ui.card-header>
             <ul>
                 @foreach ($deployments as $deployment)
                     <li class="flex items-center justify-between gap-3 px-4 py-2.5 text-xs" style="border-top: 1px solid var(--v-border);">
                         <div class="flex min-w-0 items-center gap-2">
-                            <span class="v-pill is-info font-mono">{{ $deployment->label() }}</span>
+                            <x-vigilance::ui.badge tone="info" class="font-mono">{{ $deployment->label() }}</x-vigilance::ui.badge>
                             @if ($deployment->environment)
                                 <span class="v-faint">{{ $deployment->environment }}</span>
                             @endif
@@ -110,23 +110,23 @@
                     </li>
                 @endforeach
             </ul>
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
     <div class="grid gap-6 lg:grid-cols-2">
         {{-- Top failing groups --}}
-        <div class="v-card min-w-0">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Top issues</h2>
+        <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Top issues</x-vigilance::ui.card-title>
                 <a href="{{ route('vigilance.issues') }}" class="text-xs v-link">view all</a>
-            </div>
+            </x-vigilance::ui.card-header>
             <ul>
                 @forelse ($topFailing as $group)
                     <li class="px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
                         <a href="{{ route('vigilance.runs', ['group' => $group->id]) }}" class="block transition-opacity hover:opacity-80">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="min-w-0 truncate text-[13px] font-medium v-strong">{{ $group->name ?: $group->exception_class }}</span>
-                                <span class="v-pill is-danger v-num shrink-0">{{ $group->occurrences }}×</span>
+                                <x-vigilance::ui.badge tone="danger" class="v-num shrink-0">{{ $group->occurrences }}×</x-vigilance::ui.badge>
                             </div>
                             <div class="mt-0.5 truncate text-xs v-muted">{{ $group->message }}</div>
                         </a>
@@ -135,14 +135,14 @@
                     <li class="px-4 py-8 text-center text-xs v-muted">No open failure groups.</li>
                 @endforelse
             </ul>
-        </div>
+        </x-vigilance::ui.card>
 
         {{-- Recent failures --}}
-        <div class="v-card min-w-0">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Recent failures</h2>
+        <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Recent failures</x-vigilance::ui.card-title>
                 <a href="{{ route('vigilance.runs', ['status' => 'failed']) }}" class="text-xs v-link">view all</a>
-            </div>
+            </x-vigilance::ui.card-header>
             <ul>
                 @forelse ($recentFailures as $run)
                     <li class="px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
@@ -158,31 +158,31 @@
                     <li class="px-4 py-8 text-center text-xs v-muted">No recent failures.</li>
                 @endforelse
             </ul>
-        </div>
+        </x-vigilance::ui.card>
 
         {{-- Slowest runs --}}
-        <div class="v-card min-w-0">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Slowest runs</h2>
-            </div>
+        <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Slowest runs</x-vigilance::ui.card-title>
+            </x-vigilance::ui.card-header>
             <ul>
                 @forelse ($slowest as $run)
                     <li class="flex items-center justify-between px-4 py-2.5" style="border-top: 1px solid var(--v-border);">
                         <a href="{{ route('vigilance.runs.show', $run->id) }}" class="min-w-0 truncate text-[13px] font-medium v-strong hover:underline">{{ $run->name }}</a>
-                        <span class="v-pill is-warn v-num shrink-0">{{ $fmtMs($run->duration_ms) }}</span>
+                        <x-vigilance::ui.badge tone="warning" class="v-num shrink-0">{{ $fmtMs($run->duration_ms) }}</x-vigilance::ui.badge>
                     </li>
                 @empty
                     <li class="px-4 py-8 text-center text-xs v-muted">No measured runs yet.</li>
                 @endforelse
             </ul>
-        </div>
+        </x-vigilance::ui.card>
 
         {{-- Workload summary --}}
-        <div class="v-card min-w-0">
-            <div class="v-card__header">
-                <h2 class="v-card__title">Workload</h2>
+        <x-vigilance::ui.card variant="sectioned" class="min-w-0">
+            <x-vigilance::ui.card-header>
+                <x-vigilance::ui.card-title>Workload</x-vigilance::ui.card-title>
                 <a href="{{ route('vigilance.workload') }}" class="text-xs v-link">details</a>
-            </div>
+            </x-vigilance::ui.card-header>
             <div class="grid grid-cols-2 gap-4 p-4">
                 <div>
                     <div class="v-stat__label">Active queues</div>
@@ -193,6 +193,6 @@
                     <div class="mt-1.5 text-2xl font-semibold v-strong v-num">{{ $totalDepth }}</div>
                 </div>
             </div>
-        </div>
+        </x-vigilance::ui.card>
     </div>
 </div>

@@ -1,4 +1,4 @@
-<div wire:poll.visible.10s class="space-y-6">
+<div @vigilancePoll('10s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Tags</h1>
@@ -7,17 +7,16 @@
     </div>
 
     @if ($monitored->isNotEmpty())
-        <div class="v-card v-card--pad flex flex-wrap items-center gap-2">
+        <x-vigilance::ui.card class="flex flex-wrap items-center gap-2">
             <span class="v-label mb-0">Watching</span>
             @foreach ($monitored as $t)
                 <a href="{{ route('vigilance.runs', ['tag' => $t]) }}" class="v-pill is-success font-mono hover:underline">{{ $t }}</a>
             @endforeach
-        </div>
+        </x-vigilance::ui.card>
     @endif
 
-    <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card class="overflow-hidden">
+        <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Tag</th>
@@ -47,13 +46,12 @@
                         </tr>
                     @empty
                         <tr><td colspan="4">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No tags seen in the last 7 days.</p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No tags seen in the last 7 days.</x-vigilance::ui.empty-title>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 </div>

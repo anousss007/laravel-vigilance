@@ -1,8 +1,7 @@
 @php $fmtMs = fn (int $ms) => $ms < 1000 ? $ms.'ms' : number_format($ms / 1000, 2).'s'; @endphp
-<div class="v-card overflow-hidden">
-    <div class="v-card__header"><h2 class="v-card__title">Slow requests</h2></div>
-    <div class="overflow-x-auto" tabindex="0">
-        <table class="v-table v-table--hover">
+<x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+    <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Slow requests</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
+    <x-vigilance::ui.table>
             <caption class="sr-only">Slowest requests by route</caption>
             <thead>
                 <tr>
@@ -23,6 +22,5 @@
                     <tr><td colspan="3" class="px-4 py-8 text-center v-muted">No slow requests recorded.</td></tr>
                 @endforelse
             </tbody>
-        </table>
-    </div>
-</div>
+        </x-vigilance::ui.table>
+</x-vigilance::ui.card>

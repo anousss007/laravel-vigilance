@@ -7,6 +7,7 @@ use Vigilance\Apm\Recorders\Concerns\Ignores;
 use Vigilance\Apm\Recorders\Concerns\LocatesCode;
 use Vigilance\Apm\Recorders\Concerns\Sampling;
 use Vigilance\Apm\Recorders\Concerns\Thresholds;
+use Vigilance\Models\Suppression;
 
 /**
  * Records queries slower than the threshold, keyed by SQL + the application
@@ -47,6 +48,11 @@ class SlowQueries extends Recorder
 
             $this->apm->record('slow_query', (string) $key, $duration, $now)->max()->count();
         });
+    }
+
+    protected function suppressionScope(): string
+    {
+        return Suppression::SCOPE_QUERY;
     }
 
     protected function truncate(string $sql): string

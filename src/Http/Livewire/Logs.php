@@ -4,6 +4,7 @@ namespace Vigilance\Http\Livewire;
 
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Logs\Contracts\LogStorage;
 use Vigilance\Logs\LogLevel;
 
@@ -15,6 +16,8 @@ use Vigilance\Logs\LogLevel;
  */
 class Logs extends Component
 {
+    use ListensForUpdates;
+
     #[Url(as: 'q')]
     public string $q = '';
 

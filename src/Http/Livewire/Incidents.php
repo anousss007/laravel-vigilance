@@ -5,6 +5,7 @@ namespace Vigilance\Http\Livewire;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Models\Incident;
 
 /**
@@ -14,6 +15,7 @@ use Vigilance\Models\Incident;
  */
 class Incidents extends Component
 {
+    use ListensForUpdates;
     use WithPagination;
 
     #[Url(as: 'tab')]

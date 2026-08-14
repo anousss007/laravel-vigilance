@@ -1,10 +1,9 @@
-<div class="v-card overflow-hidden">
-    <div class="v-card__header">
-        <h2 class="v-card__title">Queues</h2>
+<x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
+    <x-vigilance::ui.card-header>
+        <x-vigilance::ui.card-title>Queues</x-vigilance::ui.card-title>
         <a href="{{ route('vigilance.workload') }}" class="text-xs v-link">details</a>
-    </div>
-    <div class="overflow-x-auto" tabindex="0">
-        <table class="v-table v-table--hover">
+    </x-vigilance::ui.card-header>
+    <x-vigilance::ui.table>
             <caption class="sr-only">Active queues, backlog and throughput</caption>
             <thead>
                 <tr>
@@ -26,6 +25,5 @@
                     <tr><td colspan="4" class="px-4 py-8 text-center v-muted">No active queues.</td></tr>
                 @endforelse
             </tbody>
-        </table>
-    </div>
-</div>
+        </x-vigilance::ui.table>
+</x-vigilance::ui.card>

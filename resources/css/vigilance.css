@@ -1,67 +1,226 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Scan only this package's own sources. A distributable package cannot rely on
+   the consuming app's build, so the dashboard stylesheet is compiled here and
+   shipped prebuilt in resources/dist — the consumer never runs npm or Vite. */
+@source '../views';
+@source '../../src';
+
+/* State modifiers are composed dynamically in PHP (status enums, alert levels),
+   so the scanner never sees them as literals. */
+@source inline(
+    'is-success is-warn is-danger is-info is-neutral is-running is-paused is-terminating is-active'
+);
+
+/* Matches the dashboard's html.dark toggle (was darkMode: 'class' in v3). */
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   Theme — token → utility mapping
+   Everything resolves through var(), so the palette below is the single place
+   the dashboard's identity is defined. BlatUI components (bg-card,
+   text-muted-foreground, bg-primary, …) and Vigilance's own v-* kit therefore
+   read from the same tokens and can never drift apart.
+   ========================================================================== */
+@theme inline {
+    --font-sans: var(--v-font-sans);
+    --font-mono: var(--v-font-mono);
+    --font-heading: var(--v-font-sans);
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+
+    @keyframes caret-blink {
+        0%, 70%, 100% { opacity: 1; }
+        20%, 50% { opacity: 0; }
+    }
+
+    --animate-progress-indeterminate: progress-indeterminate 1.4s ease-in-out infinite;
+
+    @keyframes progress-indeterminate {
+        0% { left: -40%; }
+        100% { left: 100%; }
+    }
+}
 
 /* ==========================================================================
    Vigilance design tokens
    Emerald "technical dark" system. Light + dark are defined together; the
    dashboard is dark-first (html.dark) but both must look intentional.
+
+   The --v-* values are authoritative — they are tuned for contrast (see the
+   notes below) — and the shadcn-style token names alias them, so a vendored
+   component picks up Vigilance's palette without being restyled.
    ========================================================================== */
+:root {
+    --radius: 0.625rem;
+
+    /* Offline-safe system stack: the dashboard must never fetch a web font. */
+    --v-font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Monospace is reserved for data (ids, durations, sql, metrics). */
+    --v-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+        'Liberation Mono', monospace;
+
+    --v-bg: #fafafa;
+    --v-surface: #ffffff;
+    --v-surface-2: #f4f4f5;
+    --v-elevated: #ffffff;
+    --v-border: #e7e7ea;
+    --v-border-strong: #d4d4d8;
+
+    --v-text: #27272a;
+    --v-text-strong: #09090b;
+    --v-muted: #52525b;
+    --v-faint: #696970;
+
+    --v-accent: #047857;
+    --v-accent-strong: #065f46;
+    --v-accent-contrast: #ffffff;
+    --v-accent-bg: rgba(5, 150, 105, 0.10);
+
+    /* Light-theme semantic text is darkened so it clears 4.5:1 on its own
+       pale tint background (pills) and on white surfaces. */
+    --v-success: #047857;  --v-success-bg: rgba(5, 150, 105, 0.10);
+    --v-warn: #92400e;     --v-warn-bg: rgba(245, 158, 11, 0.14);
+    --v-danger: #be123c;   --v-danger-bg: rgba(225, 29, 72, 0.10);
+    --v-info: #0369a1;     --v-info-bg: rgba(2, 132, 199, 0.10);
+
+    --v-ring: rgba(5, 150, 105, 0.35);
+    --v-shadow: 0 1px 2px rgba(9, 9, 11, 0.04), 0 1px 3px rgba(9, 9, 11, 0.06);
+
+    /* --- shadcn-style aliases consumed by the vendored components --------- */
+    --background: var(--v-bg);
+    --foreground: var(--v-text);
+    --card: var(--v-surface);
+    --card-foreground: var(--v-text);
+    --popover: var(--v-elevated);
+    --popover-foreground: var(--v-text);
+    --primary: var(--v-accent);
+    --primary-foreground: var(--v-accent-contrast);
+    --secondary: var(--v-surface-2);
+    --secondary-foreground: var(--v-text-strong);
+    --muted: var(--v-surface-2);
+    --muted-foreground: var(--v-muted);
+    --accent: var(--v-surface-2);
+    --accent-foreground: var(--v-text-strong);
+    --destructive: var(--v-danger);
+    --destructive-foreground: #ffffff;
+    --success: var(--v-success);
+    --success-foreground: #ffffff;
+    --warning: var(--v-warn);
+    --warning-foreground: #ffffff;
+    --info: var(--v-info);
+    --info-foreground: #ffffff;
+    --border: var(--v-border);
+    --input: var(--v-border-strong);
+    --ring: var(--v-accent);
+
+    /* Emerald ramp, light → dark, for series colouring. */
+    --chart-1: #34d399;
+    --chart-2: #10b981;
+    --chart-3: #059669;
+    --chart-4: #047857;
+    --chart-5: #065f46;
+
+    --sidebar: var(--v-surface);
+    --sidebar-foreground: var(--v-text);
+    --sidebar-primary: var(--v-accent);
+    --sidebar-primary-foreground: var(--v-accent-contrast);
+    --sidebar-accent: var(--v-surface-2);
+    --sidebar-accent-foreground: var(--v-text-strong);
+    --sidebar-border: var(--v-border);
+    --sidebar-ring: var(--v-accent);
+}
+
+.dark {
+    --v-bg: #08080a;
+    --v-surface: #121215;
+    --v-surface-2: #1b1b1f;
+    --v-elevated: #202024;
+    --v-border: #26262b;
+    --v-border-strong: #34343b;
+
+    --v-text: #e4e4e7;
+    --v-text-strong: #fafafa;
+    --v-muted: #a1a1aa;
+    --v-faint: #8a8a93;
+
+    --v-accent: #10b981;
+    --v-accent-strong: #34d399;
+    --v-accent-contrast: #04140c;
+    --v-accent-bg: rgba(16, 185, 129, 0.13);
+
+    --v-success: #34d399;  --v-success-bg: rgba(16, 185, 129, 0.13);
+    --v-warn: #fbbf24;     --v-warn-bg: rgba(245, 158, 11, 0.14);
+    --v-danger: #fb7185;   --v-danger-bg: rgba(244, 63, 94, 0.14);
+    --v-info: #38bdf8;     --v-info-bg: rgba(56, 189, 248, 0.13);
+
+    --v-ring: rgba(16, 185, 129, 0.45);
+    --v-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.36);
+
+    /* Aliases that are not a straight re-read of a --v-* value. On dark, the
+       semantic tones are light-on-dark, so their foreground flips too. */
+    --destructive-foreground: #1a0508;
+    --success-foreground: #04140c;
+    --warning-foreground: #1c1204;
+    --info-foreground: #04141c;
+
+    --chart-1: #a7f3d0;
+    --chart-2: #6ee7b7;
+    --chart-3: #34d399;
+    --chart-4: #10b981;
+    --chart-5: #059669;
+}
+
 @layer base {
-    :root {
-        --v-bg: #fafafa;
-        --v-surface: #ffffff;
-        --v-surface-2: #f4f4f5;
-        --v-elevated: #ffffff;
-        --v-border: #e7e7ea;
-        --v-border-strong: #d4d4d8;
-
-        --v-text: #27272a;
-        --v-text-strong: #09090b;
-        --v-muted: #52525b;
-        --v-faint: #696970;
-
-        --v-accent: #047857;
-        --v-accent-strong: #065f46;
-        --v-accent-contrast: #ffffff;
-        --v-accent-bg: rgba(5, 150, 105, 0.10);
-
-        /* Light-theme semantic text is darkened so it clears 4.5:1 on its own
-           pale tint background (pills) and on white surfaces. */
-        --v-success: #047857;  --v-success-bg: rgba(5, 150, 105, 0.10);
-        --v-warn: #92400e;     --v-warn-bg: rgba(245, 158, 11, 0.14);
-        --v-danger: #be123c;   --v-danger-bg: rgba(225, 29, 72, 0.10);
-        --v-info: #0369a1;     --v-info-bg: rgba(2, 132, 199, 0.10);
-
-        --v-ring: rgba(5, 150, 105, 0.35);
-        --v-shadow: 0 1px 2px rgba(9, 9, 11, 0.04), 0 1px 3px rgba(9, 9, 11, 0.06);
-    }
-
-    .dark {
-        --v-bg: #08080a;
-        --v-surface: #121215;
-        --v-surface-2: #1b1b1f;
-        --v-elevated: #202024;
-        --v-border: #26262b;
-        --v-border-strong: #34343b;
-
-        --v-text: #e4e4e7;
-        --v-text-strong: #fafafa;
-        --v-muted: #a1a1aa;
-        --v-faint: #8a8a93;
-
-        --v-accent: #10b981;
-        --v-accent-strong: #34d399;
-        --v-accent-contrast: #04140c;
-        --v-accent-bg: rgba(16, 185, 129, 0.13);
-
-        --v-success: #34d399;  --v-success-bg: rgba(16, 185, 129, 0.13);
-        --v-warn: #fbbf24;     --v-warn-bg: rgba(245, 158, 11, 0.14);
-        --v-danger: #fb7185;   --v-danger-bg: rgba(244, 63, 94, 0.14);
-        --v-info: #38bdf8;     --v-info-bg: rgba(56, 189, 248, 0.13);
-
-        --v-ring: rgba(16, 185, 129, 0.45);
-        --v-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.36);
+    /* v4 defaults the border colour to currentColor; the dashboard wants the
+       themed border everywhere, matching v3's behaviour. */
+    *, ::after, ::before {
+        border-color: var(--color-border);
     }
 
     html {
@@ -110,6 +269,11 @@
 
 /* ==========================================================================
    Component kit
+
+   Vigilance's original hand-rolled kit. It is being replaced page by page by
+   the vendored BlatUI components; both read the same tokens above, so a
+   half-migrated dashboard stays visually coherent. Delete a rule here once no
+   view references it.
    ========================================================================== */
 @layer components {
     /* --- Text helpers ----------------------------------------------------- */
@@ -301,6 +465,46 @@
         color: var(--v-text);
     }
     .v-palette__item.is-active { background: var(--v-accent-bg); color: var(--v-text-strong); }
+}
+
+/* ==========================================================================
+   Native-control styling
+   Drop these on a raw <input>/<select>/<textarea>/<input type=checkbox> to get
+   the component look on a NATIVE control — it submits without JS and stays
+   name-bound. This is why the dashboard needs no form components: the only
+   BlatUI form parts that require Alpine are replaced by these classes.
+   ========================================================================== */
+@layer components {
+    .blat-input {
+        @apply border-input placeholder:text-muted-foreground dark:bg-input/30 flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+    }
+    .blat-textarea {
+        @apply border-input placeholder:text-muted-foreground dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+    }
+    /* Native <select>: same shell as the input, plus appearance-none + a chevron.
+       Chevron is a static SVG so it needs no JS; flips side under RTL. */
+    .blat-select {
+        @apply border-input dark:bg-input/30 flex h-9 w-full min-w-0 appearance-none rounded-md border bg-transparent py-1 ps-3 pe-9 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+        /* Tailwind's `appearance-none` does not emit the -webkit- prefix; without
+           it, iOS/Safari keeps its native arrow on top of our custom chevron. */
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23717182' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right 0.625rem center;
+        background-size: 1rem;
+    }
+    [dir='rtl'] .blat-select { background-position: left 0.625rem center; }
+
+    /* Native checkboxes/radios: accent-color is the no-JS way to brand them. */
+    .blat-checkbox {
+        @apply border-input accent-primary size-4 shrink-0 rounded-[4px] border shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .blat-radio {
+        @apply border-input accent-primary size-4 shrink-0 rounded-full border shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .blat-label {
+        @apply flex items-center gap-2 text-sm font-medium leading-none select-none;
+    }
 }
 
 /* ==========================================================================

@@ -25,6 +25,7 @@ See what ran — with the parameters it ran with — whether it failed, and **di
 | Run arbitrary commands from UI | ❌ | ❌ | ✅ (allowlisted) |
 | Error tracking (grouped issues) | ❌ | ✅ (view) | ✅ (web · queue · command · browser, fingerprinted inbox, **breadcrumbs**, manual merge) |
 | Whole-app APM + per-route percentiles | ❌ | ❌ | ✅ (p50/p95/p99, Apdex, error rate) |
+| Per-page cost (queries · DB time · memory · models) | ❌ | ❌ | ✅ (Debugbar's counters, per route, in production — opt-in) |
 | Real User Monitoring (Core Web Vitals) | ❌ | ❌ | ✅ (LCP/INP/CLS/FCP/TTFB + JS errors) |
 | SLOs + error budgets | ❌ | ❌ | ✅ (burn-rate alerts) |
 | Trace-correlated log explorer | ❌ | ✅ (view) | ✅ (searchable, linked to traces) |
@@ -32,6 +33,10 @@ See what ran — with the parameters it ran with — whether it failed, and **di
 | Custom business metrics | ❌ | ❌ | ✅ (one-line API + dashboard) |
 | Release health / deploy gating | ❌ | ❌ | ✅ (before/after regression guard + rollback alert) |
 | Anomaly detection | ❌ | ❌ | ✅ (dynamic baselines, not fixed thresholds) |
+| Server resource alerts (CPU · RAM · disk) | ❌ | ❌ | ✅ (per volume, with the free space left) |
+| Watches its own pipeline | ❌ | ❌ | ✅ (dead-man's switch — silence stops looking like health) |
+| Incident mode (auto-expiring full capture) | ❌ | ❌ | ✅ (opt-in) |
+| Shows what the monitoring itself costs | ❌ | ❌ | ✅ (rows, growth, retention, per telemetry type) |
 | Alerting | ❌ | ❌ | ✅ (mail · Slack · Discord · Teams · webhooks + incidents + maintenance windows) |
 | **AI agent access (MCP)** | ❌ | ❌ | ✅ (query errors · APM · traces · releases · SLOs — read-only, with gated writes) |
 | Production-oriented | ✅ | ❌ (debug tool) | ✅ (see below) |
@@ -58,14 +63,36 @@ HTTP, cache hit-rate, exceptions and per-user usage — on the **APM** dashboard
 page. It covers the same ground as Laravel Pulse, but driver-agnostic and with no
 extra infrastructure: recorders capture cheaply (~9 µs/record), defer the heavy
 work, and flush **after the response is sent**, so there is zero request latency.
-A clean `Ingest` export seam lets you fan the same telemetry out to an external
-APM (the groundwork for a Laravel Nightwatch integration).
+A clean `Ingest` export seam fans the same telemetry out to an external system —
+there is a ready-made `http` exporter, or implement the contract yourself.
 
 Run the heartbeat on each app server and read the full design in
 [docs/apm.md](docs/apm.md):
 
 ```bash
 php artisan vigilance:check
+```
+
+### Debugbar's counters, in production (optional, off by default)
+
+The **Routes** page can show more than latency: for every route, what the page
+*costs* — queries per request, time spent in the database, peak memory and
+Eloquent models hydrated. These are the numbers Laravel Debugbar gives you
+locally, aggregated per route and safe to run in production.
+
+They deliberately don't come from tracing. A trace is only kept when it's
+sampled, slow or errored, so a route that quietly runs 180 distinct queries in
+400 ms never appears there. The `RequestProfile` recorder counts on **every**
+request instead (two increments per query on the hot path, one write in the
+terminate phase), and peak memory is rebased per request so it stays honest under
+Octane.
+
+Because it listens to every query and writes a few extra entries per request,
+it's **opt-in** — enable it, and optionally the matching alert rule, when you
+want the visibility:
+
+```env
+VIGILANCE_APM_REQUEST_PROFILE=true
 ```
 
 ## Tracing (optional, off by default)
@@ -342,7 +369,8 @@ Notes:
 ## Alerting
 
 Vigilance evaluates rule-based alerts at `vigilance:snapshot` time — queue
-backlog, failure-rate, exception spikes, slow-request rate, overdue/failed
+backlog, failure-rate, exception spikes, slow-request rate, **expensive routes**
+(too many queries or too high a memory peak per request), overdue/failed
 scheduled tasks (a **dead-man's-switch**), **SLO burn rate**, **new & regressed
 issues**, **metric anomalies** (dynamic baselines) and **bad deploys** (release
 regression) — each throttled per key. Alerts route to email, Slack, **Discord**, **Microsoft Teams** and any

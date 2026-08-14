@@ -3,6 +3,7 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\Stats;
 use Vigilance\Metrics\Workload;
 use Vigilance\Models\Deployment;
@@ -13,6 +14,8 @@ use Vigilance\Models\Deployment;
  */
 class Overview extends Component
 {
+    use ListensForUpdates;
+
     public function render()
     {
         $stats = app(Stats::class);

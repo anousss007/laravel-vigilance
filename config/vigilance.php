@@ -6,6 +6,7 @@ use Vigilance\Apm\Recorders\Logs;
 use Vigilance\Apm\Recorders\Mail;
 use Vigilance\Apm\Recorders\Notifications;
 use Vigilance\Apm\Recorders\Queues;
+use Vigilance\Apm\Recorders\RequestProfile;
 use Vigilance\Apm\Recorders\Requests;
 use Vigilance\Apm\Recorders\Servers;
 use Vigilance\Apm\Recorders\SlowJobs;
@@ -213,6 +214,13 @@ return [
     'control' => [
         'enabled' => env('VIGILANCE_CONTROL_ENABLED', false),
 
+        // Stage control actions instead of firing them on click: they collect
+        // in a banner, you review the batch, then apply it in one go. Pausing
+        // four queues is otherwise four separate production changes with no
+        // moment in between to notice you picked the wrong connection.
+        // Off by default — one-click stays the default for a single action.
+        'staging' => env('VIGILANCE_CONTROL_STAGING', false),
+
         'jobs' => [
             'mode' => env('VIGILANCE_DISPATCH_JOBS_MODE', 'marker'),
             'paths' => [app_path('Jobs')],
@@ -381,6 +389,12 @@ return [
     */
 
     'metrics' => [
+        // How long vigilance:snapshot may be silent before vigilance:doctor
+        // calls it stale (minutes). The snapshotter is what evaluates every
+        // alert, so when it stops, no alert can report that it stopped —
+        // doctor's non-zero exit is the outside observer that can.
+        'snapshot_stale_after' => 30,
+
         'enabled' => true,
         'snapshot_interval_minutes' => 5,
     ],
@@ -562,10 +576,43 @@ return [
             'long_running_job' => ['enabled' => false, 'seconds' => (int) env('VIGILANCE_LONG_JOB_SECONDS', 300), 'limit' => 10],
             // N+1 query patterns promoted from traces. Off by default.
             'n_plus_one' => ['enabled' => false, 'min_occurrences' => 5, 'window' => '1h'],
+            // Routes that are expensive rather than slow — too many queries per
+            // request, or too high a memory peak (from the RequestProfile
+            // recorder). Off by default; set 0 to disable either threshold.
+            'heavy_request' => [
+                'enabled' => false,
+                'queries' => 100,
+                'memory_mb' => 128,
+                'min_requests' => 10,
+                'window' => '1h',
+            ],
             'error_rate' => ['enabled' => true, 'min_runs' => 20, 'percent' => 20],
             'exception_spike' => ['enabled' => true, 'count' => 50],
             'slow_request_rate' => ['enabled' => false, 'count' => 100],
             'scheduled_task_late' => ['enabled' => true],
+
+            // CPU / memory / disk per server, read from the snapshot the Servers
+            // recorder already writes — so this costs one query and no extra
+            // collection. On by default: a filling disk is the classic outage
+            // nobody sees coming. Set any threshold to 0 to disable it.
+            'server_resources' => [
+                'enabled' => true,
+                'cpu' => 90,            // percent
+                'memory' => 90,         // percent
+                'disk' => 90,           // percent
+                'critical' => 97,       // at or above this, the alert is critical
+                'stale_after' => 300,   // seconds; skip servers that stopped reporting
+            ],
+
+            // Watches Vigilance's own pipeline, because a monitoring tool that
+            // dies quietly looks exactly like a healthy one. Catches a host that
+            // stopped heartbeating and an ingest path that stopped writing.
+            'monitoring_health' => [
+                'enabled' => true,
+                'heartbeat_stale_after' => 600,  // seconds without a vigilance:check beat
+                'ingest_stalled_after' => 15,    // minutes with no telemetry written
+            ],
+
             'slo_burn' => ['enabled' => true, 'burn_rate' => 2.0],
 
             // Fire a critical "bad deploy" alert when the latest deployment's
@@ -659,13 +706,36 @@ return [
             // trim cost off the hot path while bounding the tables over time.
             'trim' => ['lottery' => [1, 1000]],
 
+            // Ship the same Entry/Value feed to an external endpoint as JSON.
+            // Used when the driver (or an exporter below) is 'http'.
+            //
+            // Deliberately generic rather than vendor-specific: Laravel
+            // Nightwatch — the obvious candidate — ingests through its own
+            // agent (NIGHTWATCH_INGEST_URI plus an environment token) and
+            // publishes no third-party ingest format, so a "Nightwatch driver"
+            // could only be a reverse-engineered protocol that breaks the first
+            // time they change it. Point this at your own endpoint (an OTel
+            // collector, a Lambda, a shim) and shape the payload there.
+            //
+            // Exporters run inside the terminate-phase flush, so a slow
+            // endpoint delays the worker rather than the response — but it
+            // still delays it. Keep the timeout short; at real volume, use the
+            // redis driver and let vigilance:apm-work do the shipping.
+            'http' => [
+                'endpoint' => env('VIGILANCE_APM_HTTP_ENDPOINT'),
+                'token' => env('VIGILANCE_APM_HTTP_TOKEN'),
+                'headers' => [],
+                'timeout' => 2,   // seconds
+                'batch' => 500,   // entries per POST
+            ],
+
             // Additional sinks the buffered telemetry is fanned out to alongside
-            // the primary driver — the seam for forwarding the same Entry/Value
-            // feed to an external APM (e.g. a future Laravel Nightwatch
-            // exporter). Each must implement the Ingest contract; a failing
-            // exporter can never break local capture.
+            // the primary driver. Use 'http' for the exporter above, or any
+            // class implementing the Ingest contract. A failing exporter can
+            // never break local capture.
             'exporters' => [
-                // \App\Apm\NightwatchIngest::class,
+                // 'http',
+                // \App\Apm\MyIngest::class,
             ],
         ],
 
@@ -714,6 +784,31 @@ return [
                 'enabled' => env('VIGILANCE_APM_ROUTES', true),
                 'sample_rate' => (float) env('VIGILANCE_APM_ROUTES_SAMPLE', 1),
                 'apdex_threshold' => (int) env('VIGILANCE_APM_APDEX_MS', 300),
+                'ignore' => [
+                    '#^/'.preg_quote((string) env('VIGILANCE_PATH', 'vigilance'), '#').'#',
+                    '#^/livewire/#',
+                    '#^/telescope#',
+                    '#^/horizon#',
+                ],
+            ],
+
+            // What each page *costs*, not just how long it takes: queries per
+            // request, time spent in the database, peak memory and hydrated
+            // Eloquent models — Laravel Debugbar's counters, aggregated per route
+            // and shown on the Routes page. Catches the route that quietly runs
+            // 180 queries without being slow enough for a trace to be kept.
+            //
+            // OFF by default: it listens to every query and writes 2-4 extra
+            // entries per request (on top of the 2 the Requests recorder writes),
+            // so it is opt-in like tracing and the log explorer. Turn it on with
+            // VIGILANCE_APM_REQUEST_PROFILE=true, and drop "sample_rate" at high
+            // traffic — averages stay reliable, only the exact worst case blurs.
+            // Set "models" to false to skip the Eloquent hydration counter (the
+            // one hook here that fires per model rather than per query).
+            RequestProfile::class => [
+                'enabled' => env('VIGILANCE_APM_REQUEST_PROFILE', false),
+                'sample_rate' => (float) env('VIGILANCE_APM_REQUEST_PROFILE_SAMPLE', 1),
+                'models' => env('VIGILANCE_APM_REQUEST_PROFILE_MODELS', true),
                 'ignore' => [
                     '#^/'.preg_quote((string) env('VIGILANCE_PATH', 'vigilance'), '#').'#',
                     '#^/livewire/#',
@@ -847,6 +942,66 @@ return [
     | baseline of normal traces; keep it at 0 to store only slow + failed ones.
     |
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Incident mode
+    |--------------------------------------------------------------------------
+    |
+    | A switch with a timer. Mid-incident you want the detail that sampling
+    | deliberately throws away the rest of the time — every trace kept, nothing
+    | sampled out, debug logs. The reason that is not simply a config change is
+    | that a config change nobody makes is also one nobody reverts: full tracing
+    | gets left on for three weeks and the disk pays for it. Engaging it from
+    | the dashboard turns everything up for N minutes and then it expires on its
+    | own, with no scheduler involved — the cache entry's TTL *is* the timer.
+    |
+    | OFF by default. Turning it on does not turn anything up; it makes the
+    | switch available. The cost of having it available is one (per-request
+    | memoised) cache read, plus wiring the tracing instrumentation at boot so
+    | there is something to switch on.
+    |
+    */
+
+    'incident_mode' => [
+        'enabled' => env('VIGILANCE_INCIDENT_MODE', false),
+
+        // What "turned up" means while engaged.
+        'sample_rate' => 1.0,   // keep everything
+        'tracing' => true,      // trace even if tracing.enabled is false
+        'log_level' => 'debug', // lower the log explorer's floor (when it is on)
+
+        // Hard ceiling on the duration, so "briefly" stays true.
+        'max_minutes' => (int) env('VIGILANCE_INCIDENT_MODE_MAX_MINUTES', 120),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Real-time dashboard
+    |--------------------------------------------------------------------------
+    |
+    | By default every dashboard page refreshes on a timer, which means an open
+    | tab queries the database every few seconds whether anything changed or
+    | not. Turn this on and pages refresh when something actually happens
+    | instead — live, and with less load rather than more.
+    |
+    | Vigilance does NOT ship Laravel Echo: a monitoring package has no business
+    | adding Pusher and its client to every install. It uses the Echo your app
+    | already has. With broadcasting unconfigured the pages simply keep polling,
+    | so switching this on in an app without Echo degrades rather than breaks.
+    |
+    | The channel is private and authorised with the same gate as the dashboard.
+    | "throttle_seconds" bounds the broadcast rate: a busy queue finishes
+    | thousands of jobs a minute and the dashboard only needs to know that some
+    | did — without this, "real time" would cost more than the poll it replaces.
+    |
+    */
+
+    'realtime' => [
+        'enabled' => env('VIGILANCE_REALTIME', false),
+        'channel' => env('VIGILANCE_REALTIME_CHANNEL', 'vigilance'),
+        'throttle_seconds' => 3,
+    ],
 
     'tracing' => [
         'enabled' => env('VIGILANCE_TRACING', false),
@@ -985,7 +1140,22 @@ return [
         'connection' => env('VIGILANCE_SUPERVISOR_CONNECTION', 'database'),
         'queue' => ['default'],
         'balance' => 'auto',
-        'auto_scaling_strategy' => 'time', // 'time' | 'size'
+        // 'time'    : weight a pool by backlog x average runtime (estimated
+        //             drain time). Cheap, but an average is not a prediction:
+        //             a mix of 50ms and 50s jobs has a meaningless mean.
+        // 'size'     : weight by backlog alone.
+        // 'latency'  : weight by the wait jobs ACTUALLY experienced (p90 of
+        //             wait_ms), and size the fleet by how far that is from
+        //             "target_wait_ms". The only strategy that scales the total
+        //             down again — the other two deploy every process the
+        //             moment anything is queued and merely redistribute them.
+        'auto_scaling_strategy' => 'time', // 'time' | 'size' | 'latency'
+
+        // Only used by the 'latency' strategy: the wait the fleet is scaled to
+        // hold. At or above it the whole fleet is deployed; well under it,
+        // proportionally less.
+        'target_wait_ms' => 5000,
+
         'min_processes' => 1,
         'max_processes' => 10,
         'balance_max_shift' => 1,

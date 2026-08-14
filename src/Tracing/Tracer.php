@@ -8,6 +8,7 @@ use Illuminate\Support\Lottery;
 use Illuminate\Support\Str;
 use Throwable;
 use Vigilance\Apm\Apm;
+use Vigilance\Support\IncidentMode;
 use Vigilance\Tracing\Contracts\TraceStorage;
 use Vigilance\Tracing\Sampling\Sampler;
 
@@ -63,7 +64,14 @@ class Tracer
 
     public function enabled(): bool
     {
-        return $this->enabled;
+        // Checked per call rather than trusting the constructor's snapshot:
+        // incident mode can switch tracing on after this singleton was built,
+        // and under Octane that singleton outlives many requests.
+        if ($this->enabled) {
+            return true;
+        }
+
+        return IncidentMode::active() && IncidentMode::tracingEnabled();
     }
 
     /**
@@ -88,7 +96,7 @@ class Tracer
      */
     public function start(string $type, string $name, ?float $start = null, array $attributes = []): void
     {
-        if (! $this->enabled || $this->current !== null) {
+        if (! $this->enabled() || $this->current !== null) {
             $this->pendingParent = null;
 
             return;

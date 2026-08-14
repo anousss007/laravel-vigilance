@@ -8,6 +8,7 @@ use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Str;
 use Throwable;
 use Vigilance\Logs\Contracts\LogStorage;
+use Vigilance\Support\IncidentMode;
 use Vigilance\Support\Redactor;
 use Vigilance\Tracing\Tracer;
 
@@ -90,7 +91,7 @@ class LogCollector
         try {
             $value = LogLevel::value($event->level);
 
-            if ($value < $this->minLevel || ! $this->shouldSample() || $this->isIgnored($event->message)) {
+            if ($value < $this->minLevel() || ! $this->shouldSample() || $this->isIgnored($event->message)) {
                 return;
             }
 
@@ -156,6 +157,21 @@ class LogCollector
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * The severity floor, lowered while incident mode is engaged — the lines
+     * you filtered out for volume are usually the ones that explain the
+     * incident. Resolved per call, not cached, because the switch is engaged
+     * at runtime and this object outlives a request under Octane.
+     */
+    protected function minLevel(): int
+    {
+        if (IncidentMode::active() && ($level = IncidentMode::logLevel()) !== null) {
+            return min($this->minLevel, LogLevel::value($level));
+        }
+
+        return $this->minLevel;
     }
 
     protected function shouldSample(): bool

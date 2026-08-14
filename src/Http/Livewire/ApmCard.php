@@ -110,6 +110,7 @@ class ApmCard extends Component
     protected function interval(): CarbonInterval
     {
         return match ($this->period) {
+            '15m' => CarbonInterval::minutes(15),
             '6h' => CarbonInterval::hours(6),
             '24h' => CarbonInterval::hours(24),
             '7d' => CarbonInterval::days(7),

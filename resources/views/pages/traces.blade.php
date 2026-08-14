@@ -16,14 +16,14 @@
     </div>
 
     @unless ($enabled)
-        <div class="v-card v-card--pad text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
+        <x-vigilance::ui.card class="text-[13px]" style="border-color: var(--v-warn); background: var(--v-warn-bg); color: var(--v-warn);">
             Tracing is currently disabled. Enable it with <code class="v-code">VIGILANCE_TRACING=true</code>
             (it stores only slow or failed requests by default). Existing traces below are still browsable.
-        </div>
+        </x-vigilance::ui.card>
     @endunless
 
     {{-- Filters --}}
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1">
                 <label for="trace-type" class="v-label">Type</label>
@@ -50,13 +50,12 @@
                 <input type="checkbox" wire:model.live="slowOnly" class="v-checkbox">
                 Slow only
             </label>
-            <button type="button" wire:click="clear" class="v-btn v-btn--ghost v-btn--sm ml-auto">Clear</button>
+            <x-vigilance::ui.button variant="ghost" size="sm" class="ml-auto" wire:click="clear">Clear</x-vigilance::ui.button>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
-    <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card class="overflow-hidden">
+        <x-vigilance::ui.table>
                 <caption class="sr-only">Recent traces</caption>
                 <thead>
                     <tr>
@@ -74,7 +73,7 @@
                                 <span class="inline-flex items-center gap-1.5">
                                     <span class="inline-block h-1.5 w-1.5 rounded-full" aria-hidden="true"
                                           style="background: {{ $trace->failed() ? 'var(--v-danger)' : 'var(--v-success)' }};"></span>
-                                    <span class="v-pill is-neutral">{{ $trace->type }}</span>
+                                    <x-vigilance::ui.badge tone="neutral">{{ $trace->type }}</x-vigilance::ui.badge>
                                 </span>
                             </td>
                             <td>
@@ -82,10 +81,10 @@
                                     {{ $trace->name }}
                                 </a>
                                 @if ($trace->failed())
-                                    <span class="v-pill is-danger ml-1.5">failed</span>
+                                    <x-vigilance::ui.badge tone="danger" class="ml-1.5">failed</x-vigilance::ui.badge>
                                 @endif
                                 @if (! empty($trace->attributes['n_plus_one']))
-                                    <span class="v-pill is-warn ml-1.5">N+1</span>
+                                    <x-vigilance::ui.badge tone="warning" class="ml-1.5">N+1</x-vigilance::ui.badge>
                                 @endif
                             </td>
                             <td class="text-right v-num v-muted">
@@ -115,7 +114,6 @@
                         </tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 </div>

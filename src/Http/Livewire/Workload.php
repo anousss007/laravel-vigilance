@@ -5,6 +5,7 @@ namespace Vigilance\Http\Livewire;
 use Livewire\Component;
 use Vigilance\Control\Exceptions\NotAllowed;
 use Vigilance\Control\QueueManager;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\Stats;
 use Vigilance\Metrics\Workload as WorkloadMetrics;
 use Vigilance\Supervision\ControlPlane;
@@ -18,6 +19,8 @@ use Vigilance\Vigilance;
  */
 class Workload extends Component
 {
+    use ListensForUpdates;
+
     public function pauseQueue(string $connection, string $queue, ?int $minutes = null): void
     {
         app(QueueManager::class)->pause(

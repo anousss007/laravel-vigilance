@@ -10,7 +10,7 @@
     };
 @endphp
 
-<div wire:poll.visible.5s class="space-y-6">
+<div @vigilancePoll('5s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Runs</h1>
@@ -20,7 +20,7 @@
     </div>
 
     {{-- Filters --}}
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex flex-wrap items-end gap-3">
             <div>
                 <label class="v-label" for="v-f-q">Search</label>
@@ -65,19 +65,18 @@
             </div>
 
             @if ($group)
-                <span class="v-pill is-danger v-num self-center">failure group #{{ $group }}</span>
+                <x-vigilance::ui.badge tone="danger" class="v-num self-center">failure group #{{ $group }}</x-vigilance::ui.badge>
             @endif
 
-            <button type="button" wire:click="clearFilters" class="v-btn v-btn--sm ml-auto">
+            <x-vigilance::ui.button variant="outline" size="sm" class="ml-auto" wire:click="clearFilters">
                 Clear
-            </button>
+            </x-vigilance::ui.button>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
     {{-- Table --}}
-    <div class="v-card overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+    <x-vigilance::ui.card class="overflow-hidden">
+        <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Status</th>
@@ -102,9 +101,9 @@
                             <td class="v-muted v-num" title="{{ $run->started_at }}">{{ optional($run->started_at)->diffForHumans() ?? '—' }}</td>
                             <td>
                                 @if ($run->via === 'manual')
-                                    <span class="v-pill is-info">manual</span>
+                                    <x-vigilance::ui.badge tone="info">manual</x-vigilance::ui.badge>
                                 @else
-                                    <span class="v-pill is-neutral">auto</span>
+                                    <x-vigilance::ui.badge tone="neutral">auto</x-vigilance::ui.badge>
                                 @endif
                             </td>
                         </tr>
@@ -114,9 +113,8 @@
                         </tr>
                     @endforelse
                 </tbody>
-            </table>
-        </div>
-    </div>
+            </x-vigilance::ui.table>
+    </x-vigilance::ui.card>
 
     <div>{{ $runs->links('vigilance::pagination') }}</div>
 </div>

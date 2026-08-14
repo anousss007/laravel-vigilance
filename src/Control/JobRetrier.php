@@ -135,8 +135,12 @@ class JobRetrier
     /**
      * Reconstruct the original job instance from the run's stored payload using
      * an unserialize restricted to the original class only.
+     *
+     * Public so RunReplayer can reuse it: the restricted unserialize is the
+     * security-sensitive part of this class, and a second copy would be a
+     * second place to get it wrong.
      */
-    protected function restore(Run $run): object
+    public function restore(Run $run): object
     {
         $serialized = $run->payload_raw;
 

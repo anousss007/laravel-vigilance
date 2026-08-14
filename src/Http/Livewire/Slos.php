@@ -3,6 +3,7 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\Slo;
 
 /**
@@ -11,6 +12,8 @@ use Vigilance\Metrics\Slo;
  */
 class Slos extends Component
 {
+    use ListensForUpdates;
+
     public function render()
     {
         return view('vigilance::pages.slos', [

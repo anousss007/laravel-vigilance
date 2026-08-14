@@ -8,6 +8,7 @@ use Vigilance\Supervision\AutoScaler;
 use Vigilance\Supervision\ControlPlane;
 use Vigilance\Supervision\ProvisioningPlan;
 use Vigilance\Supervision\QueueRuntime;
+use Vigilance\Supervision\QueueWait;
 use Vigilance\Supervision\Supervisor;
 use Vigilance\Supervision\SupervisorState;
 
@@ -19,7 +20,7 @@ class SuperviseCommand extends Command
 
     protected $description = 'Run and auto-scale your queue workers (the Vigilance supervisor — replaces queue:work).';
 
-    public function handle(AutoScaler $scaler, SupervisorState $state, ControlPlane $control, QueueDepth $depth, QueueRuntime $runtime): int
+    public function handle(AutoScaler $scaler, SupervisorState $state, ControlPlane $control, QueueDepth $depth, QueueRuntime $runtime, QueueWait $wait): int
     {
         $control->reset();
 
@@ -32,7 +33,7 @@ class SuperviseCommand extends Command
         }
 
         $supervisors = array_map(
-            fn ($options) => new Supervisor($options, $scaler, $state, $control, $depth, $runtime),
+            fn ($options) => new Supervisor($options, $scaler, $state, $control, $depth, $runtime, $wait),
             array_values($plan),
         );
 

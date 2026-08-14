@@ -7,6 +7,7 @@ use Illuminate\Cache\Events\CacheMissed;
 use Vigilance\Apm\Recorders\Concerns\Groups;
 use Vigilance\Apm\Recorders\Concerns\Ignores;
 use Vigilance\Apm\Recorders\Concerns\Sampling;
+use Vigilance\Models\Suppression;
 
 /**
  * Records cache hits and misses (grouped key), powering the hit/miss ratio card.
@@ -32,5 +33,10 @@ class CacheInteractions extends Recorder
 
             $this->apm->record($type, $this->group($key))->count();
         });
+    }
+
+    protected function suppressionScope(): string
+    {
+        return Suppression::SCOPE_CACHE_KEY;
     }
 }

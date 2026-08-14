@@ -4,6 +4,7 @@ namespace Vigilance\Tracing\Sampling;
 
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\Lottery;
+use Vigilance\Support\IncidentMode;
 
 /**
  * Decides whether a trace is head-sampled (kept for baseline even when it is
@@ -35,6 +36,12 @@ class Sampler
 
     protected function rate(string $type): float
     {
+        // While incident mode is engaged, keep every trace: the whole point of
+        // the switch is to stop throwing away the detail you now need.
+        if (IncidentMode::active() && IncidentMode::tracingEnabled()) {
+            return IncidentMode::sampleRate();
+        }
+
         $rates = $this->config->get('vigilance.tracing.sample_rate', 0);
 
         if (is_array($rates)) {

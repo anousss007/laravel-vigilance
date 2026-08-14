@@ -18,7 +18,7 @@
     };
 @endphp
 
-<div wire:poll.visible.15s class="space-y-6">
+<div @vigilancePoll('15s') class="space-y-6">
     <div class="v-page-head">
         <div>
             <h1 class="v-page-title">Incidents</h1>
@@ -26,18 +26,18 @@
         </div>
     </div>
 
-    <div class="v-card v-card--pad">
+    <x-vigilance::ui.card>
         <div class="flex gap-1">
             @foreach (['open' => 'Open', 'resolved' => 'Resolved', 'all' => 'All'] as $key => $label)
                 <button type="button" wire:click="setTab('{{ $key }}')"
                         @class(['v-btn v-btn--sm', 'v-btn--primary' => $tab === $key, 'v-btn--ghost' => $tab !== $key])>{{ $label }}</button>
             @endforeach
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
-    <div class="v-card overflow-hidden">
+    <x-vigilance::ui.card class="overflow-hidden">
         <div class="overflow-x-auto" tabindex="0">
-            <table class="v-table v-table--hover">
+            <x-vigilance::ui.table>
                 <thead>
                     <tr>
                         <th scope="col">Incident</th>
@@ -75,16 +75,16 @@
                         </tr>
                     @empty
                         <tr><td colspan="7">
-                            <div class="v-empty">
-                                <p class="v-empty__title">No incidents here.</p>
-                                <p>Incidents open automatically when an alert rule fires.</p>
-                            </div>
+                            <x-vigilance::ui.empty>
+    <x-vigilance::ui.empty-title>No incidents here.</x-vigilance::ui.empty-title>
+    <x-vigilance::ui.empty-description><p>Incidents open automatically when an alert rule fires.</p></x-vigilance::ui.empty-description>
+</x-vigilance::ui.empty>
                         </td></tr>
                     @endforelse
                 </tbody>
-            </table>
+            </x-vigilance::ui.table>
         </div>
-    </div>
+    </x-vigilance::ui.card>
 
     <div>{{ $incidents->links('vigilance::pagination') }}</div>
 </div>

@@ -45,7 +45,11 @@ class NPlusOneRule implements AlertRule
             $detail .= $caller ? " (at {$caller})" : '';
 
             yield new Alert(
-                key: 'n_plus_one:'.$name.'|'.($caller ?? $sql),
+                // Bounded: the alert key is stored in a string(255) column, and
+                // the SQL fallback alone can run to 500 characters — an over-long
+                // key silently cost the alert its incident row (the insert is
+                // rescued, so the notification fired but nothing was tracked).
+                key: mb_substr('n_plus_one:'.$name.'|'.($caller ?? $sql), 0, 180),
                 title: 'N+1 query pattern',
                 message: "N+1 queries on [{$name}] — a query ran {$worst} times in one request/job, "
                     ."seen {$occurrences} time(s) in the last {$window}.{$detail}",

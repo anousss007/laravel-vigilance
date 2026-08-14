@@ -2,9 +2,9 @@
 
 namespace Vigilance\Http\Livewire;
 
-use Carbon\CarbonInterval;
-use Livewire\Attributes\Url;
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\HasTimeRange;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\WebVitals;
 
 /**
@@ -12,21 +12,18 @@ use Vigilance\Metrics\WebVitals;
  */
 class Vitals extends Component
 {
-    #[Url(as: 'window')]
-    public string $window = '24h';
+    use HasTimeRange;
+    use ListensForUpdates;
 
-    public function setWindow(string $window): void
+    public function mount(): void
     {
-        $this->window = in_array($window, ['1h', '24h', '7d'], true) ? $window : '24h';
+        $this->mountHasTimeRange();
     }
 
-    protected function interval(): CarbonInterval
+    /** A p75 over 15 minutes of beacons says nothing; vitals need volume. */
+    protected function defaultRange(): string
     {
-        return match ($this->window) {
-            '1h' => CarbonInterval::hour(),
-            '7d' => CarbonInterval::days(7),
-            default => CarbonInterval::hours(24),
-        };
+        return '24h';
     }
 
     public function render()

@@ -3,6 +3,7 @@
 namespace Vigilance\Http\Livewire;
 
 use Livewire\Component;
+use Vigilance\Http\Livewire\Concerns\ListensForUpdates;
 use Vigilance\Metrics\ReleaseHealth;
 
 /**
@@ -13,6 +14,8 @@ use Vigilance\Metrics\ReleaseHealth;
  */
 class Releases extends Component
 {
+    use ListensForUpdates;
+
     public function render()
     {
         return view('vigilance::pages.releases', [
