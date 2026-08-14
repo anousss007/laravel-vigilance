@@ -155,6 +155,13 @@ unchanged, so no `migrate:fresh` is needed.
     on a component gets evaluated as PHP. A test pins that down.
 
 ### Fixed
+- **The Usage page read back empty on PostgreSQL.** It dates `vigilance_logs` by
+  `logged_at`, which stores unix seconds, but compared it against a datetime.
+  SQLite is loosely typed and accepted it; PostgreSQL rejected the comparison
+  and — being PostgreSQL — aborted the surrounding transaction, so every table
+  after it in the loop came back blank. The column and its storage kind now live
+  in one map, checked against the real schema by a test that runs on every
+  database in CI.
 - **The supervisor could exceed `max_processes`.** Each pool's share of the
   fleet was rounded independently, so two pools splitting an exact half of 10
   both rounded up and eleven workers started for a documented maximum of ten.

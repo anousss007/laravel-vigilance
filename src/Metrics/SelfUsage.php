@@ -170,33 +170,45 @@ class SelfUsage
     }
 
     /**
-     * Vigilance's tables do not share one time column: the APM layer stores
-     * unix seconds for cheapness, the rest use datetimes.
+     * The column each table is dated by, and whether it stores unix seconds.
+     *
+     * Kept as one map rather than two methods on purpose: the APM and tracing
+     * tables store unix seconds (cheaper to write and index at that volume)
+     * while the rest store datetimes, and holding the column and its kind apart
+     * is how `logged_at` ended up compared against a Carbon instance. SQLite is
+     * loosely typed and accepted it; PostgreSQL rejected `integer >= varchar`,
+     * and — being PostgreSQL — aborted the surrounding transaction, so every
+     * later query on the page came back null too.
+     *
+     * SelfUsageColumnsTest checks this map against the real schema, on every
+     * database CI runs.
+     *
+     * @return array<string, array{column: string, unix: bool}>
      */
-    protected function timeColumn(string $table): ?string
+    public static function timeColumns(): array
     {
-        return match ($table) {
-            'vigilance_entries', 'vigilance_values' => 'timestamp',
-            'vigilance_aggregates' => 'bucket',
-            'vigilance_traces' => 'started_at',
-            'vigilance_logs' => 'logged_at',
-            'vigilance_incidents' => 'opened_at',
-            'vigilance_metric_snapshots' => 'measured_at',
-            'vigilance_runs', 'vigilance_failure_groups', 'vigilance_audit' => 'created_at',
-            default => null,
-        };
+        return [
+            'vigilance_entries' => ['column' => 'timestamp', 'unix' => true],
+            'vigilance_values' => ['column' => 'timestamp', 'unix' => true],
+            'vigilance_aggregates' => ['column' => 'bucket', 'unix' => true],
+            'vigilance_traces' => ['column' => 'started_at', 'unix' => true],
+            'vigilance_logs' => ['column' => 'logged_at', 'unix' => true],
+            'vigilance_incidents' => ['column' => 'opened_at', 'unix' => false],
+            'vigilance_metric_snapshots' => ['column' => 'measured_at', 'unix' => false],
+            'vigilance_runs' => ['column' => 'created_at', 'unix' => false],
+            'vigilance_failure_groups' => ['column' => 'created_at', 'unix' => false],
+            'vigilance_audit' => ['column' => 'created_at', 'unix' => false],
+        ];
     }
 
-    /**
-     * The APM layer and tracing store unix seconds (cheaper to write and index
-     * at that volume); everything else stores a datetime. Comparing the wrong
-     * kind is how these queries silently return zero.
-     */
+    protected function timeColumn(string $table): ?string
+    {
+        return self::timeColumns()[$table]['column'] ?? null;
+    }
+
     protected function storesUnixSeconds(string $table): bool
     {
-        return in_array($table, [
-            'vigilance_entries', 'vigilance_values', 'vigilance_aggregates', 'vigilance_traces',
-        ], true);
+        return self::timeColumns()[$table]['unix'] ?? false;
     }
 
     protected function cutoffFor(string $retention): ?Carbon
