@@ -3,7 +3,8 @@
     "scripts": {
         "build": "npm run build:css && npm run build:js",
         "build:css": "tailwindcss -i resources/css/vigilance.css -o resources/dist/vigilance.css --minify",
-        "build:js": "esbuild resources/js/vigilance.js --bundle --minify --format=iife --target=es2020 --outfile=resources/dist/vigilance.js"
+        "build:js": "esbuild resources/js/vigilance.js --bundle --minify --format=iife --target=es2020 --outfile=resources/dist/vigilance.js",
+        "visual": "node visual/shoot.mjs"
     },
     "devDependencies": {
         "@alpinejs/anchor": "^3.16.1",
@@ -11,6 +12,8 @@
         "@alpinejs/focus": "^3.16.1",
         "@floating-ui/dom": "^1.8.0",
         "@tailwindcss/cli": "^4.3.3",
-        "esbuild": "^0.28.2"
+        "axe-core": "^4.13.0",
+        "esbuild": "^0.28.2",
+        "playwright": "^1.62.1"
     }
 }

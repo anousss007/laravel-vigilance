@@ -25,7 +25,7 @@
 
 <div class="space-y-6">
     <div class="v-page-head">
-        <div class="flex items-center gap-3">
+        <div class="flex min-w-0 flex-wrap items-center gap-3">
             <a href="{{ route('vigilance.runs') }}" class="text-xs v-link">&larr; runs</a>
             @include('vigilance::partials.status', ['status' => $run->status])
             <h1 class="v-page-title">{{ $run->display_name ?: $run->name }}</h1>

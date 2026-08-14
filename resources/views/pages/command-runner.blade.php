@@ -34,14 +34,14 @@
                             @foreach ($schema['arguments'] as $argument)
                                 <div>
                                     <div class="mb-1 flex items-center gap-2 text-xs">
-                                        <span class="font-medium v-strong font-mono">{{ $argument['name'] }}</span>
+                                        <label for="arg-{{ $argument['name'] }}" class="font-medium v-strong font-mono">{{ $argument['name'] }}</label>
                                         @if ($argument['required'])<span style="color: var(--v-danger)">*</span>@endif
                                         @if ($argument['is_array'])<span class="text-[10px] v-faint">array (comma-separated)</span>@endif
                                     </div>
                                     @if ($argument['description'])
                                         <p class="mb-1 text-[10px] v-faint">{{ $argument['description'] }}</p>
                                     @endif
-                                    <input type="text" wire:model="arguments.{{ $argument['name'] }}" class="v-input">
+                                    <input type="text" id="arg-{{ $argument['name'] }}" wire:model="arguments.{{ $argument['name'] }}" class="v-input">
                                 </div>
                             @endforeach
                         </div>
@@ -54,13 +54,13 @@
                                 <div>
                                     @if ($option['accept_value'])
                                         <div class="mb-1 flex items-center gap-2 text-xs">
-                                            <span class="font-medium v-strong font-mono">--{{ $option['name'] }}</span>
+                                            <label for="opt-{{ $option['name'] }}" class="font-medium v-strong font-mono">--{{ $option['name'] }}</label>
                                             @if ($option['shortcut'])<span class="text-[10px] v-faint font-mono">-{{ $option['shortcut'] }}</span>@endif
                                         </div>
                                         @if ($option['description'])
                                             <p class="mb-1 text-[10px] v-faint">{{ $option['description'] }}</p>
                                         @endif
-                                        <input type="text" wire:model="options.{{ $option['name'] }}" class="v-input">
+                                        <input type="text" id="opt-{{ $option['name'] }}" wire:model="options.{{ $option['name'] }}" class="v-input">
                                     @else
                                         <label class="flex items-center gap-2 text-xs">
                                             <input type="checkbox" wire:model="options.{{ $option['name'] }}" class="v-checkbox">

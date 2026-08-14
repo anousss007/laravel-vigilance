@@ -26,6 +26,41 @@ Auto-fix style before committing:
 composer format
 ```
 
+## Looking at the dashboard
+
+Vigilance ships a UI, and a test suite cannot see it. `composer visual` boots a
+throwaway Laravel app (`workbench/`) seeded with a plausible week of traffic,
+then walks every dashboard page in both themes at desktop and phone width,
+screenshots each one, and reports the layout faults it can detect — a table
+whose cells the stylesheet never reached, content clipped by a box that cannot
+scroll, a page that scrolls sideways, a lazy card stuck on its skeleton, a
+failing request.
+
+```bash
+npx playwright install chromium   # once
+composer visual                   # → visual/output/index.html
+```
+
+**The clean report is the floor, not the goal.** The audit only catches faults
+it already knows about; open the contact sheet and read the screenshots. Almost
+everything worth fixing in the last visual pass — a chart whose five series were
+five shades of the same green, an action column that covered the table on a
+phone, badges whose closing tags were in the wrong place — was found by looking,
+not by the checks.
+
+Useful while chasing one of them:
+
+```bash
+node visual/probe.mjs /issues 1440   # measure a page's tables at a given width
+node visual/probe-net.mjs /apm       # print failing requests with their bodies
+```
+
+The workbench app is dev-only and ships in no release. Data lives in
+`workbench/database/database.sqlite`; `composer build` re-migrates and re-seeds
+it. When a page renders its empty state in a screenshot, that is usually the
+seeder not matching what the recorder really writes — fix the seeder, since a
+page fed impossible data is a page nobody has actually reviewed.
+
 ## Dashboard CSS
 
 The dashboard ships a precompiled, self-contained Tailwind stylesheet at

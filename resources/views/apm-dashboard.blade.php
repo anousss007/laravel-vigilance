@@ -8,7 +8,11 @@
 
     The $period variable is provided by the APM shell.
 --}}
-<div @vigilancePoll('10s') class="grid gap-4 lg:grid-cols-2">
+{{-- [&>*]:min-w-0 — a grid track is sized from its item's min-content, so one
+     card holding a long SQL string or route would otherwise stretch the track
+     and push the whole page sideways on a phone. Each card clips its own
+     content instead. --}}
+<div @vigilancePoll('10s') class="grid gap-4 [&>*]:min-w-0 lg:grid-cols-2">
     <div class="lg:col-span-2">
         <livewire:vigilance.apm-card card="servers" :period="$period" :key="'servers-'.$period" />
     </div>

@@ -51,10 +51,10 @@
     {{-- Summary --}}
     <x-vigilance::ui.card>
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2.5">
+            <div class="flex min-w-0 flex-wrap items-center gap-2.5">
                 <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true"
                       style="background: {{ $trace->failed() ? 'var(--v-danger)' : 'var(--v-success)' }};"></span>
-                <h1 class="font-mono text-sm font-semibold v-strong">{{ $trace->name }}</h1>
+                <h1 class="min-w-0 font-mono text-sm font-semibold break-all v-strong">{{ $trace->name }}</h1>
                 <x-vigilance::ui.badge tone="neutral">{{ $trace->type }}</x-vigilance::ui.badge>
                 <span @class(['v-pill', 'is-danger' => $trace->failed(), 'is-success' => ! $trace->failed()])>{{ $trace->status }}</span>
             </div>

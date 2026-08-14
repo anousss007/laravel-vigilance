@@ -50,7 +50,7 @@
             <h1 class="v-page-title">Overview</h1>
             <p class="v-page-sub">Queue, job and scheduler health at a glance.</p>
         </div>
-        <x-vigilance::ui.badge tone="success"><span class="v-dot"></x-vigilance::ui.badge>live · last 24h</span>
+        <x-vigilance::ui.badge tone="success"><span class="v-dot"></span>live · last 24h</x-vigilance::ui.badge>
     </div>
 
     {{-- Stat cards --}}

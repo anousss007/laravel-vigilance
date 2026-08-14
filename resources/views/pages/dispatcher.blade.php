@@ -34,7 +34,7 @@
                                 @php $name = $field['name']; @endphp
                                 <div>
                                     <div class="mb-1 flex items-center gap-2 text-xs">
-                                        <span class="font-medium v-strong font-mono">{{ $name }}</span>
+                                        <label for="dispatch-{{ $name }}" class="font-medium v-strong font-mono">{{ $name }}</label>
                                         @if ($field['required'])
                                             <span style="color: var(--v-danger)">*</span>
                                         @endif
@@ -45,11 +45,11 @@
 
                                     @if ($field['builtin'] === 'bool')
                                         <label class="inline-flex items-center gap-2 text-xs v-muted">
-                                            <input type="checkbox" wire:model="values.{{ $name }}" class="v-checkbox">
+                                            <input type="checkbox" id="dispatch-{{ $name }}" wire:model="values.{{ $name }}" class="v-checkbox">
                                             <span>true / false</span>
                                         </label>
                                     @elseif ($field['is_enum'])
-                                        <select wire:model="values.{{ $name }}" class="v-select">
+                                        <select id="dispatch-{{ $name }}" wire:model="values.{{ $name }}" class="v-select">
                                             @unless ($field['required'])
                                                 <option value="">— none —</option>
                                             @endunless
@@ -58,11 +58,11 @@
                                             @endforeach
                                         </select>
                                     @elseif (in_array($field['builtin'], ['int', 'float']) || $field['is_model'])
-                                        <input type="number" @if ($field['builtin'] === 'float') step="any" @endif
+                                        <input type="number" id="dispatch-{{ $name }}" @if ($field['builtin'] === 'float') step="any" @endif
                                                wire:model="values.{{ $name }}"
                                                placeholder="{{ $field['is_model'] ? 'model id' : '' }}" class="v-input">
                                     @else
-                                        <input type="text" wire:model="values.{{ $name }}" class="v-input">
+                                        <input type="text" id="dispatch-{{ $name }}" wire:model="values.{{ $name }}" class="v-input">
                                     @endif
                                 </div>
                             @empty

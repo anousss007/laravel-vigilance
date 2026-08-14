@@ -6,7 +6,13 @@
     // that never happened.
     $visible = collect($series)->reject(fn ($s) => $s['hidden'])->values();
     $ceiling = max(1, $visible->max('max') ?? 1);
-    $palette = ['var(--chart-2)', 'var(--chart-4)', 'var(--chart-1)', 'var(--chart-3)', 'var(--chart-5)'];
+    // Colour follows the series, not its rank among the *visible* ones: both the
+    // line and its legend swatch index into $series, so hiding one pool never
+    // repaints the others. The tail past the palette arrives pre-folded into a
+    // single "Other" series (see Workers::foldTail) and wears a neutral, so no
+    // two pools can ever share a hue.
+    $palette = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+    $colour = fn (int $i, array $s) => $s['other'] ?? false ? 'var(--v-faint)' : $palette[$i % count($palette)];
 
     $path = function (array $points) use ($ceiling) {
         $width = 600;
@@ -61,9 +67,10 @@
         @else
             <svg viewBox="0 0 600 120" preserveAspectRatio="none" class="h-32 w-full" role="img"
                  aria-label="Worker count over time">
-                @foreach ($visible as $i => $s)
+                @foreach ($series as $i => $s)
+                    @continue($s['hidden'])
                     <path d="{{ $path($s['points']) }}" fill="none" stroke-width="2"
-                          stroke="{{ $palette[$i % count($palette)] }}"
+                          stroke="{{ $colour($i, $s) }}"
                           vector-effect="non-scaling-stroke" />
                 @endforeach
             </svg>
@@ -74,7 +81,7 @@
                             aria-pressed="{{ $s['hidden'] ? 'false' : 'true' }}"
                             @class(['v-pill', 'opacity-40' => $s['hidden']])>
                         <span class="v-dot" @style([
-                            'background: '.$palette[$i % count($palette)] => ! $s['hidden'],
+                            'background: '.$colour($i, $s) => ! $s['hidden'],
                         ])></span>
                         {{ $s['label'] }}
                         <span class="v-faint">peak {{ $s['max'] }}</span>

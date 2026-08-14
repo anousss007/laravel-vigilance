@@ -8,3 +8,8 @@ build
 .vscode
 .DS_Store
 Thumbs.db
+
+# Visual harness: throwaway app + screenshots
+/workbench/database/*.sqlite
+/visual/output
+/.env

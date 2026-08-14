@@ -15,6 +15,12 @@ probably didn't change."
 - [ ] `php vendor/bin/pint --test` — code style passes
 - [ ] `php vendor/bin/phpstan analyse --memory-limit=512M --no-progress` — no errors
 - [ ] `php vendor/bin/pest` — full suite passes
+- [ ] `composer visual` — every dashboard page screenshotted in both themes at
+      desktop and phone width, **0 faults**, *and* the contact sheet
+      (`visual/output/index.html`) reviewed by eye. A green audit only means no
+      *known* fault was found; the dashboard has shipped visibly broken with a
+      fully green test suite before. Do not tag a release without looking at the
+      screenshots.
 - [ ] (recommended) Fresh-install smoke test: install the package into a clean
       Laravel app via a path repo, `vigilance:install`, `migrate`, and confirm the
       dashboard pages render and `vigilance:doctor` is green.

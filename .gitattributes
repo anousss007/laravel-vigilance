@@ -13,6 +13,10 @@ testbench.yaml      export-ignore
 # CSS build inputs are dev-only; the compiled resources/dist/vigilance.css ships.
 /node_modules       export-ignore
 /resources/css      export-ignore
+# The visual release gate and the throwaway app it drives are dev-only.
+/visual             export-ignore
+/workbench          export-ignore
+RELEASING.md        export-ignore
 package.json        export-ignore
 package-lock.json   export-ignore
 tailwind.config.js  export-ignore

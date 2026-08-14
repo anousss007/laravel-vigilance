@@ -6,6 +6,79 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-08-15
+
+A dashboard-appearance release. Vigilance shipped a UI that nothing had ever
+looked at: the whole test suite was green while every table on every page
+rendered with browser-default styling. This fixes that, and adds the gate that
+would have caught it — `composer visual` now screenshots and audits all 26 pages
+in both themes at desktop and phone width, and a release cannot be tagged
+without it.
+
+### Fixed
+- **Every table in the dashboard rendered unstyled.** The pages write plain
+  `<th>`/`<td>` inside `<x-vigilance::ui.table>`, and the rules that style those
+  cells hang off a `.v-table` class the component never emitted — so twenty
+  views rendered with browser-default tables: no cell padding, no row borders,
+  bold centred headers, and numbers colliding with the text beside them
+  (`3il y a 5 jours`). The component now carries that class.
+- **A wide table's off-screen columns looked like missing ones.** Overlay
+  scrollbars are invisible until touched, so on the Issues inbox the entire
+  action column simply appeared to be absent. Table containers now show a thin
+  permanent scrollbar and an edge shadow that fades out at the end of the
+  scroll, and on Issues, Incidents and Tags the action column stays pinned to
+  the right edge on desktop (never on a phone, where it would be wider than the
+  viewport and cover the table).
+- **Multi-series charts drew every series in the same colour.** The chart
+  palette was five steps of one emerald ramp — a sequential ramp doing a
+  categorical job — so the fleet chart's supervisors were indistinguishable and
+  its darkest steps were nearly invisible on the dark surface. Replaced with
+  five distinct hues, validated for colour-vision deficiency and contrast
+  against both surfaces, and applied in fixed order so a series keeps its colour
+  when the number of series changes.
+- **Rolling back on SQLite failed.** The migrations that add an indexed column
+  to `vigilance_failure_groups` dropped the column without dropping its index
+  first, which aborts `migrate:refresh`/`migrate:rollback` on SQLite.
+- **Six status badges had their closing tags in the wrong place**, putting the
+  label outside the badge it belonged to (Pending, Workload, Overview).
+- **"Cancel selected" spanned the full width of its card** on the Pending page:
+  the button was not marked as a card action, so it fell onto its own header row.
+- **Long identifiers pushed pages sideways on a phone.** A fully-qualified job
+  class as a page title has nothing to break on; Run detail, Trace detail, the
+  Workers cards and the APM server cards now wrap and shrink instead.
+- **An issue with no errors in seven days drew a flat sparkline** pinned to the
+  baseline, which read as a stray underscore rather than as "nothing happened".
+  It shows a dash, like the no-data case it is.
+- **Hiding one series on the fleet chart repainted the others.** The lines were
+  coloured by their rank among the *visible* series while the legend coloured by
+  rank among all of them, so toggling a pool off left the legend disagreeing
+  with the chart. Colour now follows the series itself. Past five pools the tail
+  is summed into one neutral "Other" series instead of cycling the palette,
+  which used to draw two different pools identically.
+- **The reflected forms on Dispatch and Commands had unlabelled inputs** — the
+  parameter name sat in a `<span>` beside the control, so a screen reader
+  reached the field with nothing to announce (axe-core: `label`, critical).
+- **The time-range picker's last range was cut off on a phone** with nothing to
+  say it scrolls — the same edge-shadow affordance the wide tables use now
+  applies to it.
+- **The Issues inbox showed the wrong columns first.** Eight columns plus the
+  action group cannot fit a laptop, and the ones you triage on — status, count,
+  last seen — were the ones pushed off-screen. Reordered so message and the 7-day
+  shape are what you scroll for.
+- **The test suite was red on a fresh checkout** (176 failures): Testbench's
+  skeleton defaults the cache to the database store, whose table the in-memory
+  test connection never migrates. Pinned to the array store in `phpunit.xml`.
+
+### Added
+- **A visual release gate.** `composer visual` boots a seeded throwaway app and
+  screenshots every dashboard page in both themes at desktop and phone width,
+  reporting unstyled tables, clipped content, sideways scroll, stuck lazy cards
+  and failing requests, plus a contact sheet to review by eye. It also runs
+  axe-core (WCAG 2.1 AA) on every page at both viewports, which is where the
+  unlabelled form controls above came from. Releasing now requires it — see
+  `RELEASING.md`. Native checkboxes also pick up the theme's accent colour
+  instead of the OS blue.
+
 ## [0.9.1] - 2026-08-14
 
 ### Added

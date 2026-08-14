@@ -32,6 +32,10 @@ return new class extends Migration
 
         if ($schema->hasColumn('vigilance_failure_groups', 'regressed_at')) {
             $schema->table('vigilance_failure_groups', function (Blueprint $table) {
+                // SQLite rebuilds the table on a column drop and re-validates
+                // every index against the new shape, so an index still pointing
+                // at the dropped column aborts the rollback. Drop it first.
+                $table->dropIndex(['regressed_at']);
                 $table->dropColumn('regressed_at');
             });
         }

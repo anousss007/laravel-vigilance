@@ -107,11 +107,18 @@ class Workers extends Component
     }
 
     /**
+     * How many pools get a colour of their own before the tail is folded into
+     * "Other" — the length of the chart palette. A sixth hue does not exist, and
+     * reusing the first one would draw two different pools identically.
+     */
+    protected const CHART_SERIES = 5;
+
+    /**
      * Worker count over time, per pool — the record of what the autoscaler
      * actually did, which the supervisor's own state table cannot give because
      * it only ever holds "right now".
      *
-     * @return list<array{key: string, label: string, hidden: bool, points: list<?int>, max: int}>
+     * @return list<array{key: string, label: string, hidden: bool, points: list<?int>, max: int, other: bool}>
      */
     protected function fleetSeries(): array
     {
@@ -135,9 +142,61 @@ class Workers extends Component
                 'hidden' => in_array((string) $key, $this->hiddenSeries, true),
                 'points' => array_map(fn ($v) => $v === null ? null : (int) $v, $points),
                 'max' => $values === [] ? 0 : (int) max($values),
+                'other' => false,
             ];
         }
 
-        return $series;
+        // Biggest pools first, so the ones folded away are the small ones.
+        usort($series, fn (array $a, array $b) => $b['max'] <=> $a['max']);
+
+        return $this->foldTail($series);
+    }
+
+    /**
+     * Collapses everything past the palette into one summed "Other" series.
+     *
+     * @param  list<array{key: string, label: string, hidden: bool, points: list<?int>, max: int, other: bool}>  $series
+     * @return list<array{key: string, label: string, hidden: bool, points: list<?int>, max: int, other: bool}>
+     */
+    protected function foldTail(array $series): array
+    {
+        if (count($series) <= static::CHART_SERIES) {
+            return $series;
+        }
+
+        $kept = array_slice($series, 0, static::CHART_SERIES);
+        $tail = array_slice($series, static::CHART_SERIES);
+
+        // Sum the tail rather than dropping it: the chart's ceiling is the
+        // fleet's size, and a hidden pool would make it read low.
+        $points = [];
+
+        foreach ($tail as $s) {
+            foreach ($s['points'] as $i => $value) {
+                if ($value === null) {
+                    // Keep the null unless another pool reported at this bucket:
+                    // "no sample" and "zero workers" are different facts.
+                    $points[$i] ??= null;
+
+                    continue;
+                }
+
+                $points[$i] = ($points[$i] ?? 0) + $value;
+            }
+        }
+
+        ksort($points);
+        $values = array_filter($points, fn (?int $v) => $v !== null);
+
+        $kept[] = [
+            'key' => '__other__',
+            'label' => 'Other ('.count($tail).' pools)',
+            'hidden' => in_array('__other__', $this->hiddenSeries, true),
+            'points' => array_values($points),
+            'max' => $values === [] ? 0 : (int) max($values),
+            'other' => true,
+        ];
+
+        return $kept;
     }
 }

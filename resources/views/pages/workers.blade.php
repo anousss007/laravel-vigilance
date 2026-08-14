@@ -39,14 +39,14 @@
     @forelse ($supervisors as $supervisor)
         <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
             <x-vigilance::ui.card-header>
-                <div class="flex items-center gap-2.5">
+                <div class="flex min-w-0 flex-wrap items-center gap-2.5">
                     <x-vigilance::ui.card-title>{{ $supervisor->name }}</x-vigilance::ui.card-title>
                     @if ($supervisor->host)
                         <x-vigilance::ui.badge tone="neutral" class="uppercase tracking-wide font-mono" title="node">{{ $supervisor->host }}</x-vigilance::ui.badge>
                     @endif
                     <span class="text-[11px] uppercase tracking-wide v-faint font-mono">{{ $supervisor->connection }} · {{ $supervisor->queues }} · {{ $supervisor->balance }}</span>
                 </div>
-                <div class="flex items-center gap-3 text-xs">
+                <div class="flex flex-wrap items-center gap-3 text-xs">
                     <span class="v-pill {{ $statusState($supervisor->status) }} uppercase tracking-wide"><span class="v-dot"></span>{{ $supervisor->status }}</span>
                     <span class="font-semibold v-strong v-num">{{ $supervisor->processes }} worker(s)</span>
                     @if ($supervisor->last_heartbeat_at)

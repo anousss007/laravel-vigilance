@@ -48,7 +48,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Vigilance\\Tests\\": "tests/"
+            "Vigilance\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
         }
     },
     "extra": {
@@ -69,7 +71,19 @@
         "test:coverage": "@php vendor/bin/pest --coverage",
         "lint": "@php vendor/bin/pint --test",
         "format": "@php vendor/bin/pint",
-        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M"
+        "analyse": "@php vendor/bin/phpstan analyse --memory-limit=512M",
+        "build": [
+            "@php -r \"@mkdir('workbench/database', 0777, true); touch('workbench/database/database.sqlite');\"",
+            "@php vendor/bin/testbench workbench:build --ansi"
+        ],
+        "serve": [
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ],
+        "visual": [
+            "@build",
+            "@php visual/run.php"
+        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true

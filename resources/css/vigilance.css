@@ -159,12 +159,17 @@
     --input: var(--v-border-strong);
     --ring: var(--v-accent);
 
-    /* Emerald ramp, light → dark, for series colouring. */
-    --chart-1: #34d399;
-    --chart-2: #10b981;
-    --chart-3: #059669;
-    --chart-4: #047857;
-    --chart-5: #065f46;
+    /* Categorical series colours — identity, not magnitude. Five steps of one
+       hue (what this used to be) makes every line on a multi-series chart look
+       like the same line: distinct hues are the only thing that separates
+       "supervisor-1 · mail" from "supervisor-2 · broadcast". Validated for
+       colour-vision deficiency and contrast against the light card surface;
+       re-run scripts/validate_palette.js before changing a value. */
+    --chart-1: #059669;
+    --chart-2: #1d4ed8;
+    --chart-3: #db2777;
+    --chart-4: #a16207;
+    --chart-5: #9333ea;
 
     --sidebar: var(--v-surface);
     --sidebar-foreground: var(--v-text);
@@ -209,11 +214,13 @@
     --warning-foreground: #1c1204;
     --info-foreground: #04141c;
 
-    --chart-1: #a7f3d0;
-    --chart-2: #6ee7b7;
-    --chart-3: #34d399;
-    --chart-4: #10b981;
-    --chart-5: #059669;
+    /* Same hues, re-stepped for the dark card surface (#121215) rather than
+       lightened automatically — see the light block. */
+    --chart-1: #0ea672;
+    --chart-2: #3b82f6;
+    --chart-3: #ec4899;
+    --chart-4: #c2830b;
+    --chart-5: #9b4ef0;
 }
 
 @layer base {
@@ -251,6 +258,16 @@
     }
 
     [x-cloak] { display: none !important; }
+
+    /* Native checkboxes/radios still appear in a few list views. Left alone
+       they paint in the OS blue, which reads as a stray control on a themed
+       dark surface. */
+    input[type="checkbox"], input[type="radio"] {
+        accent-color: var(--v-accent);
+        width: 0.875rem;
+        height: 0.875rem;
+        cursor: pointer;
+    }
 
     /* Slim, themed scrollbars. */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -341,7 +358,11 @@
 
     /* --- Page header ------------------------------------------------------ */
     .v-page-head { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
-    .v-page-title { @apply text-xl font-semibold; color: var(--v-text-strong); letter-spacing: -0.02em; }
+    /* Page titles are often a fully-qualified class name with no spaces to break
+       on, which pushes the whole document sideways on a phone. min-width:0 lets
+       the flex item shrink, overflow-wrap lets the token itself break. */
+    .v-page-head > * { min-width: 0; }
+    .v-page-title { @apply text-xl font-semibold; color: var(--v-text-strong); letter-spacing: -0.02em; min-width: 0; overflow-wrap: anywhere; }
     .v-page-sub { @apply mt-0.5 text-[13px]; color: var(--v-muted); }
 
     /* --- Cards / panels --------------------------------------------------- */
@@ -401,10 +422,64 @@
         @apply px-3 py-2.5 align-middle;
         color: var(--v-text);
         border-bottom: 1px solid var(--v-border);
+        /* Rows are one line tall by design: a wrapped "il y a 5 jours" reads as
+           a broken cell, and the container scrolls horizontally anyway. Cells
+           that hold prose opt out with .truncate or an explicit wrap. */
+        white-space: nowrap;
     }
     .v-table tbody tr:last-child td { border-bottom: 0; }
     .v-table--hover tbody tr { transition: background 0.12s; }
     .v-table--hover tbody tr:hover { background: var(--v-surface-2); }
+
+    /* Anything wider than its container has to *look* scrollable: overlay
+       scrollbars are invisible until you touch them, so the columns — or the
+       time ranges — past the right edge simply read as missing. A thin
+       permanent scrollbar plus an edge shadow that fades out when you reach the
+       end fixes that. The shadow is painted with background-attachment: local,
+       so it tracks the scroll position with no JavaScript. */
+    .v-scroll-x,
+    [data-slot='table-container'] {
+        scrollbar-width: thin;
+        scrollbar-color: var(--v-border-strong) transparent;
+        background-image:
+            linear-gradient(to right, var(--v-surface) 30%, transparent),
+            linear-gradient(to left, var(--v-surface) 30%, transparent),
+            radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.16), transparent),
+            radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.16), transparent);
+        background-position: left center, right center, left center, right center;
+        background-size: 24px 100%, 24px 100%, 12px 100%, 12px 100%;
+        background-repeat: no-repeat;
+        background-attachment: local, local, scroll, scroll;
+    }
+    .v-scroll-x::-webkit-scrollbar,
+    [data-slot='table-container']::-webkit-scrollbar { height: 8px; }
+    .v-scroll-x::-webkit-scrollbar-thumb,
+    [data-slot='table-container']::-webkit-scrollbar-thumb {
+        background: var(--v-border-strong);
+        border-radius: 999px;
+    }
+
+    /* Keeps the row's action buttons pinned to the right edge while the rest of
+       a wide table scrolls under them — without it the primary action on the
+       Issues inbox sits off-screen at any laptop width.
+       Desktop only: on a phone the action group is wider than the viewport, so
+       pinning it would cover every other column and leave the table unreadable.
+       There it simply scrolls with the rest. */
+    @media (min-width: 1024px) {
+        .v-table--sticky-end thead th:last-child,
+        .v-table--sticky-end tbody td:last-child {
+            position: sticky;
+            right: 0;
+            z-index: 1;
+            background: var(--v-surface);
+            /* A hard edge, not just a shadow: without it the column scrolling
+               underneath reads as a broken half-drawn cell rather than as
+               content passing behind a pinned one. */
+            border-left: 1px solid var(--v-border);
+            box-shadow: -10px 0 12px -6px rgb(0 0 0 / 0.45);
+        }
+        .v-table--hover.v-table--sticky-end tbody tr:hover td:last-child { background: var(--v-surface-2); }
+    }
 
     /* --- Buttons ---------------------------------------------------------- */
     .v-btn {

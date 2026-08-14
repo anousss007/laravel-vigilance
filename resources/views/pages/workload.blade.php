@@ -48,11 +48,11 @@
                 @foreach ($orphanPaused as $key => $expiresAt)
                     @php [$conn, $q] = array_pad(explode('|', $key, 2), 2, ''); @endphp
                     <x-vigilance::ui.badge tone="warning" class="inline-flex items-center gap-2">
-                        <span class="v-dot"></x-vigilance::ui.badge>
+                        <span class="v-dot"></span>
                         <span class="font-mono">{{ $q }}</span>
                         <span class="v-faint">· {{ $conn }} · {{ $fmtExpiry($expiresAt) }}</span>
                         <x-vigilance::ui.button variant="outline" size="sm" wire:click="resumeQueue(@js($conn), @js($q))">Resume</x-vigilance::ui.button>
-                    </span>
+                    </x-vigilance::ui.badge>
                 @endforeach
             </div>
         </x-vigilance::ui.card>
@@ -82,7 +82,7 @@
                     <div class="flex items-center gap-2 min-w-0">
                         <h2 class="truncate font-semibold font-mono v-strong">{{ $queue['queue'] }}</h2>
                         @if ($isPaused)
-                            <x-vigilance::ui.badge tone="warning" class="uppercase tracking-wide text-[10px]"><span class="v-dot"></x-vigilance::ui.badge>paused</span>
+                            <x-vigilance::ui.badge tone="warning" class="uppercase tracking-wide text-[10px]"><span class="v-dot"></span>paused</x-vigilance::ui.badge>
                         @endif
                     </div>
                     <span class="text-[10px] font-mono v-faint">{{ $queue['connection_name'] ?: 'no connection' }}</span>

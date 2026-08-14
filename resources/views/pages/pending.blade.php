@@ -16,7 +16,12 @@
                     <x-vigilance::ui.badge tone="neutral" class="font-mono">{{ $group['driver'] }}</x-vigilance::ui.badge>
                 </div>
                 @if ($canCancel)
-                    <x-vigilance::ui.button variant="destructive" size="sm" wire:click="cancelSelected(@js($group['connection']))" wire:confirm="Cancel the selected pending job(s)? This deletes them from the queue and cannot be undone.">Cancel selected</x-vigilance::ui.button>
+                    {{-- card-action pins this to the header's right-hand cell;
+                         without it the button lands on its own grid row and
+                         stretches the full width of the card. --}}
+                    <x-vigilance::ui.card-action>
+                        <x-vigilance::ui.button variant="destructive" size="sm" wire:click="cancelSelected(@js($group['connection']))" wire:confirm="Cancel the selected pending job(s)? This deletes them from the queue and cannot be undone.">Cancel selected</x-vigilance::ui.button>
+                    </x-vigilance::ui.card-action>
                 @endif
             </x-vigilance::ui.card-header>
 
@@ -48,11 +53,11 @@
                                     <td class="text-right v-num">{{ $job['attempts'] }}</td>
                                     <td>
                                         @if ($job['reserved'])
-                                            <x-vigilance::ui.badge tone="info"><span class="v-dot"></x-vigilance::ui.badge>reserved</span>
+                                            <x-vigilance::ui.badge tone="info"><span class="v-dot"></span>reserved</x-vigilance::ui.badge>
                                         @elseif ($job['delayed'])
-                                            <x-vigilance::ui.badge tone="warning"><span class="v-dot"></x-vigilance::ui.badge>delayed</span>
+                                            <x-vigilance::ui.badge tone="warning"><span class="v-dot"></span>delayed</x-vigilance::ui.badge>
                                         @else
-                                            <x-vigilance::ui.badge tone="success"><span class="v-dot"></x-vigilance::ui.badge>ready</span>
+                                            <x-vigilance::ui.badge tone="success"><span class="v-dot"></span>ready</x-vigilance::ui.badge>
                                         @endif
                                     </td>
                                 </tr>

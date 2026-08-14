@@ -36,54 +36,52 @@
     </x-vigilance::ui.card>
 
     <x-vigilance::ui.card class="overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <x-vigilance::ui.table>
-                <thead>
-                    <tr>
-                        <th scope="col">Incident</th>
-                        <th scope="col">Level</th>
-                        <th scope="col">Status</th>
-                        <th scope="col" class="text-right">Count</th>
-                        <th scope="col">Opened</th>
-                        <th scope="col" class="text-right">Duration</th>
-                        <th scope="col" class="text-right">Actions</th>
+        <x-vigilance::ui.table class="v-table--sticky-end">
+            <thead>
+                <tr>
+                    <th scope="col">Incident</th>
+                    <th scope="col">Level</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="text-right">Count</th>
+                    <th scope="col">Opened</th>
+                    <th scope="col" class="text-right">Duration</th>
+                    <th scope="col" class="text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($incidents as $incident)
+                    <tr wire:key="incident-{{ $incident->id }}">
+                        <td>
+                            <span class="font-medium v-strong">{{ $incident->title }}</span>
+                            @if ($incident->message)
+                                <div class="max-w-md truncate text-[11px] v-faint" title="{{ $incident->message }}">{{ $incident->message }}</div>
+                            @endif
+                        </td>
+                        <td><span @class(['v-pill', $levelPill($incident->level)])>{{ $incident->level }}</span></td>
+                        <td>
+                            <span @class(['v-pill', 'is-danger' => ! $incident->isResolved(), 'is-success' => $incident->isResolved()])>
+                                <span class="v-dot"></span>{{ $incident->status }}
+                            </span>
+                        </td>
+                        <td class="text-right v-num">{{ $incident->occurrences }}</td>
+                        <td class="v-muted" title="{{ $incident->opened_at }}">{{ optional($incident->opened_at)->diffForHumans() ?? '—' }}</td>
+                        <td class="text-right v-num v-muted">{{ $fmtDuration($incident->durationSeconds()) }}</td>
+                        <td class="text-right">
+                            @unless ($incident->isResolved())
+                                <button type="button" wire:click="resolve({{ $incident->id }})" class="v-btn v-btn--sm v-btn--primary">Resolve</button>
+                            @endunless
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse ($incidents as $incident)
-                        <tr wire:key="incident-{{ $incident->id }}">
-                            <td>
-                                <span class="font-medium v-strong">{{ $incident->title }}</span>
-                                @if ($incident->message)
-                                    <div class="max-w-md truncate text-[11px] v-faint" title="{{ $incident->message }}">{{ $incident->message }}</div>
-                                @endif
-                            </td>
-                            <td><span @class(['v-pill', $levelPill($incident->level)])>{{ $incident->level }}</span></td>
-                            <td>
-                                <span @class(['v-pill', 'is-danger' => ! $incident->isResolved(), 'is-success' => $incident->isResolved()])>
-                                    <span class="v-dot"></span>{{ $incident->status }}
-                                </span>
-                            </td>
-                            <td class="text-right v-num">{{ $incident->occurrences }}</td>
-                            <td class="v-muted" title="{{ $incident->opened_at }}">{{ optional($incident->opened_at)->diffForHumans() ?? '—' }}</td>
-                            <td class="text-right v-num v-muted">{{ $fmtDuration($incident->durationSeconds()) }}</td>
-                            <td class="text-right">
-                                @unless ($incident->isResolved())
-                                    <button type="button" wire:click="resolve({{ $incident->id }})" class="v-btn v-btn--sm v-btn--primary">Resolve</button>
-                                @endunless
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7">
-                            <x-vigilance::ui.empty>
-    <x-vigilance::ui.empty-title>No incidents here.</x-vigilance::ui.empty-title>
-    <x-vigilance::ui.empty-description><p>Incidents open automatically when an alert rule fires.</p></x-vigilance::ui.empty-description>
+                @empty
+                    <tr><td colspan="7">
+                        <x-vigilance::ui.empty>
+<x-vigilance::ui.empty-title>No incidents here.</x-vigilance::ui.empty-title>
+<x-vigilance::ui.empty-description><p>Incidents open automatically when an alert rule fires.</p></x-vigilance::ui.empty-description>
 </x-vigilance::ui.empty>
-                        </td></tr>
-                    @endforelse
-                </tbody>
-            </x-vigilance::ui.table>
-        </div>
+                    </td></tr>
+                @endforelse
+            </tbody>
+        </x-vigilance::ui.table>
     </x-vigilance::ui.card>
 
     <div>{{ $incidents->links('vigilance::pagination') }}</div>

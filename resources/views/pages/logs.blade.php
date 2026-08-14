@@ -67,54 +67,52 @@
     </x-vigilance::ui.card>
 
     <x-vigilance::ui.card class="overflow-hidden">
-        <div class="overflow-x-auto" tabindex="0">
-            <x-vigilance::ui.table>
-                <thead>
-                    <tr>
-                        <th scope="col" class="w-28">Time</th>
-                        <th scope="col" class="w-24">Level</th>
-                        <th scope="col" class="w-28">Channel</th>
-                        <th scope="col">Message</th>
-                        <th scope="col" class="text-right">Trace</th>
+        <x-vigilance::ui.table>
+            <thead>
+                <tr>
+                    <th scope="col" class="w-28">Time</th>
+                    <th scope="col" class="w-24">Level</th>
+                    <th scope="col" class="w-28">Channel</th>
+                    <th scope="col">Message</th>
+                    <th scope="col" class="text-right">Trace</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($logs as $log)
+                    <tr wire:key="log-{{ $log->id }}">
+                        <td class="whitespace-nowrap v-muted" title="{{ CarbonImmutable::createFromTimestamp($log->loggedAt)->toDateTimeString() }}">
+                            {{ CarbonImmutable::createFromTimestamp($log->loggedAt)->diffForHumans(short: true) }}
+                        </td>
+                        <td>
+                            <span @class(['v-pill', $levelPill($log->levelValue)])>{{ $log->level }}</span>
+                        </td>
+                        <td class="font-mono text-[11px] v-faint">{{ $log->channel ?: '—' }}</td>
+                        <td class="min-w-0">
+                            <span @class(['font-mono text-[12px]', 'v-strong' => $log->isProblem(), 'v-muted' => ! $log->isProblem()])>{{ Str::limit($log->message, 160) }}</span>
+                            @if ($log->context !== [])
+                                <details class="mt-1">
+                                    <summary class="cursor-pointer text-[11px] v-link">context</summary>
+                                    <pre class="mt-1 max-w-full overflow-x-auto rounded p-2 text-[11px] v-num" tabindex="0" style="background: var(--v-surface-2);">{{ json_encode($log->context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                </details>
+                            @endif
+                        </td>
+                        <td class="text-right">
+                            @if ($log->traceId)
+                                <a href="{{ route('vigilance.traces.show', $log->traceId) }}" class="v-link text-[11px]">view trace →</a>
+                            @else
+                                <span class="v-faint">—</span>
+                            @endif
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse ($logs as $log)
-                        <tr wire:key="log-{{ $log->id }}">
-                            <td class="whitespace-nowrap v-muted" title="{{ CarbonImmutable::createFromTimestamp($log->loggedAt)->toDateTimeString() }}">
-                                {{ CarbonImmutable::createFromTimestamp($log->loggedAt)->diffForHumans(short: true) }}
-                            </td>
-                            <td>
-                                <span @class(['v-pill', $levelPill($log->levelValue)])>{{ $log->level }}</span>
-                            </td>
-                            <td class="font-mono text-[11px] v-faint">{{ $log->channel ?: '—' }}</td>
-                            <td class="min-w-0">
-                                <span @class(['font-mono text-[12px]', 'v-strong' => $log->isProblem(), 'v-muted' => ! $log->isProblem()])>{{ Str::limit($log->message, 160) }}</span>
-                                @if ($log->context !== [])
-                                    <details class="mt-1">
-                                        <summary class="cursor-pointer text-[11px] v-link">context</summary>
-                                        <pre class="mt-1 max-w-full overflow-x-auto rounded p-2 text-[11px] v-num" tabindex="0" style="background: var(--v-surface-2);">{{ json_encode($log->context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
-                                    </details>
-                                @endif
-                            </td>
-                            <td class="text-right">
-                                @if ($log->traceId)
-                                    <a href="{{ route('vigilance.traces.show', $log->traceId) }}" class="v-link text-[11px]">view trace →</a>
-                                @else
-                                    <span class="v-faint">—</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="5">
-                            <x-vigilance::ui.empty>
-    <x-vigilance::ui.empty-title>No logs match.</x-vigilance::ui.empty-title>
-    <x-vigilance::ui.empty-description><p>Captured <code class="font-mono">Log::*</code> records appear here as your app writes them.</p></x-vigilance::ui.empty-description>
+                @empty
+                    <tr><td colspan="5">
+                        <x-vigilance::ui.empty>
+<x-vigilance::ui.empty-title>No logs match.</x-vigilance::ui.empty-title>
+<x-vigilance::ui.empty-description><p>Captured <code class="font-mono">Log::*</code> records appear here as your app writes them.</p></x-vigilance::ui.empty-description>
 </x-vigilance::ui.empty>
-                        </td></tr>
-                    @endforelse
-                </tbody>
-            </x-vigilance::ui.table>
-        </div>
+                    </td></tr>
+                @endforelse
+            </tbody>
+        </x-vigilance::ui.table>
     </x-vigilance::ui.card>
 </div>

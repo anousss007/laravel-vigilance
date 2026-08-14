@@ -16,7 +16,7 @@
     @endif
 
     <x-vigilance::ui.card class="overflow-hidden">
-        <x-vigilance::ui.table>
+        <x-vigilance::ui.table class="v-table--sticky-end">
                 <thead>
                     <tr>
                         <th scope="col">Tag</th>

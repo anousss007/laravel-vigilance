@@ -42,10 +42,10 @@
                     $cpuSpark = $spark($server['cpu_series'], 'rgb(59 130 246)');
                 @endphp
                 <x-vigilance::ui.card>
-                    <div class="flex items-center justify-between gap-2">
-                        <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex min-w-0 items-center gap-2">
                             <span class="inline-block h-2 w-2 rounded-full" aria-hidden="true" style="background: {{ $server['online'] ? 'var(--v-success)' : 'var(--v-faint)' }};"></span>
-                            <span class="font-semibold v-strong">{{ $server['name'] }}</span>
+                            <span class="min-w-0 truncate font-semibold v-strong" title="{{ $server['name'] }}">{{ $server['name'] }}</span>
                             <span class="v-pill {{ $server['online'] ? 'is-success' : 'is-neutral' }}">{{ $server['online'] ? 'online' : 'stale' }}</span>
                         </div>
                         <span class="text-xs v-muted">{{ $ago($server['updated_at']) }}</span>

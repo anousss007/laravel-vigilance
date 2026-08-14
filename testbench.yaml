@@ -1,3 +1,23 @@
 providers:
   - Livewire\LivewireServiceProvider
   - Vigilance\VigilanceServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+seeders:
+  - Workbench\Database\Seeders\DatabaseSeeder
+
+# A throwaway Laravel app used to run the dashboard against realistic data
+# (`composer visual` boots it and screenshots every page). Nothing here ships
+# in the package — it exists so a release can be checked in a browser, not
+# only in a test assertion.
+workbench:
+  start: '/vigilance'
+  install: true
+  discovers:
+    web: true
+  build:
+    - 'migrate:refresh'
+
+env:
+  - APP_ENV="local"
+  - APP_DEBUG=true

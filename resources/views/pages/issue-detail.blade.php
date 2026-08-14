@@ -127,28 +127,26 @@
     @if ($runs->isNotEmpty())
         <x-vigilance::ui.card variant="sectioned" class="overflow-hidden">
             <x-vigilance::ui.card-header><x-vigilance::ui.card-title>Recent runs</x-vigilance::ui.card-title></x-vigilance::ui.card-header>
-            <div class="overflow-x-auto" tabindex="0">
-                <x-vigilance::ui.table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Name</th>
-                            <th scope="col">Queue</th>
-                            <th scope="col">When</th>
-                            <th scope="col">Status</th>
+            <x-vigilance::ui.table>
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Queue</th>
+                        <th scope="col">When</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($runs as $run)
+                        <tr wire:key="run-{{ $run->id }}" onclick="window.location='{{ route('vigilance.runs.show', $run->id) }}'" class="cursor-pointer">
+                            <td class="font-mono v-strong">{{ $run->name }}</td>
+                            <td class="v-muted">{{ $run->queue ?: '—' }}</td>
+                            <td class="v-muted" title="{{ $run->created_at }}">{{ optional($run->created_at)->diffForHumans() }}</td>
+                            <td>@include('vigilance::partials.status', ['status' => $run->status])</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($runs as $run)
-                            <tr wire:key="run-{{ $run->id }}" onclick="window.location='{{ route('vigilance.runs.show', $run->id) }}'" class="cursor-pointer">
-                                <td class="font-mono v-strong">{{ $run->name }}</td>
-                                <td class="v-muted">{{ $run->queue ?: '—' }}</td>
-                                <td class="v-muted" title="{{ $run->created_at }}">{{ optional($run->created_at)->diffForHumans() }}</td>
-                                <td>@include('vigilance::partials.status', ['status' => $run->status])</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </x-vigilance::ui.table>
-            </div>
+                    @endforeach
+                </tbody>
+            </x-vigilance::ui.table>
         </x-vigilance::ui.card>
     @endif
 </div>
