@@ -6,6 +6,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-08-14
+
+### Added
+- **Three MCP tools for the new surfaces.** `footprint` (what Vigilance itself
+  stores, and whether pruning keeps up), `suppressions` (list the active mute
+  rules — always worth checking before concluding a route has no data, since a
+  muted route looks exactly like an idle one — plus create/remove with writes
+  on), and `incident-mode` (status is read-only; engaging needs both
+  `mcp.allow_writes` and `incident_mode.enabled`, and is safe to hand to an
+  agent precisely because the duration is capped and it expires itself).
+  A test now pins "a tool for every dashboard page" so the claim cannot rot
+  again — it had already gone stale when the Usage page shipped without one.
+
+### Fixed
+- **"A tool for every dashboard page" had stopped being true.** 0.9.0 shipped the
+  Usage page without an MCP tool, and nothing checked. The claim is now an
+  invariant a test enforces, with an explicit page-to-tool map so adding a page
+  forces the coverage decision at review time rather than after release.
+
 ## [0.9.0] - 2026-08-14
 
 **Run `php artisan migrate`** — this release adds one new table

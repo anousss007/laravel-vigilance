@@ -139,6 +139,9 @@ Vigilance::gauge('cart_value', $cart->total());  // gauge (avg / peak / min)
 
 ## MCP server (query telemetry from an AI agent)
 
+Beyond the per-page tools: **`footprint`** (what Vigilance itself stores, and whether pruning keeps up), **`suppressions`** (list — always check before concluding a route has no data — plus create/remove with writes on), and **`incident-mode`** (status read-only; `engage`/`end` need writes **and** `vigilance.incident_mode.enabled`). Engaging is safe to hand to an agent precisely because it cannot be left on: the duration is capped and it expires itself.
+
+
 Optional, **off by default**, built on `laravel/mcp` (`composer require laravel/mcp`). Set `VIGILANCE_MCP_ENABLED=true` and Vigilance registers a local stdio server your AI client launches with `php artisan mcp:start vigilance`. It exposes a tool for **every dashboard page**, so an agent can investigate (and, when allowed, fix) against live data:
 
 - **Errors / runs:** `overview`, `issues`/`issue`, `exceptions`, `runs`/`run`, `job-metrics`.

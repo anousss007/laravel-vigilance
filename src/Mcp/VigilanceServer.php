@@ -18,6 +18,8 @@ use Vigilance\Mcp\Tools\DispatchableJobsTool;
 use Vigilance\Mcp\Tools\DispatchJobTool;
 use Vigilance\Mcp\Tools\ExceptionsTool;
 use Vigilance\Mcp\Tools\FeedbackTool;
+use Vigilance\Mcp\Tools\FootprintTool;
+use Vigilance\Mcp\Tools\IncidentModeTool;
 use Vigilance\Mcp\Tools\IncidentsTool;
 use Vigilance\Mcp\Tools\IssuesTool;
 use Vigilance\Mcp\Tools\IssueTool;
@@ -50,6 +52,7 @@ use Vigilance\Mcp\Tools\SlowHttpTool;
 use Vigilance\Mcp\Tools\SlowJobsTool;
 use Vigilance\Mcp\Tools\SlowQueriesTool;
 use Vigilance\Mcp\Tools\SlowRequestsTool;
+use Vigilance\Mcp\Tools\SuppressionsTool;
 use Vigilance\Mcp\Tools\TagsTool;
 use Vigilance\Mcp\Tools\TracesTool;
 use Vigilance\Mcp\Tools\TraceTool;
@@ -87,6 +90,17 @@ class VigilanceServer extends Server
         - "performance", "slow-queries", "slow-jobs", "servers" — latency and resource hotspots.
         - "traces" then "trace" — a single request/job waterfall with its correlated logs.
         - "logs", "slos", "incidents", "releases" — logs, error budgets, open incidents, deploy health.
+        - "routes" — per-route latency AND what each page costs (queries, database
+          time, memory, hydrated models) when the RequestProfile recorder is on.
+        - "footprint" — what Vigilance itself stores, and whether pruning keeps up.
+
+        Two habits worth having:
+        - Before concluding a route or query has no data, call "suppressions".
+          A muted route looks exactly like an idle one.
+        - Before reproducing a problem, consider "incident-mode" with action
+          "engage": it stops sampling away the evidence for a few minutes and
+          then reverts on its own. Do not raise sample rates in config instead —
+          that is the change nobody reverts.
 
         Tools are read-only unless the operator enabled writes; when enabled you
         may also resolve / acknowledge / mute an issue, reopen it, retry a failed
@@ -94,6 +108,10 @@ class VigilanceServer extends Server
         - "control-workers" — pause / resume / restart / terminate every supervisor.
         - "pause-queue" / "resume-queue" — pause a single queue (optionally timed)
           while the others keep draining; check "queues" for the paused state first.
+        - "incident-mode" (engage/end) — turn capture up briefly; it expires itself.
+        - "suppressions" (create/remove) — mute a noisy route, query, cache key or
+          exception. Prefer setting expires_in_minutes; a permanent mute is rarely
+          what was meant.
         - "clear-queue" — purge a whole queue's backlog (any driver).
         - "cancel-pending" — delete specific waiting jobs by id (database driver);
           discover ids with "pending".
@@ -131,6 +149,8 @@ class VigilanceServer extends Server
         IncidentsTool::class,
         ReleasesTool::class,
         CustomMetricsTool::class,
+        // What the monitoring itself costs.
+        FootprintTool::class,
         // Operational (workers, queues, scheduler, batches, tags).
         WorkersTool::class,
         QueuesTool::class,
@@ -152,6 +172,12 @@ class VigilanceServer extends Server
         RetryIssueTool::class,
         RecordDeployTool::class,
         MaintenanceTool::class,
+        // Both read on "list"/"status" and write on the other actions, so they
+        // register unconditionally and refuse the write half when writes are off
+        // — an agent still needs to see the active mute rules to reason about
+        // missing data.
+        SuppressionsTool::class,
+        IncidentModeTool::class,
         // Worker & queue control (self-gate on mcp.allow_writes). Pausing/resuming
         // a queue or the fleet is operational; clearing a queue and cancelling
         // pending jobs are destructive and additionally require control.enabled.

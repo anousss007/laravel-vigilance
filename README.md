@@ -194,6 +194,7 @@ The tool set mirrors **every dashboard page**, so the agent can reach anything y
 | Feedback | `feedback` (user-reported problems tied to a trace) |
 | **Writes** (opt-in) | `resolve-issue` · `acknowledge-issue` · `assign-issue` · `merge-issues` · `mute-issue` · `reopen-issue` · `retry-run` · `retry-issue` · `record-deploy` · `maintenance` |
 | **Worker & queue control** (opt-in) | `control-workers` · `pause-queue` · `resume-queue` · `clear-queue` · `cancel-pending` |
+| **Investigation** | `footprint` (what monitoring costs) · `suppressions` (list/create mute rules) · `incident-mode` (turn capture up briefly) |
 | **Manual control** (opt-in, double-gated) | `dispatchable-jobs` · `runnable-commands` · `dispatch-job` · `run-command` |
 
 The **worker & queue control** tools let the agent run the control plane, not just observe it: `control-workers` pauses / resumes / restarts / terminates the fleet, and `pause-queue` / `resume-queue` toggle a single queue (optionally timed). These need `VIGILANCE_MCP_ALLOW_WRITES=true`. The destructive `clear-queue` (purge a backlog) and `cancel-pending` (delete waiting jobs by id) — like **manual control** (dispatch a job / run an artisan command) — require **both** `VIGILANCE_MCP_ALLOW_WRITES=true` **and** `VIGILANCE_CONTROL_ENABLED=true`, so they're off unless you deliberately opt in twice. Every write is audited.
