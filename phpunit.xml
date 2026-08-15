@@ -16,9 +16,11 @@
         </include>
     </source>
     <php>
-        <!-- No APP_KEY here on purpose. Testbench sets its own when the env has
-             none, so a base64-shaped string in a public repo bought us nothing
-             but a recurring secret-scanner alert. -->
+        <!-- The app key is generated per run in Tests\TestCase, not pinned here:
+             a base64-shaped literal in a public repo is a standing secret-scanner
+             alert for a credential that protects nothing. Do not rely on Testbench
+             to default it — some versions do not, and the suite then dies with
+             MissingAppKeyException. -->
         <env name="DB_CONNECTION" value="testing"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <!-- Testbench's skeleton .env defaults the cache to the database store,
