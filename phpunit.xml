@@ -16,7 +16,9 @@
         </include>
     </source>
     <php>
-        <env name="APP_KEY" value="base64:2fl+Ktvkfl+Fuz4Qp/A75G2RTiWVA/ZoKZvp6fNqkI8="/>
+        <!-- No APP_KEY here on purpose. Testbench sets its own when the env has
+             none, so a base64-shaped string in a public repo bought us nothing
+             but a recurring secret-scanner alert. -->
         <env name="DB_CONNECTION" value="testing"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <!-- Testbench's skeleton .env defaults the cache to the database store,
