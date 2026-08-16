@@ -123,6 +123,21 @@ it('takes the grace from the schedule this install actually runs', function () {
     expect(app(SelfUsage::class)->pruneInterval())->toBe(86400);
 });
 
+it('grades an uneven schedule against its widest gap', function () {
+    // 09:00 and 17:00 daily alternates an 8h and a 16h stretch. Taking whichever
+    // gap happens to be next makes the warning appear and vanish with the clock.
+    DB::table('vigilance_scheduled_tasks')->insert([
+        'name' => 'vigilance:prune',
+        'type' => 'command',
+        'cron_expression' => '0 9,17 * * *',
+        'monitored' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    expect(app(SelfUsage::class)->pruneInterval())->toBe(16 * 3600);
+});
+
 it('falls back to the recommended daily cadence when the schedule was never synced', function () {
     expect(app(SelfUsage::class)->pruneInterval())->toBe(86400);
 });

@@ -145,10 +145,19 @@ class SelfUsage
 
         try {
             $cron = new CronExpression($expression);
-            $first = $cron->getNextRunDate('now', 0, true);
-            $second = $cron->getNextRunDate($first, 0, false);
 
-            $seconds = $second->getTimestamp() - $first->getTimestamp();
+            // The widest gap in the cycle, not merely the next one: a schedule
+            // like "0 9,17 * * *" alternates 8h and 16h, and grading the 16h
+            // stretch against the 8h gap would resurrect the false alarm this
+            // grace exists to prevent.
+            $seconds = 0;
+            $from = $cron->getNextRunDate('now', 0, true);
+
+            for ($i = 0; $i < 6; $i++) {
+                $next = $cron->getNextRunDate($from, 0, false);
+                $seconds = max($seconds, $next->getTimestamp() - $from->getTimestamp());
+                $from = $next;
+            }
         } catch (Throwable) {
             return $default;
         }

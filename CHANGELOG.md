@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-08-16
+
 ### Fixed
 - **The Usage page's "Pruning is behind" check fired on healthy installs, and
   blamed the scheduler for it.** Two independent faults, both reported from a
@@ -31,6 +33,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   documented as such. A new test asserts every literal `config('vigilance.…')`
   key in the package resolves against the shipped array, so the next typo fails
   at authoring time instead of silently reading a default forever.
+- The MCP `footprint` tool hands the same breach list to an agent, so it carries
+  the grace too — an agent can no longer report a broken scheduler off a healthy
+  install.
+
+Reported against 0.9.2 on PostgreSQL, with the diagnosis and the reproduction
+that made it actionable.
 
 ## [0.9.2] - 2026-08-15
 

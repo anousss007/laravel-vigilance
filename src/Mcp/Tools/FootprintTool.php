@@ -45,8 +45,10 @@ class FootprintTool extends Tool
                 'oldest' => $row['oldest'],
                 'turn_down_with' => $row['lever'],
             ], $tables),
-            // Non-empty means the scheduled prune is not keeping up (or is not
-            // scheduled at all).
+            // Each entry already allows one prune interval of overhang, so a
+            // non-empty list means rows outlasted a normal gap between prunes —
+            // not that the prune failed. Saying otherwise here is how an agent
+            // ends up reporting a broken scheduler that is running fine.
             'retention_breaches' => $breaches,
         ]);
     }
