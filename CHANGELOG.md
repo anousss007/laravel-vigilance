@@ -6,6 +6,32 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **The Usage page's "Pruning is behind" check fired on healthy installs, and
+  blamed the scheduler for it.** Two independent faults, both reported from a
+  production PostgreSQL install:
+  - It read `vigilance.retention_days`, a key the package does not ship, so it
+    silently measured every install against the 7-day fallback instead of the
+    configured `retention.days` (default 14) that `vigilance:prune` actually
+    deletes at. An install keeping 14 days was told 2,799 rows were past a
+    window it had never set.
+  - It counted any row past its window as a breach, ignoring that retention is
+    enforced periodically. Traces are kept 72h and the package's own install
+    output and README tell you to prune **daily**, so every install that
+    followed the instructions showed the warning permanently. The check now
+    tolerates one prune interval of overhang, read from the synced schedule so
+    it matches the cadence you actually run (falling back to a day).
+
+  The banner also no longer asserts "the scheduled prune is not running" — the
+  one conclusion the check cannot draw, and the sentence that sent the reporter
+  diagnosing a failure that did not exist. It now states what it measured.
+- **Four more configuration keys were read but never shipped.**
+  `apm.storage.chunk` is now in the config file where it can be discovered; the
+  three `alerts.rules.*` overrides that intentionally mean "inherit" are
+  documented as such. A new test asserts every literal `config('vigilance.…')`
+  key in the package resolves against the shipped array, so the next typo fails
+  at authoring time instead of silently reading a default forever.
+
 ## [0.9.2] - 2026-08-15
 
 A dashboard-appearance release. Vigilance shipped a UI that nothing had ever

@@ -623,6 +623,10 @@ return [
             // Alert the first time a new error type (signature) is seen, and when
             // a previously-resolved issue regresses. "window_minutes" defaults to
             // the throttle window; "limit" caps how many fire per snapshot.
+            // Both accept an optional 'window_minutes'. Left unset they inherit
+            // "alerts.throttle_minutes" above, so the window you are notified on
+            // and the window you are throttled by cannot drift apart — set it
+            // only when you deliberately want them to differ.
             'new_issue' => ['enabled' => true, 'limit' => 10],
             'issue_regression' => ['enabled' => true, 'limit' => 10],
 
@@ -742,6 +746,11 @@ return [
         'storage' => [
             'driver' => 'database',
             'trim' => ['keep' => '7 days'],
+
+            // Rows per INSERT/DELETE when flushing or trimming telemetry. Lower
+            // it if your database rejects large statements (bound parameter
+            // limits on some MySQL/Postgres configurations).
+            'chunk' => 1000,
         ],
 
         /*

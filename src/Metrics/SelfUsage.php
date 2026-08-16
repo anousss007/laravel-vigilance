@@ -2,6 +2,8 @@
 
 namespace Vigilance\Metrics;
 
+use Carbon\CarbonInterval;
+use Cron\CronExpression;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -74,19 +76,26 @@ class SelfUsage
     }
 
     /**
-     * Whether pruning is actually keeping up: rows older than the configured
-     * retention are rows the trim lottery has not got to.
+     * Whether pruning is actually keeping up.
      *
-     * @return list<array{table: string, label: string, retention: string, stale: int}>
+     * Retention is enforced by a periodic job, not continuously, so at any
+     * moment the oldest rows are legitimately up to one prune interval past
+     * their window. Counting those as a breach makes the check fire for ever on
+     * every install that follows the package's own advice to prune daily —
+     * traces are kept 72h, so a daily prune leaves up to 24h of overhang by
+     * design. The grace below is what separates "behind" from "between runs".
+     *
+     * @return list<array{table: string, label: string, retention: string, grace: string, stale: int}>
      */
     public function retentionBreaches(): array
     {
         $checks = [
             'vigilance_traces' => ['retention' => (string) config('vigilance.tracing.retention', '72 hours'), 'label' => 'Traces'],
-            'vigilance_runs' => ['retention' => ((int) config('vigilance.retention_days', 7)).' days', 'label' => 'Job & command runs'],
+            'vigilance_runs' => ['retention' => ((int) config('vigilance.retention.days', 14)).' days', 'label' => 'Job & command runs'],
             'vigilance_aggregates' => ['retention' => (string) config('vigilance.apm.storage.trim.keep', '7 days'), 'label' => 'APM rolled buckets'],
         ];
 
+        $grace = $this->pruneInterval();
         $breaches = [];
 
         foreach ($checks as $table => $check) {
@@ -96,19 +105,56 @@ class SelfUsage
                 continue;
             }
 
-            $stale = $this->countBefore($table, $cutoff);
+            $stale = $this->countBefore($table, $cutoff->copy()->subSeconds($grace));
 
             if ($stale !== null && $stale > 0) {
                 $breaches[] = [
                     'table' => $table,
                     'label' => $check['label'],
                     'retention' => $check['retention'],
+                    'grace' => CarbonInterval::seconds($grace)->cascade()->forHumans(['short' => true]),
                     'stale' => $stale,
                 ];
             }
         }
 
         return $breaches;
+    }
+
+    /**
+     * How long retention is allowed to overhang before it counts as a breach:
+     * one prune interval, read from the synced schedule so the check matches
+     * whatever cadence this install actually runs.
+     *
+     * Falls back to a day — the cadence `vigilance:install` and the README
+     * recommend — when the schedule has never been synced.
+     */
+    public function pruneInterval(): int
+    {
+        $default = (int) CarbonInterval::day()->totalSeconds;
+
+        $expression = $this->rescue(fn () => $this->connection()
+            ->table('vigilance_scheduled_tasks')
+            ->where('name', 'like', 'vigilance:prune%')
+            ->orderBy('name')
+            ->value('cron_expression'));
+
+        if (! is_string($expression) || trim($expression) === '') {
+            return $default;
+        }
+
+        try {
+            $cron = new CronExpression($expression);
+            $first = $cron->getNextRunDate('now', 0, true);
+            $second = $cron->getNextRunDate($first, 0, false);
+
+            $seconds = $second->getTimestamp() - $first->getTimestamp();
+        } catch (Throwable) {
+            return $default;
+        }
+
+        // A cadence we cannot make sense of must not silence the check.
+        return $seconds > 0 ? $seconds : $default;
     }
 
     protected function count(string $table): ?int

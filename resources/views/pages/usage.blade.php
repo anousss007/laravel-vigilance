@@ -36,12 +36,19 @@
                         <li>
                             <span class="v-strong">{{ $breach['label'] }}</span> —
                             {{ number_format($breach['stale']) }} row(s) older than its
-                            {{ $breach['retention'] }} window.
+                            {{ $breach['retention'] }} window, plus the {{ $breach['grace'] }}
+                            of overhang one prune interval allows.
                         </li>
                     @endforeach
                 </ul>
-                <p class="mt-2">Trimming runs on a lottery and via <span class="font-mono">vigilance:prune</span>;
-                    if this stays non-zero, the scheduled prune is not running.</p>
+                {{-- State what was measured, and let the reader check the prune
+                     rather than being told it is broken: the previous wording
+                     asserted a failed scheduler, which is the one conclusion
+                     this check cannot actually draw. --}}
+                <p class="mt-2">Trimming runs on a lottery and via <span class="font-mono">vigilance:prune</span>.
+                    Rows this far past their window outlast a normal gap between prunes — check that
+                    <span class="font-mono">vigilance:prune</span> is scheduled, and look at its recent runs
+                    to see whether it is succeeding.</p>
             </x-vigilance::ui.alert-description>
         </x-vigilance::ui.alert>
     @endif

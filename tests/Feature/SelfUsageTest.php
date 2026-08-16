@@ -76,7 +76,7 @@ it('reads a datetime-based table correctly too', function () {
 });
 
 it('flags data left past its retention window', function () {
-    config()->set('vigilance.retention_days', 1);
+    config()->set('vigilance.retention.days', 1);
 
     Run::query()->create([
         'uuid' => (string) Str::uuid(),
