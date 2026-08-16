@@ -6,6 +6,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-08-16
+
+### Fixed
+- **The log table was the only telemetry with no floor under its size.** Traces
+  and APM buckets each trim themselves on a write lottery, so a stopped
+  scheduler cannot make them grow without bound. Logs were trimmed *only* by
+  `vigilance:prune` — and were also the one table the Usage page's retention
+  check did not watch, so the least-protected table was the unwatched one. A
+  flush now trims on the same kind of lottery (`logs.trim.lottery`, 1-in-200,
+  rescued so it can never break the write that won it), and `vigilance_logs`
+  joins the retention check.
+- **Turning tracing or the log explorer off stranded their rows for ever.**
+  `vigilance:prune` gated those trims on the feature being enabled, but
+  disabling a feature stops new rows without deleting the ones already written.
+  Both are now trimmed unconditionally — otherwise the retention check would
+  report a breach with no way to clear it, which is the fault 0.9.3 just fixed.
+
 ## [0.9.3] - 2026-08-16
 
 ### Fixed

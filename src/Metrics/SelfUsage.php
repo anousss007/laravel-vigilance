@@ -93,6 +93,7 @@ class SelfUsage
             'vigilance_traces' => ['retention' => (string) config('vigilance.tracing.retention', '72 hours'), 'label' => 'Traces'],
             'vigilance_runs' => ['retention' => ((int) config('vigilance.retention.days', 14)).' days', 'label' => 'Job & command runs'],
             'vigilance_aggregates' => ['retention' => (string) config('vigilance.apm.storage.trim.keep', '7 days'), 'label' => 'APM rolled buckets'],
+            'vigilance_logs' => ['retention' => (string) config('vigilance.logs.retention', '72 hours'), 'label' => 'Log explorer'],
         ];
 
         $grace = $this->pruneInterval();

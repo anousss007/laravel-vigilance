@@ -290,4 +290,7 @@ on Octane request reset so nothing leaks across requests. The **Logs** page
 filters by minimum level, channel and message text; a trace's detail page shows
 the logs emitted inside it, and every log row links back to its trace.
 
-`vigilance:prune` trims the log table on the same short window as traces.
+`vigilance:prune` trims the log table on the same short window as traces
+(`logs.retention`, 72 hours by default). Like traces, a flush also trims on a
+lottery (`logs.trim.lottery`, 1-in-200), so the table stays bounded even if the
+scheduler stops — and the **Usage** page reports it if either falls behind.

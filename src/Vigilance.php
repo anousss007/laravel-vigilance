@@ -20,7 +20,7 @@ use Vigilance\Support\IncidentMode;
  */
 class Vigilance
 {
-    public static string $version = '0.9.3';
+    public static string $version = '0.9.4';
 
     /** Cache-busting token for the bundled stylesheet, derived from its contents. */
     protected static ?string $assetVersion = null;

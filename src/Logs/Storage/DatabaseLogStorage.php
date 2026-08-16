@@ -7,6 +7,8 @@ use Carbon\CarbonInterval;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Lottery;
+use Throwable;
 use Vigilance\Logs\Contracts\LogStorage;
 use Vigilance\Logs\LogEntry;
 use Vigilance\Support\Like;
@@ -29,6 +31,31 @@ class DatabaseLogStorage implements LogStorage
         foreach (array_chunk($rows, 500) as $chunk) {
             $connection->table('vigilance_logs')->insert($chunk);
         }
+
+        // Traces and APM buckets each trim themselves on a write lottery, so a
+        // stopped scheduler cannot make them grow without bound. Logs had no
+        // such floor: they were trimmed only by vigilance:prune, which made this
+        // the one table whose size depended entirely on the scheduler still
+        // running. One roll per flush, not per record, and never at the expense
+        // of the request that happened to win it.
+        Lottery::odds(...$this->trimLotteryOdds())
+            ->winner(function () {
+                try {
+                    $this->trim();
+                } catch (Throwable) {
+                    // Bounding the table is housekeeping; failing to do it must
+                    // never surface as an error in the caller's request.
+                }
+            })
+            ->choose();
+    }
+
+    /** @return array{0:int,1:int} */
+    protected function trimLotteryOdds(): array
+    {
+        $odds = (array) config('vigilance.logs.trim.lottery', [1, 200]);
+
+        return [(int) ($odds[0] ?? 1), (int) ($odds[1] ?? 200)];
     }
 
     public function search(array $filters = [], int $limit = 100): Collection

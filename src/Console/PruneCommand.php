@@ -72,15 +72,17 @@ class PruneCommand extends Command
             app(ApmStorage::class)->trim();
         }
 
-        // …and the tracing tables (traces / spans), which keep a short window.
-        if (config('vigilance.tracing.enabled', false)) {
-            app(TraceStorage::class)->trim();
-        }
-
-        // …and the captured application logs, which keep a short window too.
-        if (config('vigilance.logs.enabled', false)) {
-            app(LogStorage::class)->trim();
-        }
+        // …and the tracing tables (traces / spans) and captured application
+        // logs, which keep a short window.
+        //
+        // Deliberately not gated on the feature being enabled: turning tracing
+        // or the log explorer off stops new rows, it does not delete the ones
+        // already there. Gating the trim stranded them for ever — and now that
+        // both tables are on the Usage page's retention check, that would show
+        // as a breach the operator has no way to clear. Rescued so a partially
+        // migrated install cannot fail the whole prune.
+        rescue(fn () => app(TraceStorage::class)->trim(), null, false);
+        rescue(fn () => app(LogStorage::class)->trim(), null, false);
 
         $this->info("Pruned {$deletedNonFailed} run(s) and {$deletedFailed} failed run(s).");
 

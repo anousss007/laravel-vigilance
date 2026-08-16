@@ -7,6 +7,7 @@ use Livewire\Livewire;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Http\Livewire\Usage;
+use Vigilance\Logs\Contracts\LogStorage;
 use Vigilance\Metrics\SelfUsage;
 use Vigilance\Models\Run;
 use Vigilance\Vigilance;
@@ -140,6 +141,101 @@ it('grades an uneven schedule against its widest gap', function () {
 
 it('falls back to the recommended daily cadence when the schedule was never synced', function () {
     expect(app(SelfUsage::class)->pruneInterval())->toBe(86400);
+});
+
+it('watches the log table too', function () {
+    // Logs are the one telemetry whose size depended entirely on the scheduler,
+    // so leaving them off the check meant the least-protected table was also
+    // the unwatched one.
+    DB::table('vigilance_logs')->insert([
+        'level' => 'error',
+        'level_value' => 400,
+        'message' => 'old',
+        'channel' => 'stack',
+        'logged_at' => now()->subHours(120)->getTimestamp(),
+        'created_at' => now()->subHours(120),
+    ]);
+
+    $breaches = collect(app(SelfUsage::class)->retentionBreaches())->keyBy('table');
+
+    expect($breaches)->toHaveKey('vigilance_logs')
+        ->and($breaches['vigilance_logs']['retention'])->toBe('72 hours');
+});
+
+it('keeps trimming telemetry for a feature that was turned off', function () {
+    // Disabling tracing or the log explorer stops new rows; it does not delete
+    // the ones already written. Gating the trim on "enabled" stranded them for
+    // ever — a breach the Usage page would report with no way to clear it.
+    config()->set('vigilance.logs.enabled', false);
+    config()->set('vigilance.tracing.enabled', false);
+
+    DB::table('vigilance_logs')->insert([
+        'level' => 'error',
+        'level_value' => 400,
+        'message' => 'left behind',
+        'channel' => 'stack',
+        'logged_at' => now()->subHours(120)->getTimestamp(),
+        'created_at' => now()->subHours(120),
+    ]);
+
+    DB::table('vigilance_traces')->insert([
+        'id' => (string) Str::uuid(),
+        'type' => 'request',
+        'name' => 'GET /x',
+        'status' => 'ok',
+        'duration_ms' => 10,
+        'span_count' => 0,
+        'started_at' => now()->subHours(120)->getTimestamp(),
+        'created_at' => now()->subHours(120),
+    ]);
+
+    $this->artisan('vigilance:prune')->assertSuccessful();
+
+    expect(DB::table('vigilance_logs')->count())->toBe(0)
+        ->and(DB::table('vigilance_traces')->count())->toBe(0);
+});
+
+it('trims expired logs on a write lottery, without the scheduler', function () {
+    // Odds of 1-in-1 so the roll is deterministic: what is being pinned is that
+    // a flush can trim at all, which is the floor under a stopped prune.
+    config()->set('vigilance.logs.trim.lottery', [1, 1]);
+
+    DB::table('vigilance_logs')->insert([
+        'level' => 'error',
+        'level_value' => 400,
+        'message' => 'expired',
+        'channel' => 'stack',
+        'logged_at' => now()->subHours(120)->getTimestamp(),
+        'created_at' => now()->subHours(120),
+    ]);
+
+    app(LogStorage::class)->store([[
+        'level' => 'info',
+        'level_value' => 200,
+        'message' => 'fresh',
+        'channel' => 'stack',
+        'logged_at' => now()->getTimestamp(),
+        'created_at' => now(),
+    ]]);
+
+    expect(DB::table('vigilance_logs')->count())->toBe(1)
+        ->and(DB::table('vigilance_logs')->value('message'))->toBe('fresh');
+});
+
+it('never lets a failing trim break the write that won the lottery', function () {
+    config()->set('vigilance.logs.trim.lottery', [1, 1]);
+    config()->set('vigilance.logs.retention', 'not an interval');
+
+    app(LogStorage::class)->store([[
+        'level' => 'info',
+        'level_value' => 200,
+        'message' => 'still stored',
+        'channel' => 'stack',
+        'logged_at' => now()->getTimestamp(),
+        'created_at' => now(),
+    ]]);
+
+    expect(DB::table('vigilance_logs')->value('message'))->toBe('still stored');
 });
 
 it('states what it measured instead of blaming the scheduler', function () {

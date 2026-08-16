@@ -1105,6 +1105,11 @@ return [
         'max_buffer' => 500,
 
         'retention' => env('VIGILANCE_LOGS_RETENTION', '72 hours'),
+
+        // Odds a flush also trims expired logs (1-in-N), so the table stays
+        // bounded even if vigilance:prune stops running. Mirrors the trace and
+        // APM trim lotteries.
+        'trim' => ['lottery' => [1, 200]],
     ],
 
     /*
