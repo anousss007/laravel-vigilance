@@ -108,10 +108,14 @@ class Recorder
                 });
             }
 
-            // Decide sampling at enqueue time. A sampled-out *successful* job is
-            // never written — zero DB cost. Failures are captured later in
-            // jobFailed() regardless of this flag, so nothing is silently lost.
-            $keep = Vigilance::passesSampling();
+            // Decide sampling at enqueue time. An ordinary sampled-out
+            // *successful* job is never written — zero DB cost. Failures are
+            // captured later in jobFailed() regardless of this flag.
+            // A retry child is also the durable marker that its failed parent
+            // was re-dispatched. Always retain it even when successful-run
+            // sampling is off; otherwise the same parent remains eligible for
+            // every later bulk retry and can execute repeatedly.
+            $keep = ($manual['retry_of'] ?? null) !== null || Vigilance::passesSampling();
 
             if ($keep) {
                 $this->runs->insert($data);

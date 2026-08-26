@@ -4,6 +4,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Vigilance\Apm\Apm;
 use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Http\Livewire\Usage;
@@ -163,9 +164,16 @@ it('watches the log table too', function () {
 });
 
 it('keeps trimming telemetry for a feature that was turned off', function () {
-    // Disabling tracing or the log explorer stops new rows; it does not delete
-    // the ones already written. Gating the trim on "enabled" stranded them for
-    // ever — a breach the Usage page would report with no way to clear it.
+    // Disabling APM, tracing, or the log explorer stops new rows; it does not
+    // delete the ones already written. Gating the trim on "enabled" stranded
+    // them for ever — a breach the Usage page would report with no way to clear.
+    app(Apm::class)
+        ->record('request', 'GET /left-behind', 100, now()->subDays(30)->getTimestamp())
+        ->count();
+    app(Apm::class)->set('server', 'web-1', '{"cpu":40}', now()->subDays(30)->getTimestamp());
+    app(Apm::class)->ingest();
+
+    config()->set('vigilance.apm.enabled', false);
     config()->set('vigilance.logs.enabled', false);
     config()->set('vigilance.tracing.enabled', false);
 
@@ -191,7 +199,10 @@ it('keeps trimming telemetry for a feature that was turned off', function () {
 
     $this->artisan('vigilance:prune')->assertSuccessful();
 
-    expect(DB::table('vigilance_logs')->count())->toBe(0)
+    expect(DB::table('vigilance_entries')->count())->toBe(0)
+        ->and(DB::table('vigilance_aggregates')->count())->toBe(0)
+        ->and(DB::table('vigilance_values')->count())->toBe(0)
+        ->and(DB::table('vigilance_logs')->count())->toBe(0)
         ->and(DB::table('vigilance_traces')->count())->toBe(0);
 });
 

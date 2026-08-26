@@ -67,20 +67,14 @@ class PruneCommand extends Command
 
         app(MetricsRepository::class)->trim((int) config('vigilance.retention.snapshots', 60));
 
-        // Also bound the APM telemetry tables (entries / aggregates / values).
-        if (config('vigilance.apm.enabled', true)) {
-            app(ApmStorage::class)->trim();
-        }
-
-        // …and the tracing tables (traces / spans) and captured application
-        // logs, which keep a short window.
+        // Also bound the APM telemetry tables (entries / aggregates / values),
+        // tracing tables (traces / spans), and captured application logs.
         //
-        // Deliberately not gated on the feature being enabled: turning tracing
-        // or the log explorer off stops new rows, it does not delete the ones
-        // already there. Gating the trim stranded them for ever — and now that
-        // both tables are on the Usage page's retention check, that would show
-        // as a breach the operator has no way to clear. Rescued so a partially
-        // migrated install cannot fail the whole prune.
+        // Deliberately not gated on a feature being enabled: turning APM,
+        // tracing, or the log explorer off stops new rows, it does not delete
+        // the ones already there. Rescued so a partially migrated install
+        // cannot fail the whole prune.
+        rescue(fn () => app(ApmStorage::class)->trim(), null, false);
         rescue(fn () => app(TraceStorage::class)->trim(), null, false);
         rescue(fn () => app(LogStorage::class)->trim(), null, false);
 

@@ -6,6 +6,40 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-08-26
+
+### Fixed
+- **"Retry all failed jobs" could run the same job over and over.** Nothing
+  recorded that a failed run had already been re-dispatched, so every press of
+  the button — and every press after that — picked the same run up again. On a
+  job that charges a card, sends an email or writes an export, that is the work
+  happening N times. The retry child's `retry_of` link is now the durable
+  marker: a run that has produced one is no longer eligible, and retrying it
+  singly reports "already been retried" instead of firing. Because that child
+  *is* the marker, it is now exempt from successful-run sampling — a sampled-out
+  child would have re-armed the parent.
+- **A bulk retry closed every open issue, including ones it never touched.** It
+  ran a blanket `resolved_at` update over all open failure groups, so browser
+  errors, failed requests and jobs whose payload could not be restored were all
+  marked resolved by a button that had done nothing for them. Only groups whose
+  retryable failed jobs were actually dispatched are resolved now; runs that
+  were skipped, and runs left behind by the bulk cap, keep their issue open.
+- **A negative `$cap` on `retryFailed()` meant "no limit", not "none".** Query
+  builders ignore a limit below zero, so the one guard against a runaway bulk
+  retry was the one value that removed it. The cap is now floored at zero.
+- **`vigilance:prune` left the APM tables alone when APM was disabled.**
+  Same fault 0.9.4 fixed for traces and logs, in the one place it was missed:
+  turning APM off stops new rows without deleting the ones already written, and
+  `vigilance_aggregates` is on the Usage page's retention check — so the
+  operator was shown a breach with no way to clear it.
+
+### Changed
+- Bulk retry now works through the **open** issues only. Failed jobs under an
+  issue somebody has already resolved are left alone; they are still retryable
+  one at a time from the run's own page.
+- `composer visual` ran a `visual/run.php` that does not exist, so the release
+  gate errored out instead of shooting anything. It now runs the real shooter.
+
 ## [0.9.4] - 2026-08-16
 
 ### Fixed

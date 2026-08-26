@@ -2,6 +2,7 @@
 
 namespace Vigilance\Control;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Vigilance\Control\Exceptions\CannotRetry;
 use Vigilance\Enums\RunStatus;
@@ -38,6 +39,10 @@ class JobRetrier
             throw new CannotRetry("Run [{$runId}] is not a job and cannot be retried.");
         }
 
+        if ($run->retries()->exists()) {
+            throw new CannotRetry("Run [{$runId}] has already been retried.");
+        }
+
         $this->retryRun($run, $user);
 
         $this->audit->log(
@@ -56,12 +61,15 @@ class JobRetrier
      */
     public function retryGroup(int $groupId, ?string $user = null): array
     {
-        $result = $this->retryMany(
-            Run::query()->failed()->ofType(RunType::Job)->where('failure_group_id', $groupId)->get(),
-            $user,
-        );
+        $runs = $this->eligibleFailedJobs()
+            ->where('failure_group_id', $groupId)
+            ->get();
 
-        FailureGroup::query()->whereKey($groupId)->update(['resolved_at' => now()]);
+        $result = $this->retryMany($runs, $user);
+
+        if ($result['retried'] > 0) {
+            $this->resolveDrainedGroups([$groupId]);
+        }
 
         $this->audit->log(action: 'retry_group', subject: (string) $groupId, meta: $result, user: $user);
 
@@ -76,12 +84,27 @@ class JobRetrier
      */
     public function retryFailed(?string $user = null, int $cap = 1000): array
     {
-        $result = $this->retryMany(
-            Run::query()->failed()->ofType(RunType::Job)->limit($cap)->get(),
-            $user,
-        );
+        $runs = $this->eligibleFailedJobs()
+            ->where(function ($query) {
+                $query->whereNull('failure_group_id')
+                    ->orWhereHas('failureGroup', fn ($groups) => $groups
+                        ->whereNull('resolved_at')
+                        ->whereNull('merged_into'));
+            })
+            ->orderBy('id')
+            ->limit(max(0, $cap))
+            ->get();
 
-        FailureGroup::query()->whereNull('resolved_at')->update(['resolved_at' => now()]);
+        $groupIds = $runs->pluck('failure_group_id')
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $result = $this->retryMany($runs, $user);
+
+        $this->resolveDrainedGroups($groupIds);
 
         $this->audit->log(action: 'retry_all', meta: $result, user: $user);
 
@@ -107,6 +130,42 @@ class JobRetrier
         }
 
         return ['retried' => $retried, 'skipped' => $skipped];
+    }
+
+    /**
+     * Failed job runs that have not already produced a retry child.
+     *
+     * @return Builder<Run>
+     */
+    protected function eligibleFailedJobs(): Builder
+    {
+        return Run::query()
+            ->failed()
+            ->ofType(RunType::Job)
+            ->whereDoesntHave('retries');
+    }
+
+    /**
+     * Resolve only groups for which every retryable failed-job leaf was
+     * dispatched. Skipped runs and runs left behind by the bulk cap keep their
+     * issue open; unrelated non-job issues are never touched.
+     *
+     * @param  list<int>  $groupIds
+     */
+    protected function resolveDrainedGroups(array $groupIds): void
+    {
+        if ($groupIds === []) {
+            return;
+        }
+
+        FailureGroup::query()
+            ->whereIn('id', $groupIds)
+            ->whereNull('resolved_at')
+            ->whereDoesntHave('runs', fn ($runs) => $runs
+                ->where('status', RunStatus::Failed->value)
+                ->where('type', RunType::Job->value)
+                ->whereDoesntHave('retries'))
+            ->update(['resolved_at' => now()]);
     }
 
     /**

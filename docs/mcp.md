@@ -121,7 +121,7 @@ are **not even listed** to the client, so the agent cannot call them.
 | `merge-issues` | Merge one issue into another (occurrences/runs move; source hidden). |
 | `mute-issue` | Mute an issue for N hours. |
 | `retry-run` | Retry one failed queued job. |
-| `retry-issue` | Retry every failed job in an issue, then resolve it. |
+| `retry-issue` | Retry every failed job in an issue that has not already been retried, and resolve the issue once none are left. |
 | `record-deploy` | Record a deployment marker for release-health correlation. |
 | `maintenance` | Start / stop / status an alert-suppression maintenance window. |
 
