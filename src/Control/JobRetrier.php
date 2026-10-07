@@ -9,12 +9,13 @@ use Vigilance\Enums\RunStatus;
 use Vigilance\Enums\RunType;
 use Vigilance\Models\FailureGroup;
 use Vigilance\Models\Run;
+use Vigilance\Support\PayloadSignature;
 use Vigilance\Vigilance;
 
 /**
  * Re-dispatches a previously failed job by faithfully reconstructing it from
- * the serialized command stored on the original run. Reconstruction uses a
- * restricted unserialize limited to the original job class, so a tampered
+ * the serialized command stored on the original run. The payload is signed at
+ * capture, so only one Vigilance itself wrote is restored in full; a tampered
  * payload cannot instantiate arbitrary objects.
  */
 class JobRetrier
@@ -192,18 +193,22 @@ class JobRetrier
     }
 
     /**
-     * Reconstruct the original job instance from the run's stored payload using
-     * an unserialize restricted to the original class only.
+     * Reconstruct the original job instance from the run's stored payload.
      *
-     * Public so RunReplayer can reuse it: the restricted unserialize is the
+     * A payload signed at capture (PayloadSignature) is restored in full, nested
+     * objects included. An unsigned one — captured before payloads were signed,
+     * or without an application key — keeps the restricted unserialize limited
+     * to the original class, and is refused if the job needs more than that.
+     *
+     * Public so RunReplayer can reuse it: the unserialize is the
      * security-sensitive part of this class, and a second copy would be a
      * second place to get it wrong.
      */
     public function restore(Run $run): object
     {
-        $serialized = $run->payload_raw;
+        $stored = $run->payload_raw;
 
-        if (! is_string($serialized) || $serialized === '') {
+        if (! is_string($stored) || $stored === '') {
             throw new CannotRetry(
                 "Run [{$run->id}] has no stored payload to retry from. ".
                 'Enable vigilance.capture.store_for_retry to retry jobs.',
@@ -216,10 +221,24 @@ class JobRetrier
             throw new CannotRetry("Run [{$run->id}] references an unknown job class [{$class}].");
         }
 
+        $signed = PayloadSignature::isSigned($stored);
+        $serialized = $signed ? PayloadSignature::verify($stored) : $stored;
+
+        if ($serialized === null) {
+            throw new CannotRetry(
+                "Run [{$run->id}] payload failed its signature check: it was modified ".
+                'after capture, or signed with an application key that is no longer configured.',
+            );
+        }
+
         try {
-            $job = @unserialize($serialized, ['allowed_classes' => [$class]]);
+            $job = @unserialize($serialized, ['allowed_classes' => $signed ? true : [$class]]);
         } catch (\Throwable $e) {
-            throw new CannotRetry("Run [{$run->id}] payload could not be unserialized: {$e->getMessage()}");
+            // Unsigned, a typed property refusing an incomplete object is the
+            // same legacy limitation as below, not a corrupt payload.
+            throw $signed
+                ? new CannotRetry("Run [{$run->id}] payload could not be unserialized: {$e->getMessage()}")
+                : $this->unsignedPayload($run);
         }
 
         if (! is_object($job) || ! $job instanceof $class) {
@@ -228,6 +247,58 @@ class JobRetrier
             );
         }
 
+        if (! $signed && $this->hasIncompleteObjects($job)) {
+            throw $this->unsignedPayload($run);
+        }
+
         return $job;
+    }
+
+    /**
+     * An unsigned payload is only restored as far as the job class itself;
+     * anything nested in it cannot be trusted, so the job cannot be rebuilt.
+     */
+    protected function unsignedPayload(Run $run): CannotRetry
+    {
+        return new CannotRetry(
+            "Run [{$run->id}] was captured before retry payloads were signed and holds ".
+            'nested objects (models, notifications, collections…) that cannot be restored '.
+            'safely. Retry it from the queue\'s failed jobs instead (php artisan queue:retry).',
+        );
+    }
+
+    /**
+     * Whether the restricted unserialize left any part of the job's object
+     * graph as __PHP_Incomplete_Class. Dispatching such a job fails as soon as
+     * Laravel reads one of those properties.
+     */
+    protected function hasIncompleteObjects(mixed $value, ?\SplObjectStorage $seen = null): bool
+    {
+        if ($value instanceof \__PHP_Incomplete_Class) {
+            return true;
+        }
+
+        if (is_object($value)) {
+            $seen ??= new \SplObjectStorage;
+
+            if ($seen->contains($value)) {
+                return false;
+            }
+
+            $seen->attach($value);
+
+            // The array cast exposes private and protected properties too.
+            $value = (array) $value;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if ($this->hasIncompleteObjects($item, $seen)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

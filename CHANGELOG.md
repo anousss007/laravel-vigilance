@@ -6,6 +6,32 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **Retry and Re-run failed for any job holding another object** (#12).
+  The stored payload was unserialized with only the job's own class allowed,
+  so everything nested in it — the notification inside a
+  `SendQueuedNotifications`, a mailable, `SerializesModels` identifiers,
+  collections, dates — came back as `__PHP_Incomplete_Class`, and dispatch
+  failed the moment Laravel read one. Payloads are now signed with the
+  application key when they are captured, and a payload whose signature
+  verifies is restored in full. One that was edited after capture is refused.
+  Allowing whole namespaces instead was considered and rejected: the
+  Illuminate classes it would let through are what most known gadget chains
+  are built from. `app.previous_keys` still verify, so rotating the key does
+  not strand payloads already captured. The signed payload is stored
+  base64-encoded, because protected and private properties serialize with NUL
+  bytes that PostgreSQL does not keep in a text column.
+
+### Changed
+- Runs captured before this release carry no signature. They are still
+  restored with the class-restricted unserialize, which works for jobs that
+  hold only scalars and arrays. Any other job is now refused with a message
+  that points to `php artisan queue:retry`, instead of failing inside
+  `dispatch()`.
+- `JobRetrier::restore()` has been public since 0.9.x, because `RunReplayer`
+  reuses it. A subclass that overrides it as `protected` (the workaround
+  suggested in #12) is now a fatal error, and that override can be removed.
+
 ## [0.9.5] - 2026-08-26
 
 ### Fixed

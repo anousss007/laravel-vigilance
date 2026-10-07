@@ -15,6 +15,7 @@ use Vigilance\Enums\RunType;
 use Vigilance\Events\DashboardChanged;
 use Vigilance\Support\Breadcrumbs;
 use Vigilance\Support\ExceptionChain;
+use Vigilance\Support\PayloadSignature;
 use Vigilance\Support\Redactor;
 use Vigilance\Tracing\Tracer;
 use Vigilance\Vigilance;
@@ -101,11 +102,13 @@ class Recorder
 
             if (config('vigilance.capture.store_for_retry', true)) {
                 $command = $payload['data']['command'] ?? null;
-                $data->set('payload_raw', match (true) {
+                // Signed so JobRetrier can restore the whole object graph
+                // (notifications, models, enums…) without trusting the row.
+                $data->set('payload_raw', PayloadSignature::sign(match (true) {
                     is_string($command) => $command,
                     is_object($command) => @serialize($command),
                     default => null,
-                });
+                }));
             }
 
             // Decide sampling at enqueue time. An ordinary sampled-out

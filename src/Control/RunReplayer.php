@@ -67,10 +67,10 @@ class RunReplayer
             throw new NotAllowed("Job [{$class}] is not allowed to be dispatched from the dashboard.");
         }
 
-        // Reuse the retrier's payload reconstruction: same restricted
-        // unserialize limited to the original class, same "no stored payload"
-        // failure mode. Duplicating it would be a second place to get the
-        // unserialize hardening wrong.
+        // Reuse the retrier's payload reconstruction: same signature check
+        // before the unserialize, same "no stored payload" failure mode.
+        // Duplicating it would be a second place to get the unserialize
+        // hardening wrong.
         $job = $this->retrier->restore($run);
 
         Vigilance::asManual($user, function () use ($job, $run) {
