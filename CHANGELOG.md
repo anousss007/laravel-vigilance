@@ -18,7 +18,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Allowing whole namespaces instead was considered and rejected: the
   Illuminate classes it would let through are what most known gadget chains
   are built from. `app.previous_keys` still verify, so rotating the key does
-  not strand payloads already captured.
+  not strand payloads already captured. The signed payload is stored
+  base64-encoded, because protected and private properties serialize with NUL
+  bytes that PostgreSQL does not keep in a text column.
 
 ### Changed
 - Runs captured before this release carry no signature. They are still

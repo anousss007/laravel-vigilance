@@ -16,6 +16,10 @@ namespace Vigilance\Support;
  * The MAC is keyed on the application key (previous keys still verify, so a
  * key rotation does not strand payloads already captured) and stored inline
  * in payload_raw, so no column is needed.
+ *
+ * The serialized body is stored base64-encoded: protected and private
+ * properties serialize with NUL bytes in their names, which PostgreSQL does
+ * not keep in a text column.
  */
 class PayloadSignature
 {
@@ -34,7 +38,7 @@ class PayloadSignature
             return $serialized;
         }
 
-        return static::PREFIX.static::mac($serialized, $keys[0]).':'.$serialized;
+        return static::PREFIX.static::mac($serialized, $keys[0]).':'.base64_encode($serialized);
     }
 
     /**
@@ -53,7 +57,12 @@ class PayloadSignature
             return null;
         }
 
-        [$mac, $serialized] = $parts;
+        [$mac, $encoded] = $parts;
+        $serialized = base64_decode($encoded, true);
+
+        if ($serialized === false) {
+            return null;
+        }
 
         foreach (static::keys() as $key) {
             if (hash_equals(static::mac($serialized, $key), $mac)) {

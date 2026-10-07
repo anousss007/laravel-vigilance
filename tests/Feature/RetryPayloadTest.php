@@ -82,8 +82,8 @@ it('retries a failed job with nested objects end to end', function () {
 });
 
 it('refuses a signed payload that was modified after capture', function () {
-    $signed = PayloadSignature::sign(serialize(new SampleJob(5)));
-    $tampered = str_replace('i:5;', 'i:6;', $signed);
+    [$mac] = explode(':', substr(PayloadSignature::sign(serialize(new SampleJob(5))), 5), 2);
+    $tampered = 'vgl1:'.$mac.':'.base64_encode(serialize(new SampleJob(6)));
 
     $run = retryRunFor(SampleJob::class, $tampered);
 
@@ -123,8 +123,15 @@ it('refuses an unsigned payload whose nested objects cannot be restored', functi
         ->toThrow(CannotRetry::class, 'captured before retry payloads were signed');
 });
 
+it('stores signed payloads free of the NUL bytes PostgreSQL drops', function () {
+    $stored = PayloadSignature::sign(serialize(nestedJob()));
+
+    expect($stored)->not->toContain("\0")
+        ->and(unserialize(PayloadSignature::verify($stored)))->toBeInstanceOf(NestedJob::class);
+});
+
 it('refuses a forged payload that only claims to be signed', function () {
-    $run = retryRunFor(SampleJob::class, 'vgl1:'.str_repeat('0', 64).':'.serialize(new SampleJob(5)));
+    $run = retryRunFor(SampleJob::class, 'vgl1:'.str_repeat('0', 64).':'.base64_encode(serialize(new SampleJob(5))));
 
     expect(fn () => app(JobRetrier::class)->restore($run))
         ->toThrow(CannotRetry::class, 'signature check');
