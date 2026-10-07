@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-10-07
+
 ### Fixed
 - **Retry and Re-run failed for any job holding another object** (#12).
   The stored payload was unserialized with only the job's own class allowed,
