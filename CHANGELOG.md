@@ -6,6 +6,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- **Verified against `laravel/mcp` 1.x.** The MCP server (`php artisan mcp:start
+  vigilance`) runs unchanged on `laravel/mcp` 1.1, including with clients that
+  still use the legacy `initialize` handshake. 0.8 remains supported.
+- Development dependencies refreshed (Laravel 13.38, Testbench 11.3, Livewire
+  4.4, Larastan 3.13, Pint 1.32). The test suite now also runs on Pest 5 /
+  PHPUnit 13 when PHP is 8.4 or newer and Laravel is 13.23 or newer. Pest 3 and 4
+  remain supported.
+
 ## [0.9.6] - 2026-10-07
 
 ### Fixed
