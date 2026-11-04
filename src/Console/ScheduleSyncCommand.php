@@ -5,6 +5,7 @@ namespace Vigilance\Console;
 use Illuminate\Console\Command;
 use Illuminate\Console\Scheduling\Schedule;
 use Vigilance\Models\ScheduledTaskMonitor;
+use Vigilance\Support\ScheduledTaskGrace;
 use Vigilance\Support\ScheduledTaskName;
 
 class ScheduleSyncCommand extends Command
@@ -26,6 +27,7 @@ class ScheduleSyncCommand extends Command
             $monitor->type = ScheduledTaskName::type($event);
             $monitor->cron_expression = $event->expression;
             $monitor->timezone = $this->timezone($event);
+            $monitor->grace_time_minutes = ScheduledTaskGrace::for($name);
 
             if (! $monitor->exists) {
                 $monitor->monitored = true;

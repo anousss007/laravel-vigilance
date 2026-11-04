@@ -49,31 +49,54 @@ class ScheduledTaskMonitor extends VigilanceModel
     }
 
     /**
-     * The task is "late" if its next expected run (computed from the last
-     * finish, or creation if it never finished) plus the grace time is in the
-     * past. Covers both "ran too long / overdue" and "never ran".
+     * The task is "late" if its next expected run plus the grace time is in
+     * the past. The expected run is computed from the last time the scheduler
+     * showed a sign of life for this task: the latest of its start, finish or
+     * skip (or creation if none happened yet). A skipped run (a when() filter,
+     * schedule:pause, onOneServer elsewhere) means the scheduler is alive and
+     * chose not to run it, so it is not "overdue". Covers both "stopped
+     * running" and "never ran".
      */
     public function isLate(): bool
     {
+        $expectedBy = $this->expectedBy();
+
+        return $expectedBy !== null && now()->greaterThan($expectedBy);
+    }
+
+    /**
+     * The moment past which the task counts as overdue: its next expected run
+     * after its last sign of life, plus the grace window. Null when the task
+     * is not monitored or has no schedule to check against.
+     */
+    public function expectedBy(): ?Carbon
+    {
         if (! $this->monitored || ! $this->cron_expression) {
-            return false;
+            return null;
         }
 
-        $reference = $this->last_finished_at ?? $this->created_at;
+        $reference = $this->lastSeenAt() ?? $this->created_at;
 
         if (! $reference) {
-            return false;
+            return null;
         }
 
         $expectedNext = $this->nextRunAt($reference);
 
         if (! $expectedNext) {
-            return false;
+            return null;
         }
 
-        return now()->greaterThan(
-            Carbon::instance($expectedNext)->addMinutes($this->grace_time_minutes)
-        );
+        return Carbon::instance($expectedNext)->addMinutes($this->grace_time_minutes);
+    }
+
+    /** The latest start, finish or skip recorded for the task. */
+    public function lastSeenAt(): ?Carbon
+    {
+        return collect([$this->last_started_at, $this->last_finished_at, $this->last_skipped_at])
+            ->filter()
+            ->sortByDesc(fn (CarbonInterface $at) => $at->getTimestamp())
+            ->first();
     }
 
     public function lastRunFailed(): bool

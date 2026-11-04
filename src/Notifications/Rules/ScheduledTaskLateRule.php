@@ -25,7 +25,7 @@ class ScheduledTaskLateRule implements AlertRule
                 yield new Alert(
                     key: 'schedule_late:'.$monitor->name,
                     title: 'Scheduled task overdue',
-                    message: "Scheduled task [{$monitor->name}] is overdue (expected to have run by now).",
+                    message: $this->overdueMessage($monitor),
                     level: 'warning',
                 );
             } elseif ($monitor->lastRunFailed()) {
@@ -37,5 +37,24 @@ class ScheduledTaskLateRule implements AlertRule
                 );
             }
         }
+    }
+
+    protected function overdueMessage(ScheduledTaskMonitor $monitor): string
+    {
+        $tz = $monitor->timezone ?: config('app.timezone', 'UTC');
+        $format = fn ($at) => $at->copy()->setTimezone($tz)->format('Y-m-d H:i:s T');
+
+        $expectedBy = $monitor->expectedBy() ?? now();
+        $lastSeen = $monitor->last_started_at;
+
+        $message = "Scheduled task [{$monitor->name}] is overdue: it should have started by "
+            .$format($expectedBy->copy()->subMinutes($monitor->grace_time_minutes))
+            ." ({$monitor->grace_time_minutes} min grace).";
+
+        $message .= $lastSeen
+            ? ' Last started '.$format($lastSeen).'.'
+            : ' It has not run since monitoring began.';
+
+        return $message.' If it is just queued behind slower tasks, raise vigilance.schedule.grace or run those with ->runInBackground().';
     }
 }

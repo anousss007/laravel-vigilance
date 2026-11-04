@@ -6,6 +6,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Configurable grace window for scheduled tasks** (#14). `VIGILANCE_SCHEDULE_GRACE`
+  sets the default (5 minutes) and `vigilance.schedule.grace` overrides it per
+  task, with `*` wildcards. Applied by `vigilance:schedule-sync` and on every run.
+
+### Fixed
+- **Fewer false "Scheduled task overdue" alerts** (#14). Lateness now counts from
+  a task's latest start, finish or skip, so a task that was skipped (a `when()`
+  filter, `schedule:pause`, `onOneServer` on another server) or is still running
+  is no longer reported overdue. The alert now says when the task was due and
+  when it last started.
+- A scheduled-task run that cannot be recorded is now logged as a warning instead
+  of being dropped silently.
+
+### Changed
+- **Verified against `laravel/mcp` 1.x.** The MCP server (`php artisan mcp:start
+  vigilance`) runs unchanged on `laravel/mcp` 1.1, including with clients that
+  still use the legacy `initialize` handshake. 0.8 remains supported.
+- Development dependencies refreshed (Laravel 13.38, Testbench 11.3, Livewire
+  4.4, Larastan 3.13, Pint 1.32). The test suite now also runs on Pest 5 /
+  PHPUnit 13 when PHP is 8.4 or newer and Laravel is 13.23 or newer. Pest 3 and 4
+  remain supported.
+
 ## [0.9.6] - 2026-10-07
 
 ### Fixed
