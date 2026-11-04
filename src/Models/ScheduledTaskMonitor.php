@@ -49,9 +49,13 @@ class ScheduledTaskMonitor extends VigilanceModel
     }
 
     /**
-     * The task is "late" if its next expected run (computed from the last
-     * finish, or creation if it never finished) plus the grace time is in the
-     * past. Covers both "ran too long / overdue" and "never ran".
+     * The task is "late" if its next expected run plus the grace time is in
+     * the past. The expected run is computed from the last time the scheduler
+     * showed a sign of life for this task: the latest of its start, finish or
+     * skip (or creation if none happened yet). A skipped run (a when() filter,
+     * schedule:pause, onOneServer elsewhere) means the scheduler is alive and
+     * chose not to run it, so it is not "overdue". Covers both "stopped
+     * running" and "never ran".
      */
     public function isLate(): bool
     {
@@ -59,7 +63,10 @@ class ScheduledTaskMonitor extends VigilanceModel
             return false;
         }
 
-        $reference = $this->last_finished_at ?? $this->created_at;
+        $reference = collect([$this->last_started_at, $this->last_finished_at, $this->last_skipped_at])
+            ->filter()
+            ->sortByDesc(fn (CarbonInterface $at) => $at->getTimestamp())
+            ->first() ?? $this->created_at;
 
         if (! $reference) {
             return false;

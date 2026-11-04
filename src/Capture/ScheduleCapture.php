@@ -7,6 +7,7 @@ use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Vigilance\Models\ScheduledTaskMonitor;
 use Vigilance\Support\ScheduledTaskName;
 
@@ -75,8 +76,21 @@ class ScheduleCapture
 
             $mutate($monitor);
             $monitor->save();
+        } catch (\Throwable $e) {
+            // Never break the scheduler, but never fail silently either: a
+            // monitor whose runs are not recorded ends up reported as overdue.
+            $this->warn($e);
+        }
+    }
+
+    protected function warn(\Throwable $e): void
+    {
+        try {
+            Log::warning('Vigilance could not record a scheduled task run: '.$e->getMessage(), [
+                'exception' => $e,
+            ]);
         } catch (\Throwable) {
-            // never break the scheduler
+            // logging must not break the scheduler either
         }
     }
 
