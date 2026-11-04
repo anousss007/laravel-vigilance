@@ -6,6 +6,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-11-04
+
 ### Added
 - **Configurable grace window for scheduled tasks** (#14). `VIGILANCE_SCHEDULE_GRACE`
   sets the default (5 minutes) and `vigilance.schedule.grace` overrides it per
