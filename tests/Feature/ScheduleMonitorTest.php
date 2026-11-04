@@ -116,3 +116,69 @@ it('logs instead of silently dropping a run it cannot record', function () {
         ->withArgs(fn (string $message) => str_contains($message, 'could not record a scheduled task run'))
         ->once();
 });
+
+it('applies the configured grace window, with per-task overrides', function () {
+    config([
+        'vigilance.schedule.grace_minutes' => 10,
+        'vigilance.schedule.grace' => ['vigilance:*' => 15, 'backup:run' => 60],
+    ]);
+
+    $schedule = new Schedule;
+    app()->instance(Schedule::class, $schedule);
+    $schedule->command('vigilance:schedule-sync')->hourly();
+    $schedule->command('backup:run')->daily();
+    $schedule->command('app:report')->daily();
+
+    $this->artisan('vigilance:schedule-sync')->assertSuccessful();
+
+    expect(ScheduledTaskMonitor::pluck('grace_time_minutes', 'name')->all())->toBe([
+        'vigilance:schedule-sync' => 15,
+        'backup:run' => 60,
+        'app:report' => 10,
+    ]);
+});
+
+it('refreshes the grace window when a task runs', function () {
+    $event = (new Schedule)->command('app:task')->everyFiveMinutes();
+    event(new ScheduledTaskStarting($event));
+
+    config(['vigilance.schedule.grace' => ['app:task' => 20]]);
+    event(new ScheduledTaskFinished($event, 1.0));
+
+    expect(ScheduledTaskMonitor::where('name', 'app:task')->sole()->grace_time_minutes)->toBe(20);
+});
+
+it('does not flag a task delayed behind slower ones within its grace window', function () {
+    // Hourly task due at 16:00, queued behind slow tasks until 16:08:45.
+    Carbon::setTestNow(Carbon::parse('2026-11-04 16:06:00', 'UTC'));
+
+    $task = monitor([
+        'name' => 'vigilance:schedule-sync',
+        'cron_expression' => '0 * * * *',
+        'last_started_at' => Carbon::parse('2026-11-04 15:08:45', 'UTC'),
+        'last_finished_at' => Carbon::parse('2026-11-04 15:08:46', 'UTC'),
+    ]);
+
+    expect($task->isLate())->toBeTrue();
+
+    $task->update(['grace_time_minutes' => 15]);
+
+    expect($task->fresh()->isLate())->toBeFalse();
+});
+
+it('says when the task was due and when it last started', function () {
+    Carbon::setTestNow(Carbon::parse('2026-11-04 16:20:00', 'UTC'));
+
+    monitor([
+        'name' => 'vigilance:schedule-sync',
+        'cron_expression' => '0 * * * *',
+        'last_started_at' => Carbon::parse('2026-11-04 15:08:45', 'UTC'),
+        'last_finished_at' => Carbon::parse('2026-11-04 15:08:46', 'UTC'),
+    ]);
+
+    $alert = iterator_to_array((new ScheduledTaskLateRule)->evaluate(), false)[0];
+
+    expect($alert->message)
+        ->toContain('should have started by 2026-11-04 16:00:00 UTC (5 min grace)')
+        ->toContain('Last started 2026-11-04 15:08:45 UTC');
+});

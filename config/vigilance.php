@@ -401,6 +401,32 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Scheduled Task Monitoring
+    |--------------------------------------------------------------------------
+    |
+    | A monitored task is overdue once its next expected run plus a grace
+    | window has passed without it starting. "schedule:run" runs the tasks due
+    | in the same minute one after another, so a task queued behind slow ones
+    | can start minutes after its cron time: raise the grace window (or run
+    | the slow tasks with ->runInBackground()) if that is normal for you.
+    |
+    | "grace" overrides the default per task. Keys are task names as shown on
+    | the Schedule page, and may use "*" wildcards. Applied by
+    | vigilance:schedule-sync and every time a task runs.
+    |
+    */
+
+    'schedule' => [
+        'grace_minutes' => (int) env('VIGILANCE_SCHEDULE_GRACE', 5),
+
+        'grace' => [
+            // 'vigilance:*' => 15,
+            // 'backup:run' => 60,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Notifications
     |--------------------------------------------------------------------------
     |

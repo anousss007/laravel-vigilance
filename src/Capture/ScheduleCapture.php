@@ -9,6 +9,7 @@ use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Vigilance\Models\ScheduledTaskMonitor;
+use Vigilance\Support\ScheduledTaskGrace;
 use Vigilance\Support\ScheduledTaskName;
 
 /**
@@ -73,6 +74,8 @@ class ScheduleCapture
                 $monitor->timezone = $this->timezone($task);
                 $monitor->monitored = true;
             }
+
+            $monitor->grace_time_minutes = ScheduledTaskGrace::for($name);
 
             $mutate($monitor);
             $monitor->save();

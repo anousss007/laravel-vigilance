@@ -59,28 +59,44 @@ class ScheduledTaskMonitor extends VigilanceModel
      */
     public function isLate(): bool
     {
+        $expectedBy = $this->expectedBy();
+
+        return $expectedBy !== null && now()->greaterThan($expectedBy);
+    }
+
+    /**
+     * The moment past which the task counts as overdue: its next expected run
+     * after its last sign of life, plus the grace window. Null when the task
+     * is not monitored or has no schedule to check against.
+     */
+    public function expectedBy(): ?Carbon
+    {
         if (! $this->monitored || ! $this->cron_expression) {
-            return false;
+            return null;
         }
 
-        $reference = collect([$this->last_started_at, $this->last_finished_at, $this->last_skipped_at])
-            ->filter()
-            ->sortByDesc(fn (CarbonInterface $at) => $at->getTimestamp())
-            ->first() ?? $this->created_at;
+        $reference = $this->lastSeenAt() ?? $this->created_at;
 
         if (! $reference) {
-            return false;
+            return null;
         }
 
         $expectedNext = $this->nextRunAt($reference);
 
         if (! $expectedNext) {
-            return false;
+            return null;
         }
 
-        return now()->greaterThan(
-            Carbon::instance($expectedNext)->addMinutes($this->grace_time_minutes)
-        );
+        return Carbon::instance($expectedNext)->addMinutes($this->grace_time_minutes);
+    }
+
+    /** The latest start, finish or skip recorded for the task. */
+    public function lastSeenAt(): ?Carbon
+    {
+        return collect([$this->last_started_at, $this->last_finished_at, $this->last_skipped_at])
+            ->filter()
+            ->sortByDesc(fn (CarbonInterface $at) => $at->getTimestamp())
+            ->first();
     }
 
     public function lastRunFailed(): bool

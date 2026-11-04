@@ -6,6 +6,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Configurable grace window for scheduled tasks** (#14). `VIGILANCE_SCHEDULE_GRACE`
+  sets the default (5 minutes) and `vigilance.schedule.grace` overrides it per
+  task, with `*` wildcards. Applied by `vigilance:schedule-sync` and on every run.
+
+### Fixed
+- **Fewer false "Scheduled task overdue" alerts** (#14). Lateness now counts from
+  a task's latest start, finish or skip, so a task that was skipped (a `when()`
+  filter, `schedule:pause`, `onOneServer` on another server) or is still running
+  is no longer reported overdue. The alert now says when the task was due and
+  when it last started.
+- A scheduled-task run that cannot be recorded is now logged as a warning instead
+  of being dropped silently.
+
 ### Changed
 - **Verified against `laravel/mcp` 1.x.** The MCP server (`php artisan mcp:start
   vigilance`) runs unchanged on `laravel/mcp` 1.1, including with clients that

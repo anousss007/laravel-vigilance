@@ -256,6 +256,8 @@ Vigilance injects a correlation id into each job's payload at dispatch (`Queue::
 
 Artisan commands are captured via `CommandStarting` / `CommandFinished` (name, arguments, options, exit code, duration). The scheduler is tracked via `ScheduledTask*` events, which keep a per-task monitor up to date (last run, duration, lateness, failures).
 
+A task is reported overdue when it has not started within a grace window (5 minutes by default) after its expected run. `schedule:run` runs the tasks due in the same minute one after another, so a task queued behind slow ones can start several minutes late. Raise the window with `VIGILANCE_SCHEDULE_GRACE`, override it per task in `config/vigilance.php` → `schedule.grace` (wildcards allowed, e.g. `'vigilance:*' => 15`), or run the slow tasks with `->runInBackground()`.
+
 ## Manual control (dispatch jobs / run commands)
 
 The dashboard can dispatch jobs and run artisan commands with user-supplied parameters. Because that is effectively remote code execution, it is **off by default** (like the read-only posture of Horizon / Telescope / Pulse). Opt in with `VIGILANCE_CONTROL_ENABLED=true`, then govern it with an **allowlist** (`config/vigilance.php` → `control`):
